@@ -1,0 +1,59 @@
+{
+  "app": { "name": "Cortex", "tagline": "Radar peluang" },
+  "nav": { "home": "Beranda", "radar": "Radar", "logout": "Keluar" },
+  "login": {
+    "subtitle": "Masuk ke meja sinyalmu",
+    "username": "Nama pengguna",
+    "password": "Kata sandi",
+    "submit": "Masuk",
+    "signingIn": "Masuk\u2026",
+    "failed": "Nama pengguna atau kata sandi salah"
+  },
+  "home": {
+    "greeting": "Meja sinyal",
+    "lead": "Catat masalah begitu kamu mendengarnya.",
+    "capturePlaceholder": "Masalah apa yang baru kamu dengar?",
+    "add": "Catat",
+    "recent": "Sinyal terbaru",
+    "viewAll": "Buka radar",
+    "empty": "Belum ada catatan. Mulai dari kotak di atas."
+  },
+  "stats": {
+    "total": "Total masalah",
+    "newToday": "Baru hari ini",
+    "indonesia": "Indonesia",
+    "row": "Luar negeri",
+    "ai": "Temuan AI",
+    "validated": "Tervalidasi"
+  },
+  "radar": {
+    "title": "Radar",
+    "lead": "Setiap masalah yang kamu catat, dari setiap sumber.",
+    "add": "Tambah masalah",
+    "search": "Cari masalah",
+    "count": "{{count}} masalah",
+    "count_other": "{{count}} masalah",
+    "empty": "Tidak ada masalah yang cocok dengan filter ini."
+  },
+  "filter": { "allScopes": "Semua cakupan", "allSources": "Semua sumber", "allStatuses": "Semua status" },
+  "scope": { "id": "Indonesia", "row": "Luar negeri" },
+  "source": { "personal": "Pribadi", "other": "Dari orang lain", "ai": "AI" },
+  "status": { "inbox": "Masuk", "validated": "Tervalidasi", "parked": "Ditunda", "dropped": "Dibatalkan" },
+  "form": {
+    "new": "Masalah baru",
+    "edit": "Ubah masalah",
+    "title": "Judul",
+    "titlePlaceholder": "Satu baris: apa masalahnya?",
+    "body": "Detail",
+    "bodyPlaceholder": "Siapa yang mengalami, kapan, apa dampaknya\u2026",
+    "scope": "Cakupan",
+    "source": "Sumber",
+    "status": "Status",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "confirmDelete": "Hapus masalah ini? Tindakan ini tidak bisa dibatalkan."
+  },
+  "problem": { "seen": "terlihat {{count}}\u00d7", "aiTag": "AI" },
+  "common": { "loading": "Memuat\u2026", "error": "Terjadi kesalahan", "retry": "Coba lagi" }
+}

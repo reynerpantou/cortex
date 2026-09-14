@@ -1,0 +1,16 @@
+services:
+  cortex:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data        # SQLite file lives here; back up by copying it
+    environment:
+      - CORTEX_COOKIE_SECURE=false   # set true behind HTTPS
+      - CORTEX_ADMIN_USER=admin
+      # Set a password to seed a known login on first run; otherwise one is
+      # generated and printed to the logs exactly once.
+      # - CORTEX_ADMIN_PASSWORD=change-me
+      # AI layer (next slice) — leave unset to keep AI disabled:
+      # - ANTHROPIC_API_KEY=sk-ant-...
+    restart: unless-stopped
