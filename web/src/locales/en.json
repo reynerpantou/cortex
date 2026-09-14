@@ -1,8 +1,8 @@
 {
-  "app": { "name": "Cortex", "tagline": "Opportunity radar" },
+  "app": { "name": "Cortex" },
   "nav": { "home": "Home", "radar": "Radar", "logout": "Sign out" },
   "login": {
-    "subtitle": "Sign in to your signal desk",
+    "subtitle": "Sign in to continue",
     "username": "Username",
     "password": "Password",
     "submit": "Sign in",
@@ -10,13 +10,13 @@
     "failed": "Incorrect username or password"
   },
   "home": {
-    "greeting": "Signal desk",
-    "lead": "Capture a problem the moment you hear it.",
-    "capturePlaceholder": "What problem did you just hear?",
-    "add": "Capture",
-    "recent": "Recent signals",
-    "viewAll": "Open radar",
-    "empty": "Nothing captured yet. Start with the box above."
+    "greeting": "Welcome back",
+    "lead": "Pick a module to get started."
+  },
+  "modules": {
+    "radar": {
+      "description": "Capture business problems and pain points, then get ideas worth building on."
+    }
   },
   "stats": {
     "total": "Total problems",

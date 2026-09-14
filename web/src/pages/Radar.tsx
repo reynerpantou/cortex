@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import type { Problem, ProblemInput } from "../lib/types";
+import type { Problem, ProblemInput, Stats } from "../lib/types";
 import ProblemCard from "../components/ProblemCard";
 import ProblemForm from "../components/ProblemForm";
 
@@ -10,6 +10,7 @@ type Editing = Problem | "new" | null;
 export default function Radar() {
   const { t } = useTranslation();
   const [problems, setProblems] = useState<Problem[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState<Editing>(null);
@@ -19,7 +20,9 @@ export default function Radar() {
     setLoading(true);
     setError(false);
     try {
-      setProblems(await api.listProblems(filters));
+      const [list, s] = await Promise.all([api.listProblems(filters), api.stats()]);
+      setProblems(list);
+      setStats(s);
     } catch {
       setError(true);
     } finally {
@@ -32,6 +35,15 @@ export default function Radar() {
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  const tiles: { key: keyof Stats; label: string }[] = [
+    { key: "total", label: t("stats.total") },
+    { key: "new_today", label: t("stats.newToday") },
+    { key: "indonesia", label: t("stats.indonesia") },
+    { key: "row", label: t("stats.row") },
+    { key: "ai", label: t("stats.ai") },
+    { key: "validated", label: t("stats.validated") },
+  ];
 
   const save = async (input: ProblemInput) => {
     if (editing && editing !== "new") {
@@ -65,6 +77,15 @@ export default function Radar() {
           {t("radar.add")}
         </button>
       </header>
+
+      <div className="tiles">
+        {tiles.map((tile) => (
+          <div className="tile" key={tile.key}>
+            <span className="tile-value">{stats ? stats[tile.key] : "–"}</span>
+            <span className="tile-label">{tile.label}</span>
+          </div>
+        ))}
+      </div>
 
       <div className="toolbar">
         <input

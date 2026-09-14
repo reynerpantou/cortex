@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
+import { modules } from "../lib/modules";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Layout() {
@@ -12,15 +13,16 @@ export default function Layout() {
         <div className="brand">
           <span className="brand-mark" aria-hidden="true" />
           <span className="brand-name">{t("app.name")}</span>
-          <span className="brand-tag">{t("app.tagline")}</span>
         </div>
         <nav className="nav">
           <NavLink to="/" end className={({ isActive }) => (isActive ? "is-active" : "")}>
             {t("nav.home")}
           </NavLink>
-          <NavLink to="/radar" className={({ isActive }) => (isActive ? "is-active" : "")}>
-            {t("nav.radar")}
-          </NavLink>
+          {modules.map((m) => (
+            <NavLink key={m.key} to={m.path} className={({ isActive }) => (isActive ? "is-active" : "")}>
+              {t(m.navKey)}
+            </NavLink>
+          ))}
         </nav>
         <div className="topbar-right">
           <LanguageSwitcher />

@@ -1,8 +1,8 @@
 {
-  "app": { "name": "Cortex", "tagline": "Radar peluang" },
+  "app": { "name": "Cortex" },
   "nav": { "home": "Beranda", "radar": "Radar", "logout": "Keluar" },
   "login": {
-    "subtitle": "Masuk ke meja sinyalmu",
+    "subtitle": "Masuk untuk melanjutkan",
     "username": "Nama pengguna",
     "password": "Kata sandi",
     "submit": "Masuk",
@@ -10,13 +10,13 @@
     "failed": "Nama pengguna atau kata sandi salah"
   },
   "home": {
-    "greeting": "Meja sinyal",
-    "lead": "Catat masalah begitu kamu mendengarnya.",
-    "capturePlaceholder": "Masalah apa yang baru kamu dengar?",
-    "add": "Catat",
-    "recent": "Sinyal terbaru",
-    "viewAll": "Buka radar",
-    "empty": "Belum ada catatan. Mulai dari kotak di atas."
+    "greeting": "Selamat datang kembali",
+    "lead": "Pilih modul untuk mulai."
+  },
+  "modules": {
+    "radar": {
+      "description": "Catat masalah dan pain point bisnis, lalu dapatkan ide produk yang layak dibangun."
+    }
   },
   "stats": {
     "total": "Total masalah",

@@ -60,7 +60,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   box-shadow: 0 0 0 4px rgba(106, 162, 240, 0.14);
 }
 .brand-name { font-weight: 600; letter-spacing: 0.2px; }
-.brand-tag { color: var(--text-3); font-size: 13px; }
 .brand-lg { gap: 12px; }
 .brand-lg .brand-mark { width: 18px; height: 18px; }
 .brand-lg .brand-name { font-size: 22px; }
@@ -134,23 +133,23 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .field-row { display: flex; gap: 12px; }
 select.input { appearance: none; cursor: pointer; }
 
-/* ---- capture bar (home) ---- */
-.capture {
-  display: flex; align-items: center; gap: 12px;
+/* ---- module hub (home) ---- */
+.module-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+}
+.module-card {
+  display: block; text-decoration: none; color: inherit;
   background: var(--bg-1); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px;
+  border-radius: var(--radius); padding: 20px;
+  transition: border-color 0.14s ease, background 0.14s ease;
 }
-.capture-input { flex: 1; }
-.capture-scope { display: flex; gap: 4px; }
-.chip {
-  background: var(--bg-2); border: 1px solid var(--border-strong);
-  color: var(--text-3); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px;
-}
-.chip.is-active { color: var(--text); border-color: var(--azure); background: rgba(106, 162, 240, 0.12); }
+.module-card:hover { border-color: var(--azure); background: var(--bg-2); }
+.module-card-title { font-size: 16px; font-weight: 600; margin: 0; }
+.module-card-desc { color: var(--text-2); font-size: 13px; margin: 8px 0 0; }
 
 /* ---- stat tiles ---- */
 .tiles {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 20px;
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 0 0 24px;
 }
 .tile {
   background: var(--bg-1); border: 1px solid var(--border);
@@ -222,8 +221,6 @@ select.input { appearance: none; cursor: pointer; }
   .grid { grid-template-columns: 1fr; }
   .toolbar { grid-template-columns: 1fr 1fr; }
   .topbar { gap: 12px; padding: 0 14px; }
-  .brand-tag { display: none; }
-  .capture { flex-wrap: wrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {

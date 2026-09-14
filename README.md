@@ -1,13 +1,14 @@
 # Cortex
 
-A personal opportunity radar: capture problems the moment you hear them (from
-yourself, from other people, or — later — from a daily AI scan), then judge which
-are worth building for.
+A personal command center. Home is a module hub — each module is a self-contained
+personal tool; Radar (capture business problems the moment you hear them, then
+judge which are worth building for) is the first one.
 
-This repository is the **runnable foundation**: authentication, the home
-"signal desk", and the Radar (full CRUD over problems), in English / 简体中文 /
+This repository is the **runnable foundation**: authentication, the Home module
+hub, and the Radar module (full CRUD over problems), in English / 简体中文 /
 Bahasa Indonesia, on a dark theme. The AI ingestion, dedup, and forecasting
-layer is the next slice (see [What's next](#whats-next)).
+layer is Radar's next slice (see [What's next](#whats-next)); further modules
+beyond Radar are added later by registering them in `web/src/lib/modules.ts`.
 
 ## Stack
 
