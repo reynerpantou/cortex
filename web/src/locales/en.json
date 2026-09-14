@@ -1,0 +1,59 @@
+{
+  "app": { "name": "Cortex" },
+  "nav": { "home": "Home", "radar": "Radar", "logout": "Sign out" },
+  "login": {
+    "subtitle": "Sign in to continue",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "signingIn": "Signing in\u2026",
+    "failed": "Incorrect username or password"
+  },
+  "home": {
+    "greeting": "Welcome back",
+    "lead": "Pick a module to get started."
+  },
+  "modules": {
+    "radar": {
+      "description": "Capture business problems and pain points, then get ideas worth building on."
+    }
+  },
+  "stats": {
+    "total": "Total problems",
+    "newToday": "New today",
+    "indonesia": "Indonesia",
+    "row": "Rest of world",
+    "ai": "AI-found",
+    "validated": "Validated"
+  },
+  "radar": {
+    "title": "Radar",
+    "lead": "Every problem you\u2019ve captured, from every source.",
+    "add": "Add problem",
+    "search": "Search problems",
+    "count": "{{count}} problem",
+    "count_other": "{{count}} problems",
+    "empty": "No problems match these filters."
+  },
+  "filter": { "allScopes": "All scopes", "allSources": "All sources", "allStatuses": "All statuses" },
+  "scope": { "id": "Indonesia", "row": "Rest of world" },
+  "source": { "personal": "Personal", "other": "From others", "ai": "AI" },
+  "status": { "inbox": "Inbox", "validated": "Validated", "parked": "Parked", "dropped": "Dropped" },
+  "form": {
+    "new": "New problem",
+    "edit": "Edit problem",
+    "title": "Title",
+    "titlePlaceholder": "One line: what\u2019s the pain?",
+    "body": "Details",
+    "bodyPlaceholder": "Who has it, when it bites, what it costs\u2026",
+    "scope": "Scope",
+    "source": "Source",
+    "status": "Status",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirmDelete": "Delete this problem? This can\u2019t be undone."
+  },
+  "problem": { "seen": "seen {{count}}\u00d7", "aiTag": "AI" },
+  "common": { "loading": "Loading\u2026", "error": "Something went wrong", "retry": "Try again" }
+}

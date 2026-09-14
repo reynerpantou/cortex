@@ -1,0 +1,9 @@
+.git
+data
+*.db
+*.db-shm
+*.db-wal
+cortex
+web/node_modules
+web/dist
+internal/assets/dist/assets
