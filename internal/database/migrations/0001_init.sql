@@ -1,20 +1,20 @@
 CREATE TABLE users (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username      TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE sessions (
     token      TEXT PRIMARY KEY,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP NOT NULL,
-    expires_at TIMESTAMP NOT NULL
+    created_at TIMESTAMPTZ NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 
 CREATE TABLE problems (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     scope      TEXT NOT NULL CHECK (scope IN ('id','row')),
     source     TEXT NOT NULL CHECK (source IN ('personal','other','ai')),
     title      TEXT NOT NULL,
@@ -22,9 +22,9 @@ CREATE TABLE problems (
     status     TEXT NOT NULL DEFAULT 'inbox' CHECK (status IN ('inbox','validated','parked','dropped')),
     source_url TEXT NOT NULL DEFAULT '',
     recurrence INTEGER NOT NULL DEFAULT 1,
-    embedding  BLOB,               -- reserved for the AI dedup layer (cosine done in Go)
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    embedding  BYTEA,               -- reserved for the AI dedup layer (cosine done in Go)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_problems_scope  ON problems(scope);
 CREATE INDEX idx_problems_source ON problems(source);

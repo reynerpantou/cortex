@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bytebase/dbhub@latest",
+        "--transport",
+        "stdio",
+        "--dsn",
+        "postgres://cortex:cortex@localhost:5432/cortex?sslmode=disable"
+      ],
+      "env": {}
+    }
+  }
+}

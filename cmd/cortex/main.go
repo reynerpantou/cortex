@@ -1,11 +1,10 @@
 // Command cortex is a single binary that serves the JSON API and the embedded
-// React SPA from one port, backed by a local SQLite file.
+// React SPA from one port, backed by Postgres.
 package main
 
 import (
 	"context"
 	"database/sql"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,24 +21,13 @@ import (
 )
 
 func main() {
-	backupTo := flag.String("backup", "", "write a consistent DB backup to this path and exit")
-	flag.Parse()
-
 	cfg := config.Load()
 
-	db, err := database.Open(cfg.DBPath)
+	db, err := database.Open(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}
 	defer db.Close()
-
-	if *backupTo != "" {
-		if err := database.Backup(db, *backupTo); err != nil {
-			log.Fatalf("backup: %v", err)
-		}
-		log.Printf("backup written to %s", *backupTo)
-		return
-	}
 
 	if err := database.Migrate(db); err != nil {
 		log.Fatalf("migrate: %v", err)
@@ -125,7 +113,7 @@ func seedAdmin(db *sql.DB, cfg config.Config) error {
 		return err
 	}
 	if _, err := db.Exec(
-		`INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)`,
+		`INSERT INTO users (username, password_hash, created_at) VALUES ($1, $2, $3)`,
 		cfg.AdminUser, hash, time.Now().UTC(),
 	); err != nil {
 		return err

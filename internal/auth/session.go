@@ -27,7 +27,7 @@ func CreateSession(db *sql.DB, userID int64, ttl time.Duration) (string, error) 
 	}
 	now := time.Now().UTC()
 	_, err = db.Exec(
-		`INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES ($1, $2, $3, $4)`,
 		token, userID, now, now.Add(ttl),
 	)
 	if err != nil {
@@ -44,7 +44,7 @@ func ValidateSession(db *sql.DB, token string) (int64, error) {
 	var userID int64
 	var expires time.Time
 	err := db.QueryRow(
-		`SELECT user_id, expires_at FROM sessions WHERE token = ?`, token,
+		`SELECT user_id, expires_at FROM sessions WHERE token = $1`, token,
 	).Scan(&userID, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrInvalidSession
@@ -53,7 +53,7 @@ func ValidateSession(db *sql.DB, token string) (int64, error) {
 		return 0, err
 	}
 	if time.Now().UTC().After(expires) {
-		_, _ = db.Exec(`DELETE FROM sessions WHERE token = ?`, token)
+		_, _ = db.Exec(`DELETE FROM sessions WHERE token = $1`, token)
 		return 0, ErrInvalidSession
 	}
 	return userID, nil
@@ -61,12 +61,12 @@ func ValidateSession(db *sql.DB, token string) (int64, error) {
 
 // DeleteSession removes a session (logout).
 func DeleteSession(db *sql.DB, token string) error {
-	_, err := db.Exec(`DELETE FROM sessions WHERE token = ?`, token)
+	_, err := db.Exec(`DELETE FROM sessions WHERE token = $1`, token)
 	return err
 }
 
 // PurgeExpiredSessions deletes stale sessions; call periodically.
 func PurgeExpiredSessions(db *sql.DB) error {
-	_, err := db.Exec(`DELETE FROM sessions WHERE expires_at < ?`, time.Now().UTC())
+	_, err := db.Exec(`DELETE FROM sessions WHERE expires_at < $1`, time.Now().UTC())
 	return err
 }

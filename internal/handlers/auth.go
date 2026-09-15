@@ -25,7 +25,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 
 	var u models.User
 	err := s.DB.QueryRow(
-		`SELECT id, username, password_hash FROM users WHERE username = ?`, req.Username,
+		`SELECT id, username, password_hash FROM users WHERE username = $1`, req.Username,
 	).Scan(&u.ID, &u.Username, &u.PasswordHash)
 
 	// Always run a verify to keep timing uniform whether or not the user exists.
@@ -79,7 +79,7 @@ func (s *Server) Logout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Me(w http.ResponseWriter, r *http.Request) {
 	uid, _ := middleware.UserIDFrom(r.Context())
 	var u models.User
-	err := s.DB.QueryRow(`SELECT id, username FROM users WHERE id = ?`, uid).Scan(&u.ID, &u.Username)
+	err := s.DB.QueryRow(`SELECT id, username FROM users WHERE id = $1`, uid).Scan(&u.ID, &u.Username)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "not signed in")
 		return
