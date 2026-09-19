@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=cortex
-      - POSTGRES_PASSWORD=cortex
-      - POSTGRES_DB=cortex
+      - POSTGRES_USER=${POSTGRES_USER:-cortex}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cortex}
+      - POSTGRES_DB=${POSTGRES_DB:-cortex}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"       # exposed for local tools (psql, MCP); drop this in prod
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cortex"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,7 +24,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      - CORTEX_DATABASE_URL=postgres://cortex:cortex@postgres:5432/cortex?sslmode=disable
+      - CORTEX_DATABASE_URL=postgres://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD:-cortex}@postgres:5432/${POSTGRES_DB:-cortex}?sslmode=disable
       - CORTEX_COOKIE_SECURE=false   # set true behind HTTPS
       - CORTEX_ADMIN_USER=admin
       # Set a password to seed a known login on first run; otherwise one is
