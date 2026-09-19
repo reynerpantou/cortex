@@ -10,7 +10,7 @@ import (
 // the same binary runs locally and in the cloud with no code changes.
 type Config struct {
 	Addr            string
-	DBPath          string
+	DatabaseURL     string        // Postgres connection string
 	CookieSecure    bool          // true when served over HTTPS
 	SessionTTL      time.Duration // how long a login lasts
 	AdminUser       string        // seeded on first boot if no users exist
@@ -21,7 +21,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Addr:            env("CORTEX_ADDR", ":8080"),
-		DBPath:          env("CORTEX_DB_PATH", "cortex.db"),
+		DatabaseURL:     env("CORTEX_DATABASE_URL", "postgres://cortex:cortex@localhost:5432/cortex?sslmode=disable"),
 		CookieSecure:    envBool("CORTEX_COOKIE_SECURE", false),
 		SessionTTL:      time.Duration(envInt("CORTEX_SESSION_TTL_HOURS", 168)) * time.Hour,
 		AdminUser:       env("CORTEX_ADMIN_USER", "admin"),

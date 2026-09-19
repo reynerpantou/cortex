@@ -1,4 +1,4 @@
-.PHONY: setup web build run dev-api dev-web docker backup tidy
+.PHONY: setup web build run dev-api dev-web docker db backup tidy
 
 setup:        ## install frontend deps
 	cd web && npm install
@@ -15,15 +15,18 @@ build: tidy web ## full production build -> ./cortex
 run: ## run the built binary
 	./cortex
 
-dev-api:      ## run the API with live Go (serves placeholder SPA)
+db:           ## start just Postgres (for dev-api/dev-web run outside Docker)
+	docker compose up -d postgres
+
+dev-api: db   ## run the API with live Go against local Postgres (serves placeholder SPA)
 	go run ./cmd/cortex
 
 dev-web:      ## run Vite dev server on :5173 (proxies /api to :8080)
 	cd web && npm run dev
 
-docker:       ## build + run via docker compose
+docker:       ## build + run everything (Postgres + cortex) via docker compose
 	docker compose up --build
 
-backup:       ## write a consistent DB snapshot
+backup:       ## dump the running Postgres database
 	@mkdir -p backups
-	./cortex -backup backups/cortex-$$(date +%Y%m%d-%H%M%S).db
+	docker compose exec -T postgres pg_dump -U cortex cortex > backups/cortex-$$(date +%Y%m%d-%H%M%S).sql
