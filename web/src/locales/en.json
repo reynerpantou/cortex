@@ -35,7 +35,8 @@
     "count_other": "{{count}} problems",
     "empty": "No problems match these filters."
   },
-  "filter": { "clear": "Clear" },
+  "filter": { "clear": "Clear", "scope": "Scope", "source": "Source", "status": "Status" },
+  "tagGroup": { "source": "Source", "scope": "Scope" },
   "scope": { "id": "Indonesia", "row": "Rest of world" },
   "source": { "personal": "Personal", "other": "From others", "ai": "AI" },
   "status": {

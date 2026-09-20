@@ -35,7 +35,8 @@
     "count_other": "{{count}} 个问题",
     "empty": "没有符合筛选条件的问题。"
   },
-  "filter": { "clear": "清除" },
+  "filter": { "clear": "清除", "scope": "范围", "source": "来源", "status": "状态" },
+  "tagGroup": { "source": "来源", "scope": "范围" },
   "scope": { "id": "印尼", "row": "其他地区" },
   "source": { "personal": "本人", "other": "他人反馈", "ai": "AI" },
   "status": {

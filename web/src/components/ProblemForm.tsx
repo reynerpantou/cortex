@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Problem, ProblemInput, Scope, Source, Status } from "../lib/types";
 import { SCOPES, SOURCES, STATUSES } from "../lib/types";
+import { scopeIcon, sourceIcon, statusIcon } from "../lib/icons";
 
 interface Props {
   initial?: Problem;
@@ -81,6 +82,7 @@ export default function ProblemForm({ initial, onSubmit, onCancel, onDelete }: P
               aria-pressed={scope.includes(s)}
               onClick={() => setScope(toggle(scope, s))}
             >
+              <span aria-hidden="true">{scopeIcon[s]}</span>
               {t(`scope.${s}`)}
             </button>
           ))}
@@ -98,6 +100,7 @@ export default function ProblemForm({ initial, onSubmit, onCancel, onDelete }: P
               aria-pressed={source.includes(s)}
               onClick={() => setSource(toggle(source, s))}
             >
+              <span aria-hidden="true">{sourceIcon[s]}</span>
               {t(`source.${s}`)}
             </button>
           ))}
@@ -108,7 +111,7 @@ export default function ProblemForm({ initial, onSubmit, onCancel, onDelete }: P
         <span className="field-label">{t("form.status")}</span>
         <select className="input" value={status} onChange={(e) => setStatus(e.target.value as Status)}>
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{t(`status.${s}`)}</option>
+            <option key={s} value={s}>{statusIcon[s]} {t(`status.${s}`)}</option>
           ))}
         </select>
       </label>

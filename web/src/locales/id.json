@@ -35,7 +35,8 @@
     "count_other": "{{count}} masalah",
     "empty": "Tidak ada masalah yang cocok dengan filter ini."
   },
-  "filter": { "clear": "Bersihkan" },
+  "filter": { "clear": "Bersihkan", "scope": "Cakupan", "source": "Sumber", "status": "Status" },
+  "tagGroup": { "source": "Sumber", "scope": "Cakupan" },
   "scope": { "id": "Indonesia", "row": "Luar negeri" },
   "source": { "personal": "Pribadi", "other": "Dari orang lain", "ai": "AI" },
   "status": {

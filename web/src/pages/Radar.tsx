@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import type { Problem, ProblemInput, Scope, Source, Stats, Status } from "../lib/types";
 import { SCOPES, SOURCES, STATUSES } from "../lib/types";
+import { scopeIcon, sourceIcon, statusIcon } from "../lib/icons";
 import ProblemCard from "../components/ProblemCard";
 import ProblemForm from "../components/ProblemForm";
 
@@ -113,51 +114,69 @@ export default function Radar() {
         onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
       />
 
-      <div className="filter-strip">
-        {SCOPES.map((s) => (
-          <button
-            key={`scope-${s}`}
-            type="button"
-            className={`chip-toggle tag-scope-${s} ${filters.scope.includes(s) ? "is-on" : ""}`}
-            aria-pressed={filters.scope.includes(s)}
-            onClick={() => setFilters((f) => ({ ...f, scope: toggle(f.scope, s) }))}
-          >
-            {t(`scope.${s}`)}
-          </button>
-        ))}
-        <span className="filter-sep" aria-hidden="true" />
-        {SOURCES.map((s) => (
-          <button
-            key={`source-${s}`}
-            type="button"
-            className={`chip-toggle tag-source-${s} ${filters.source.includes(s) ? "is-on" : ""}`}
-            aria-pressed={filters.source.includes(s)}
-            onClick={() => setFilters((f) => ({ ...f, source: toggle(f.source, s) }))}
-          >
-            {t(`source.${s}`)}
-          </button>
-        ))}
-        <span className="filter-sep" aria-hidden="true" />
-        {STATUSES.map((s) => (
-          <button
-            key={`status-${s}`}
-            type="button"
-            className={`chip-toggle tag-status-${s} ${filters.status.includes(s) ? "is-on" : ""}`}
-            aria-pressed={filters.status.includes(s)}
-            onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s) }))}
-          >
-            {t(`status.${s}`)}
-          </button>
-        ))}
-        {activeCount > 0 && (
-          <button
-            type="button"
-            className="chip-toggle chip-clear"
-            onClick={() => setFilters((f) => ({ ...f, scope: [], source: [], status: [] }))}
-          >
-            {t("filter.clear")} ({activeCount})
-          </button>
-        )}
+      <div className="filter-groups">
+        <div className="filter-group">
+          <span className="filter-group-label">{t("filter.scope")}</span>
+          <div className="filter-group-chips">
+            {SCOPES.map((s) => (
+              <button
+                key={`scope-${s}`}
+                type="button"
+                className={`chip-toggle tag-scope-${s} ${filters.scope.includes(s) ? "is-on" : ""}`}
+                aria-pressed={filters.scope.includes(s)}
+                onClick={() => setFilters((f) => ({ ...f, scope: toggle(f.scope, s) }))}
+              >
+                <span aria-hidden="true">{scopeIcon[s]}</span>
+                {t(`scope.${s}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="filter-group">
+          <span className="filter-group-label">{t("filter.source")}</span>
+          <div className="filter-group-chips">
+            {SOURCES.map((s) => (
+              <button
+                key={`source-${s}`}
+                type="button"
+                className={`chip-toggle tag-source-${s} ${filters.source.includes(s) ? "is-on" : ""}`}
+                aria-pressed={filters.source.includes(s)}
+                onClick={() => setFilters((f) => ({ ...f, source: toggle(f.source, s) }))}
+              >
+                <span aria-hidden="true">{sourceIcon[s]}</span>
+                {t(`source.${s}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="filter-group">
+          <span className="filter-group-label">{t("filter.status")}</span>
+          <div className="filter-group-chips">
+            {STATUSES.map((s) => (
+              <button
+                key={`status-${s}`}
+                type="button"
+                className={`chip-toggle tag-status-${s} ${filters.status.includes(s) ? "is-on" : ""}`}
+                aria-pressed={filters.status.includes(s)}
+                onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s) }))}
+              >
+                <span aria-hidden="true">{statusIcon[s]}</span>
+                {t(`status.${s}`)}
+              </button>
+            ))}
+            {activeCount > 0 && (
+              <button
+                type="button"
+                className="chip-toggle chip-clear"
+                onClick={() => setFilters((f) => ({ ...f, scope: [], source: [], status: [] }))}
+              >
+                {t("filter.clear")} ({activeCount})
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {loading ? (

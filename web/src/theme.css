@@ -174,17 +174,23 @@ select.input { appearance: none; cursor: pointer; }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .card-title { font-size: 15px; font-weight: 600; margin: 0; }
 .card-body { color: var(--text-2); font-size: 14px; margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.card-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+/* Status + recurrence sit in their own band right under the body — the
+   single most important fact about a problem shouldn't fight with its tags. */
+.card-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+/* Source and scope each get their own row (never merged) so the two kinds of
+   tag are never mistaken for one another — a small caption names the row. */
+.card-tag-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.card-tag-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); margin-right: 2px; }
 .recurrence { font-family: var(--mono); font-size: 12px; color: var(--amber); white-space: nowrap; }
 
 /* ---- tags/badges ----
    Every distinct value (each scope, each source, each status) gets its own
-   hue so they're never confused for one another at a glance. Filled tint
-   background + full-strength text is the shared look; AI stays the deliberate
-   odd one out (solid fill + dot) since it's the one thing that always needs
-   to jump out. */
+   hue so they're never confused for one another at a glance, plus its own
+   icon as a second, color-independent cue. Filled tint background +
+   full-strength text is the shared look; AI stays the deliberate odd one out
+   (solid fill) since it's the one thing that always needs to jump out. */
 .badge {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
   font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
   white-space: nowrap;
 }
@@ -192,9 +198,8 @@ select.input { appearance: none; cursor: pointer; }
 .badge-scope-row    { background: color-mix(in srgb, var(--cyan) 18%, transparent);   color: var(--cyan); }
 .badge-source-personal { background: color-mix(in srgb, var(--azure) 18%, transparent); color: var(--azure); }
 .badge-source-other    { background: var(--bg-3); color: var(--text-2); }
-/* AI is the deliberate odd one out: filled amber, with a dot. */
+/* AI is the deliberate odd one out: filled amber. */
 .badge-source-ai { background: var(--amber); color: #2a1c06; }
-.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-deep); }
 
 .badge-status-backlog     { background: var(--bg-3); color: var(--text-2); }
 .badge-status-researching { background: color-mix(in srgb, var(--azure) 18%, transparent); color: var(--azure); }
@@ -216,14 +221,22 @@ select.input { appearance: none; cursor: pointer; }
 .form-actions .spacer { flex: 1; }
 .form-error { color: var(--red); font-size: 13px; margin: 4px 0 10px; }
 
-/* ---- search + filter strip (TikTok-style multi-select chips) ---- */
+/* ---- search + filter groups (TikTok-style chips, grouped by category so
+   it's obvious what each row filters — a flat strip reads as one undivided
+   pile of chips, so each category gets its own labeled line instead) ---- */
 .search-bar { margin-bottom: 14px; }
-.filter-strip {
-  display: flex; align-items: center; gap: 8px; overflow-x: auto;
-  padding-bottom: 6px; margin-bottom: 20px; scrollbar-width: none;
+.filter-groups {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; margin-bottom: 20px;
+  background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius);
 }
-.filter-strip::-webkit-scrollbar { display: none; }
-.filter-sep { width: 1px; align-self: stretch; background: var(--border); flex: 0 0 auto; margin: 0 4px; }
+.filter-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filter-group-label {
+  flex: 0 0 auto; min-width: 56px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-3);
+}
+.filter-group-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .chip-select { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -277,6 +290,7 @@ select.input { appearance: none; cursor: pointer; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .grid { grid-template-columns: 1fr; }
   .topbar { gap: 12px; padding: 0 14px; }
+  .filter-group { align-items: flex-start; flex-direction: column; gap: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
