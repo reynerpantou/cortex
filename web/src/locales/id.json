@@ -123,6 +123,7 @@
     "nameZh": "Nama (Mandarin)",
     "useEnglishName": "Gunakan nama Inggris",
     "changePassword": "Ubah kata sandi",
+    "updatePassword": "Perbarui kata sandi",
     "currentPassword": "Kata sandi saat ini",
     "currentPasswordPlaceholder": "Hanya diperlukan untuk mengatur kata sandi baru",
     "currentPasswordRequired": "Masukkan kata sandi saat ini untuk mengatur yang baru",
