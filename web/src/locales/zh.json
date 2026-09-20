@@ -76,15 +76,17 @@
     "brainstorming": "头脑风暴",
     "brainstormingPlaceholder": "自由笔记、待解决的问题、假设、可能的解决方案…",
     "relatedProblems": "相关问题",
-    "relatedPlaceholder": "#编号",
-    "addRelated": "关联",
+    "relatedPlaceholder": "按标题或 #编号 搜索…",
+    "relatedNoMatch": "没有匹配的问题",
+    "relatedMissing": "（已删除的问题）",
     "researchBrief": "调研简报",
     "researchBriefPlaceholder": "调研目标、目标市场、限制条件、想问 AI 的问题…",
     "findings": "调研结果与决策",
     "findingsPlaceholder": "带引用的调研结果、未解决的问题、下一步实验、决策理由…",
     "copyBrief": "复制调研简报",
     "copied": "已复制！",
-    "exportMarkdown": "导出 Markdown"
+    "exportMarkdown": "导出 Markdown",
+    "saved": "已保存"
   },
   "common": { "loading": "加载中…", "error": "出错了", "retry": "重试" }
 }

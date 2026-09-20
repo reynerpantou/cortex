@@ -262,6 +262,41 @@ select.input { appearance: none; cursor: pointer; }
 .checkbox-field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); margin-bottom: 10px; }
 .checkbox-field input { width: 16px; height: 16px; accent-color: var(--azure); }
 
+.required-mark { color: var(--red); font-weight: 700; margin-left: 3px; }
+
+/* ---- related-problem search (verify-then-link, not a bare id field) ---- */
+.related-search { position: relative; max-width: 320px; }
+.related-suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
+  background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: 9px;
+  max-height: 220px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.related-suggestion {
+  display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  color: var(--text); padding: 8px 12px; font-size: 13px;
+}
+.related-suggestion:hover { background: var(--bg-3); }
+.related-suggestion-id { color: var(--text-3); font-family: var(--mono); margin-right: 6px; }
+.related-empty-hint { color: var(--text-3); font-size: 12px; padding: 8px 12px; }
+
+/* ---- toast (save confirmation) ---- */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-2); border: 1px solid var(--green); color: var(--text);
+  padding: 11px 20px; border-radius: 999px; font-size: 14px; font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); z-index: 200;
+  animation: toast-in 0.2s ease;
+}
+.toast-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--green); color: #06291a; font-size: 12px; font-weight: 700;
+  animation: check-pop 0.35s ease;
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes check-pop { 0% { transform: scale(0); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
 /* ---- problem detail page ---- */
 .back-link { color: var(--text-2); text-decoration: none; font-size: 13px; display: inline-block; margin-bottom: 16px; }
 .back-link:hover { color: var(--text); }
@@ -303,7 +338,6 @@ select.input { appearance: none; cursor: pointer; }
 .related-chip a { color: inherit; text-decoration: none; }
 .related-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
 .related-add { display: flex; gap: 8px; }
-.related-add .input { max-width: 160px; }
 
 .detail-actions { display: flex; align-items: center; gap: 10px; margin-top: 24px; }
 .detail-actions .spacer { flex: 1; }
@@ -328,5 +362,5 @@ select.input { appearance: none; cursor: pointer; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
+  * { transition: none !important; animation: none !important; }
 }

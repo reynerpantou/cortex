@@ -20,6 +20,7 @@ export default function ProblemDetail() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -32,8 +33,12 @@ export default function ProblemDetail() {
   const [brainstorming, setBrainstorming] = useState("");
   const [researchBrief, setResearchBrief] = useState("");
   const [findings, setFindings] = useState("");
+
   const [relatedIds, setRelatedIds] = useState<number[]>([]);
-  const [relatedInput, setRelatedInput] = useState("");
+  const [relatedTitles, setRelatedTitles] = useState<Record<number, string>>({});
+  const [relatedQuery, setRelatedQuery] = useState("");
+  const [relatedSuggestions, setRelatedSuggestions] = useState<Problem[]>([]);
+  const [relatedSearched, setRelatedSearched] = useState(false);
 
   const [evidenceText, setEvidenceText] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
@@ -55,7 +60,21 @@ export default function ProblemDetail() {
       setBrainstorming(p.brainstorming ?? "");
       setResearchBrief(p.research_brief ?? "");
       setFindings(p.findings ?? "");
-      setRelatedIds(p.related_ids ?? []);
+      const relIds = p.related_ids ?? [];
+      setRelatedIds(relIds);
+      // Related chips must show what they point to, not just a bare number —
+      // fetch each linked problem's title once.
+      const titles: Record<number, string> = {};
+      await Promise.all(
+        relIds.map(async (rid) => {
+          try {
+            titles[rid] = (await api.getProblem(rid)).title;
+          } catch {
+            titles[rid] = t("detail.relatedMissing");
+          }
+        })
+      );
+      setRelatedTitles(titles);
     } catch {
       setLoadError(true);
     } finally {
@@ -67,6 +86,43 @@ export default function ProblemDetail() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Search-as-you-type for linking a related problem: matches by title/body
+  // text, and additionally verifies an exact numeric id directly, so a valid
+  // id always resolves even if that number never appears in any title.
+  useEffect(() => {
+    const q = relatedQuery.trim();
+    if (!q) {
+      setRelatedSuggestions([]);
+      setRelatedSearched(false);
+      return;
+    }
+    setRelatedSearched(false);
+    const timer = setTimeout(async () => {
+      const results: Problem[] = [];
+      const asId = /^#?\d+$/.test(q) ? parseInt(q.replace("#", ""), 10) : null;
+      if (asId) {
+        try {
+          results.push(await api.getProblem(asId));
+        } catch {
+          // not a real id — fine, text search below still runs
+        }
+      }
+      try {
+        for (const m of await api.listProblems({ q })) {
+          if (!results.some((r) => r.id === m.id)) results.push(m);
+        }
+      } catch {
+        // ignore search failures, just show whatever we have
+      }
+      setRelatedSuggestions(
+        results.filter((r) => r.id !== problem?.id && !relatedIds.includes(r.id)).slice(0, 6)
+      );
+      setRelatedSearched(true);
+    }, 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relatedQuery]);
 
   const save = async () => {
     if (!problem) return;
@@ -86,17 +142,18 @@ export default function ProblemDetail() {
         related_ids: relatedIds,
       });
       setProblem(updated);
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 1800);
     } finally {
       setSaving(false);
     }
   };
 
-  const addRelated = () => {
-    const n = parseInt(relatedInput.replace("#", "").trim(), 10);
-    if (!Number.isNaN(n) && n !== problem?.id && !relatedIds.includes(n)) {
-      setRelatedIds([...relatedIds, n]);
-    }
-    setRelatedInput("");
+  const addRelated = (p: Problem) => {
+    setRelatedIds([...relatedIds, p.id]);
+    setRelatedTitles((prev) => ({ ...prev, [p.id]: p.title }));
+    setRelatedQuery("");
+    setRelatedSuggestions([]);
   };
 
   const addEvidence = async () => {
@@ -123,9 +180,25 @@ export default function ProblemDetail() {
     navigate("/radar");
   };
 
+  // Everything currently on screen, not just the last-saved version — Copy
+  // and Export must reflect unsaved edits to every field, not only the
+  // workspace text sections.
   const currentSnapshot = (): Problem =>
     problem
-      ? { ...problem, context, brainstorming, research_brief: researchBrief, findings, related_ids: relatedIds }
+      ? {
+          ...problem,
+          title,
+          body,
+          scope,
+          source,
+          ai_assisted: aiAssisted,
+          status,
+          context,
+          brainstorming,
+          research_brief: researchBrief,
+          findings,
+          related_ids: relatedIds,
+        }
       : ({} as Problem);
 
   const doCopyBrief = async () => {
@@ -168,6 +241,7 @@ export default function ProblemDetail() {
             ))}
           </select>
         </div>
+        <span className="field-label">{t("form.title")}<span className="required-mark">*</span></span>
         <input
           className="input detail-title-input"
           value={title}
@@ -283,7 +357,7 @@ export default function ProblemDetail() {
             <div className="related-list">
               {relatedIds.map((rid) => (
                 <span key={rid} className="related-chip">
-                  <Link to={`/radar/${rid}`}>#{rid}</Link>
+                  <Link to={`/radar/${rid}`}>#{rid} {relatedTitles[rid] ?? "…"}</Link>
                   <button type="button" aria-label={t("form.delete")} onClick={() => setRelatedIds(relatedIds.filter((x) => x !== rid))}>
                     {"×"}
                   </button>
@@ -291,14 +365,27 @@ export default function ProblemDetail() {
               ))}
             </div>
             <div className="related-add">
-              <input
-                className="input"
-                placeholder={t("detail.relatedPlaceholder")}
-                value={relatedInput}
-                onChange={(e) => setRelatedInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addRelated()}
-              />
-              <button type="button" className="btn btn-ghost" onClick={addRelated}>{t("detail.addRelated")}</button>
+              <div className="related-search">
+                <input
+                  className="input"
+                  placeholder={t("detail.relatedPlaceholder")}
+                  value={relatedQuery}
+                  onChange={(e) => setRelatedQuery(e.target.value)}
+                />
+                {relatedQuery.trim() && (
+                  <div className="related-suggestions">
+                    {relatedSuggestions.length > 0 ? (
+                      relatedSuggestions.map((s) => (
+                        <button key={s.id} type="button" className="related-suggestion" onClick={() => addRelated(s)}>
+                          <span className="related-suggestion-id">#{s.id}</span>{s.title}
+                        </button>
+                      ))
+                    ) : relatedSearched ? (
+                      <div className="related-empty-hint">{t("detail.relatedNoMatch")}</div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -341,6 +428,13 @@ export default function ProblemDetail() {
           {saving ? t("common.loading") : t("form.save")}
         </button>
       </div>
+
+      {savedToast && (
+        <div className="toast toast-success" role="status">
+          <span className="toast-check" aria-hidden="true">{"✓"}</span>
+          {t("detail.saved")}
+        </div>
+      )}
     </div>
   );
 }

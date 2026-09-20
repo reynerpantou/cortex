@@ -76,15 +76,17 @@
     "brainstorming": "Brainstorming",
     "brainstormingPlaceholder": "Catatan bebas, pertanyaan terbuka, asumsi, kemungkinan solusi…",
     "relatedProblems": "Masalah terkait",
-    "relatedPlaceholder": "#id",
-    "addRelated": "Kaitkan",
+    "relatedPlaceholder": "Cari berdasarkan judul atau #id…",
+    "relatedNoMatch": "Tidak ada masalah yang cocok",
+    "relatedMissing": "(masalah sudah dihapus)",
     "researchBrief": "Brief Riset",
     "researchBriefPlaceholder": "Tujuan riset, target pasar, batasan, pertanyaan untuk AI…",
     "findings": "Temuan & Keputusan",
     "findingsPlaceholder": "Temuan riset dengan sitasi, pertanyaan yang belum terjawab, eksperimen berikutnya, alasan keputusan…",
     "copyBrief": "Salin brief riset",
     "copied": "Tersalin!",
-    "exportMarkdown": "Ekspor Markdown"
+    "exportMarkdown": "Ekspor Markdown",
+    "saved": "Tersimpan"
   },
   "common": { "loading": "Memuat…", "error": "Terjadi kesalahan", "retry": "Coba lagi" }
 }
