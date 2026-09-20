@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import type { Problem, Scope, Source, Status } from "../lib/types";
 import { SCOPES, SOURCES, STATUSES } from "../lib/types";
 import { scopeIcon, sourceIcon, statusIcon } from "../lib/icons";
-import { copyToClipboard, downloadMarkdown, fullExportMarkdown, researchBriefMarkdown } from "../lib/export";
+import { copyToClipboard, downloadMarkdown, fullExportMarkdown } from "../lib/export";
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -13,14 +13,13 @@ function toggle<T>(list: T[], value: T): T[] {
 
 export default function ProblemDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { t } = useTranslation();
 
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedToast, setSavedToast] = useState(false);
+  const [toast, setToast] = useState("");
   const [copied, setCopied] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -42,6 +41,15 @@ export default function ProblemDetail() {
 
   const [evidenceText, setEvidenceText] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
+
+  // Archived problems are read-only until the status is changed away from
+  // "archived" — the status control itself is the only way to unlock them.
+  const readOnly = status === "archived";
+
+  const flashToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 1800);
+  };
 
   const load = async () => {
     if (!id) return;
@@ -124,26 +132,40 @@ export default function ProblemDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [relatedQuery]);
 
+  const persist = async (overrides: Partial<{ status: Status }> = {}) => {
+    if (!problem) return null;
+    const updated = await api.updateProblem(problem.id, {
+      title: title.trim(),
+      body: body.trim(),
+      scope,
+      source,
+      status,
+      ai_assisted: aiAssisted,
+      context,
+      brainstorming,
+      research_brief: researchBrief,
+      findings,
+      related_ids: relatedIds,
+      ...overrides,
+    });
+    setProblem(updated);
+    setStatus(updated.status);
+    return updated;
+  };
+
   const save = async () => {
-    if (!problem) return;
     setSaving(true);
     try {
-      const updated = await api.updateProblem(problem.id, {
-        title: title.trim(),
-        body: body.trim(),
-        scope,
-        source,
-        status,
-        ai_assisted: aiAssisted,
-        context,
-        brainstorming,
-        research_brief: researchBrief,
-        findings,
-        related_ids: relatedIds,
-      });
-      setProblem(updated);
-      setSavedToast(true);
-      setTimeout(() => setSavedToast(false), 1800);
+      if (await persist()) flashToast(t("detail.saved"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const archive = async () => {
+    setSaving(true);
+    try {
+      if (await persist({ status: "archived" })) flashToast(t("detail.archived"));
     } finally {
       setSaving(false);
     }
@@ -173,16 +195,9 @@ export default function ProblemDetail() {
     setProblem({ ...problem, evidence: (problem.evidence ?? []).filter((e) => e.id !== eid) });
   };
 
-  const remove = async () => {
-    if (!problem) return;
-    if (!confirm(t("form.confirmDelete"))) return;
-    await api.deleteProblem(problem.id);
-    navigate("/radar");
-  };
-
   // Everything currently on screen, not just the last-saved version — Copy
   // and Export must reflect unsaved edits to every field, not only the
-  // workspace text sections.
+  // workspace text sections, and must always match each other exactly.
   const currentSnapshot = (): Problem =>
     problem
       ? {
@@ -201,15 +216,15 @@ export default function ProblemDetail() {
         }
       : ({} as Problem);
 
-  const doCopyBrief = async () => {
-    await copyToClipboard(researchBriefMarkdown(currentSnapshot()));
+  const doCopy = async () => {
+    await copyToClipboard(fullExportMarkdown(currentSnapshot(), relatedTitles));
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
   const doExport = () => {
     if (!problem) return;
-    downloadMarkdown(`cortex-problem-${problem.id}.md`, fullExportMarkdown(currentSnapshot()));
+    downloadMarkdown(`cortex-problem-${problem.id}.md`, fullExportMarkdown(currentSnapshot(), relatedTitles));
   };
 
   if (loading) return <div className="page"><p className="muted">{t("common.loading")}</p></div>;
@@ -241,10 +256,12 @@ export default function ProblemDetail() {
             ))}
           </select>
         </div>
+        {readOnly && <p className="archived-hint">{t("detail.archivedHint")}</p>}
         <span className="field-label">{t("form.title")}<span className="required-mark">*</span></span>
         <input
           className="input detail-title-input"
           value={title}
+          disabled={readOnly}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t("form.titlePlaceholder")}
         />
@@ -252,6 +269,7 @@ export default function ProblemDetail() {
           className="input textarea detail-body-input"
           value={body}
           rows={2}
+          disabled={readOnly}
           placeholder={t("form.bodyPlaceholder")}
           onChange={(e) => setBody(e.target.value)}
         />
@@ -265,6 +283,7 @@ export default function ProblemDetail() {
                   key={s}
                   type="button"
                   className={`chip-toggle ${scope.includes(s) ? "is-on" : ""}`}
+                  disabled={readOnly}
                   onClick={() => setScope(toggle(scope, s))}
                 >
                   <span aria-hidden="true">{scopeIcon[s]}</span>{t(`scope.${s}`)}
@@ -280,6 +299,7 @@ export default function ProblemDetail() {
                   key={s}
                   type="button"
                   className={`chip-toggle ${source.includes(s) ? "is-on" : ""}`}
+                  disabled={readOnly}
                   onClick={() => setSource(toggle(source, s))}
                 >
                   <span aria-hidden="true">{sourceIcon[s]}</span>{t(`source.${s}`)}
@@ -289,7 +309,7 @@ export default function ProblemDetail() {
           </div>
         </div>
         <label className="checkbox-field">
-          <input type="checkbox" checked={aiAssisted} onChange={(e) => setAiAssisted(e.target.checked)} />
+          <input type="checkbox" checked={aiAssisted} disabled={readOnly} onChange={(e) => setAiAssisted(e.target.checked)} />
           {"✨ " + t("problem.aiAssisted")}
         </label>
       </header>
@@ -301,6 +321,7 @@ export default function ProblemDetail() {
             className="input textarea"
             rows={5}
             value={context}
+            disabled={readOnly}
             placeholder={t("detail.contextPlaceholder")}
             onChange={(e) => setContext(e.target.value)}
           />
@@ -317,7 +338,7 @@ export default function ProblemDetail() {
                 {e.url && <a href={e.url} target="_blank" rel="noreferrer">{e.url}</a>}
                 <span className="evidence-date">{e.noted_at.slice(0, 10)}</span>
               </div>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => void removeEvidence(e.id)}>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={readOnly} onClick={() => void removeEvidence(e.id)}>
                 {t("form.delete")}
               </button>
             </div>
@@ -327,15 +348,17 @@ export default function ProblemDetail() {
               className="input"
               placeholder={t("detail.evidenceTextPlaceholder")}
               value={evidenceText}
+              disabled={readOnly}
               onChange={(e) => setEvidenceText(e.target.value)}
             />
             <input
               className="input"
               placeholder={t("detail.evidenceUrlPlaceholder")}
               value={evidenceUrl}
+              disabled={readOnly}
               onChange={(e) => setEvidenceUrl(e.target.value)}
             />
-            <button type="button" className="btn btn-ghost" onClick={() => void addEvidence()}>
+            <button type="button" className="btn btn-ghost" disabled={readOnly} onClick={() => void addEvidence()}>
               {t("detail.addEvidence")}
             </button>
           </div>
@@ -349,6 +372,7 @@ export default function ProblemDetail() {
             className="input textarea"
             rows={5}
             value={brainstorming}
+            disabled={readOnly}
             placeholder={t("detail.brainstormingPlaceholder")}
             onChange={(e) => setBrainstorming(e.target.value)}
           />
@@ -358,7 +382,7 @@ export default function ProblemDetail() {
               {relatedIds.map((rid) => (
                 <span key={rid} className="related-chip">
                   <Link to={`/radar/${rid}`}>#{rid} {relatedTitles[rid] ?? "…"}</Link>
-                  <button type="button" aria-label={t("form.delete")} onClick={() => setRelatedIds(relatedIds.filter((x) => x !== rid))}>
+                  <button type="button" aria-label={t("form.delete")} disabled={readOnly} onClick={() => setRelatedIds(relatedIds.filter((x) => x !== rid))}>
                     {"×"}
                   </button>
                 </span>
@@ -370,6 +394,7 @@ export default function ProblemDetail() {
                   className="input"
                   placeholder={t("detail.relatedPlaceholder")}
                   value={relatedQuery}
+                  disabled={readOnly}
                   onChange={(e) => setRelatedQuery(e.target.value)}
                 />
                 {relatedQuery.trim() && (
@@ -398,6 +423,7 @@ export default function ProblemDetail() {
             className="input textarea"
             rows={5}
             value={researchBrief}
+            disabled={readOnly}
             placeholder={t("detail.researchBriefPlaceholder")}
             onChange={(e) => setResearchBrief(e.target.value)}
           />
@@ -411,6 +437,7 @@ export default function ProblemDetail() {
             className="input textarea"
             rows={5}
             value={findings}
+            disabled={readOnly}
             placeholder={t("detail.findingsPlaceholder")}
             onChange={(e) => setFindings(e.target.value)}
           />
@@ -418,9 +445,15 @@ export default function ProblemDetail() {
       </details>
 
       <div className="detail-actions">
-        <button type="button" className="btn btn-danger" onClick={() => void remove()}>{t("form.delete")}</button>
+        {!readOnly ? (
+          <button type="button" className="btn btn-danger" disabled={saving} onClick={() => void archive()}>
+            {t("detail.archive")}
+          </button>
+        ) : (
+          <span className="muted archived-hint-inline">{t("detail.archivedHint")}</span>
+        )}
         <div className="spacer" />
-        <button type="button" className="btn btn-ghost" onClick={() => void doCopyBrief()}>
+        <button type="button" className="btn btn-ghost" onClick={() => void doCopy()}>
           {copied ? t("detail.copied") : t("detail.copyBrief")}
         </button>
         <button type="button" className="btn btn-ghost" onClick={doExport}>{t("detail.exportMarkdown")}</button>
@@ -429,10 +462,10 @@ export default function ProblemDetail() {
         </button>
       </div>
 
-      {savedToast && (
+      {toast && (
         <div className="toast toast-success" role="status">
           <span className="toast-check" aria-hidden="true">{"✓"}</span>
-          {t("detail.saved")}
+          {toast}
         </div>
       )}
     </div>

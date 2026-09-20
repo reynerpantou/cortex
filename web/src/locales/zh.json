@@ -61,8 +61,7 @@
     "save": "保存",
     "addProblem": "添加问题",
     "cancel": "取消",
-    "delete": "删除",
-    "confirmDelete": "确定删除这个问题吗？此操作无法撤销。"
+    "delete": "删除"
   },
   "problem": { "seen": "出现 {{count}} 次", "aiAssisted": "AI 辅助" },
   "detail": {
@@ -83,10 +82,13 @@
     "researchBriefPlaceholder": "调研目标、目标市场、限制条件、想问 AI 的问题…",
     "findings": "调研结果与决策",
     "findingsPlaceholder": "带引用的调研结果、未解决的问题、下一步实验、决策理由…",
-    "copyBrief": "复制调研简报",
+    "copyBrief": "复制 Markdown",
     "copied": "已复制！",
     "exportMarkdown": "导出 Markdown",
-    "saved": "已保存"
+    "saved": "已保存",
+    "archive": "归档",
+    "archived": "已归档",
+    "archivedHint": "已归档 — 请在上方更改状态以编辑"
   },
   "common": { "loading": "加载中…", "error": "出错了", "retry": "重试" }
 }
