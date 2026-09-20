@@ -1,6 +1,15 @@
 {
   "app": { "name": "Cortex" },
-  "nav": { "home": "Home", "radar": "Radar", "logout": "Sign out", "language": "Language" },
+  "nav": {
+    "home": "Home",
+    "radar": "Radar",
+    "logout": "Sign out",
+    "language": "Language",
+    "overview": "Overview",
+    "session": "Signed in",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
+  },
   "login": {
     "subtitle": "Sign in to continue",
     "username": "Username",

@@ -191,10 +191,25 @@ export default function Radar() {
       ) : (
         <>
           <p className="count">{t("radar.count", { count: problems.length })}</p>
-          <div className="grid">
-            {problems.map((p) => (
-              <ProblemCard key={p.id} problem={p} />
-            ))}
+          <div className="status-groups">
+            {STATUSES.map((s) => {
+              const items = problems.filter((p) => p.status === s);
+              if (items.length === 0) return null;
+              return (
+                <details key={s} className="status-group" open={s !== "archived"}>
+                  <summary>
+                    <span aria-hidden="true">{statusIcon[s]}</span>
+                    {t(`status.${s}`)}
+                    <span className="status-group-count">{items.length}</span>
+                  </summary>
+                  <div className="grid">
+                    {items.map((p) => (
+                      <ProblemCard key={p.id} problem={p} />
+                    ))}
+                  </div>
+                </details>
+              );
+            })}
           </div>
         </>
       )}
