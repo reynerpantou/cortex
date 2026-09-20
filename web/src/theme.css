@@ -463,7 +463,7 @@ select.input { appearance: none; cursor: pointer; }
 .related-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
 .related-add { display: flex; gap: 8px; }
 
-.detail-actions { display: flex; align-items: center; gap: 10px; margin-top: 24px; }
+.detail-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .detail-actions .spacer { flex: 1; }
 .archived-hint-inline { font-size: 13px; }
 .archived-hint {
@@ -488,6 +488,7 @@ select.input { appearance: none; cursor: pointer; }
   .grid { grid-template-columns: 1fr; }
   .sidebar { width: 68px; }
   .sidebar-brand { justify-content: center; padding: 20px 0 16px; }
+  .sidebar-brand-text { display: none; }
   .sidebar-nav { padding: 4px 10px; align-items: center; }
   .sidebar-group-label { display: none; }
   .sidebar-link { justify-content: center; width: 44px; padding: 9px 0; }
