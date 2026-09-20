@@ -1,49 +1,35 @@
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Problem } from "../lib/types";
-import SourceBadge from "./SourceBadge";
-import { scopeIcon, statusIcon } from "../lib/icons";
+import { scopeIcon, sourceIcon, statusIcon } from "../lib/icons";
 
-interface Props {
-  problem: Problem;
-  onEdit: (p: Problem) => void;
-}
-
-export default function ProblemCard({ problem, onEdit }: Props) {
+export default function ProblemCard({ problem }: { problem: Problem }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   return (
-    <article className="card" onClick={() => onEdit(problem)}>
+    <article className="card" onClick={() => navigate(`/radar/${problem.id}`)}>
       <div className="card-head">
-        <h3 className="card-title">{problem.title}</h3>
-      </div>
-      {problem.body && <p className="card-body">{problem.body}</p>}
-
-      <div className="card-meta">
+        <h3 className="card-title">
+          <span className="card-id">#{problem.id}</span>
+          {problem.title}
+        </h3>
         <span className={`badge badge-status-${problem.status}`}>
           <span aria-hidden="true">{statusIcon[problem.status]}</span>
           {t(`status.${problem.status}`)}
         </span>
-        {problem.recurrence > 1 && (
-          <span className="recurrence" title={t("problem.seen", { count: problem.recurrence })}>
-            {t("problem.seen", { count: problem.recurrence })}
-          </span>
-        )}
       </div>
+      {problem.body && <p className="card-body">{problem.body}</p>}
 
-      <div className="card-tag-group">
-        <span className="card-tag-label">{t("tagGroup.source")}</span>
-        {problem.source.map((s) => (
-          <SourceBadge key={s} source={s} />
-        ))}
-      </div>
-      <div className="card-tag-group">
-        <span className="card-tag-label">{t("tagGroup.scope")}</span>
-        {problem.scope.map((s) => (
-          <span key={s} className={`badge badge-scope-${s}`}>
-            <span aria-hidden="true">{scopeIcon[s]}</span>
-            {t(`scope.${s}`)}
-          </span>
-        ))}
-      </div>
+      <p className="card-meta-line">
+        {[
+          ...problem.source.map((s) => `${sourceIcon[s]} ${t(`source.${s}`)}`),
+          ...problem.scope.map((s) => `${scopeIcon[s]} ${t(`scope.${s}`)}`),
+          problem.ai_assisted ? `✨ ${t("problem.aiAssisted")}` : null,
+        ].filter(Boolean).join(" · ")}
+        {problem.recurrence > 1 && (
+          <span className="recurrence"> · {t("problem.seen", { count: problem.recurrence })}</span>
+        )}
+      </p>
     </article>
   );
 }

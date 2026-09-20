@@ -1,4 +1,4 @@
-import type { Problem, ProblemInput, Stats, User } from "./types";
+import type { Evidence, Problem, ProblemInput, Stats, User } from "./types";
 
 export class ApiError extends Error {
   code: string;
@@ -59,8 +59,16 @@ export const api = {
     ).toString();
     return request<Problem[]>("GET", `/problems${q ? `?${q}` : ""}`);
   },
-  createProblem: (input: ProblemInput) => request<Problem>("POST", "/problems", input),
+  getProblem: (id: number) => request<Problem>("GET", `/problems/${id}`),
+  // Quick capture only needs a title; every other field defaults server-side.
+  createProblem: (input: Partial<ProblemInput> & { title: string }) =>
+    request<Problem>("POST", "/problems", input),
   updateProblem: (id: number, input: ProblemInput) =>
     request<Problem>("PUT", `/problems/${id}`, input),
   deleteProblem: (id: number) => request<void>("DELETE", `/problems/${id}`),
+
+  addEvidence: (problemId: number, input: { text: string; url?: string }) =>
+    request<Evidence>("POST", `/problems/${problemId}/evidence`, input),
+  deleteEvidence: (problemId: number, evidenceId: number) =>
+    request<void>("DELETE", `/problems/${problemId}/evidence/${evidenceId}`),
 };

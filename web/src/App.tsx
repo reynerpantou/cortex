@@ -5,6 +5,7 @@ import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Radar from "./pages/Radar";
+import ProblemDetail from "./pages/ProblemDetail";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="radar" element={<Radar />} />
+              <Route path="radar/:id" element={<ProblemDetail />} />
             </Route>
           </Route>
         </Routes>

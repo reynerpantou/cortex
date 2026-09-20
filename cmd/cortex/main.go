@@ -74,8 +74,11 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	api.Handle("GET /stats", protected(s.Stats))
 	api.Handle("GET /problems", protected(s.ListProblems))
 	api.Handle("POST /problems", protected(s.CreateProblem))
+	api.Handle("GET /problems/{id}", protected(s.GetProblem))
 	api.Handle("PUT /problems/{id}", protected(s.UpdateProblem))
 	api.Handle("DELETE /problems/{id}", protected(s.DeleteProblem))
+	api.Handle("POST /problems/{id}/evidence", protected(s.CreateEvidence))
+	api.Handle("DELETE /problems/{id}/evidence/{eid}", protected(s.DeleteEvidence))
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", api))

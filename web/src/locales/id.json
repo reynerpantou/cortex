@@ -6,7 +6,7 @@
     "username": "Nama pengguna",
     "password": "Kata sandi",
     "submit": "Masuk",
-    "signingIn": "Masuk\u2026",
+    "signingIn": "Masuk…",
     "failed": "Nama pengguna atau kata sandi salah"
   },
   "home": {
@@ -26,6 +26,7 @@
     "ai": "Temuan AI",
     "validated": "Aktif"
   },
+  "sort": { "updated": "Baru diperbarui", "created": "Baru dibuat" },
   "radar": {
     "title": "Radar",
     "lead": "Setiap masalah yang kamu catat, dari setiap sumber.",
@@ -35,10 +36,9 @@
     "count_other": "{{count}} masalah",
     "empty": "Tidak ada masalah yang cocok dengan filter ini."
   },
-  "filter": { "clear": "Bersihkan", "scope": "Cakupan", "source": "Sumber", "status": "Status" },
-  "tagGroup": { "source": "Sumber", "scope": "Cakupan" },
-  "scope": { "id": "Indonesia", "row": "Luar negeri" },
-  "source": { "personal": "Pribadi", "other": "Dari orang lain", "ai": "AI" },
+  "filter": { "title": "Filter", "clear": "Bersihkan", "scope": "Cakupan", "source": "Sumber", "status": "Status" },
+  "scope": { "unknown": "Belum diketahui", "id": "Indonesia", "row": "Luar negeri" },
+  "source": { "unknown": "Belum diketahui", "personal": "Pribadi", "other": "Dari orang lain", "ai": "AI" },
   "status": {
     "backlog": "Backlog",
     "researching": "Riset",
@@ -49,20 +49,42 @@
   },
   "form": {
     "new": "Masalah baru",
-    "edit": "Ubah masalah",
     "title": "Judul",
     "titlePlaceholder": "Satu baris: apa masalahnya?",
+    "titleRequired": "Judul wajib diisi",
+    "moreDetails": "+ Detail lainnya (cakupan, sumber, status)",
     "body": "Detail",
-    "bodyPlaceholder": "Siapa yang mengalami, kapan, apa dampaknya\u2026",
+    "bodyPlaceholder": "Siapa yang mengalami, kapan, apa dampaknya…",
     "scope": "Cakupan",
     "source": "Sumber",
     "status": "Status",
-    "pickAtLeastOne": "Pilih minimal satu cakupan dan satu sumber",
     "save": "Simpan",
+    "addProblem": "Tambah masalah",
     "cancel": "Batal",
     "delete": "Hapus",
     "confirmDelete": "Hapus masalah ini? Tindakan ini tidak bisa dibatalkan."
   },
-  "problem": { "seen": "terlihat {{count}}\u00d7", "aiTag": "AI" },
-  "common": { "loading": "Memuat\u2026", "error": "Terjadi kesalahan", "retry": "Coba lagi" }
+  "problem": { "seen": "terlihat {{count}}×", "aiAssisted": "Dibantu AI" },
+  "detail": {
+    "back": "Kembali ke Radar",
+    "context": "Konteks",
+    "contextPlaceholder": "Siapa yang mengalaminya? Ceritakan satu kejadian konkret. Seberapa sering terjadi? Apa dampaknya? Apa solusi sementara saat ini, dan kenapa itu belum cukup?",
+    "evidence": "Bukti",
+    "evidenceTextPlaceholder": "Kutipan, pengamatan, atau catatan…",
+    "evidenceUrlPlaceholder": "Tautan (opsional)",
+    "addEvidence": "Tambah",
+    "brainstorming": "Brainstorming",
+    "brainstormingPlaceholder": "Catatan bebas, pertanyaan terbuka, asumsi, kemungkinan solusi…",
+    "relatedProblems": "Masalah terkait",
+    "relatedPlaceholder": "#id",
+    "addRelated": "Kaitkan",
+    "researchBrief": "Brief Riset",
+    "researchBriefPlaceholder": "Tujuan riset, target pasar, batasan, pertanyaan untuk AI…",
+    "findings": "Temuan & Keputusan",
+    "findingsPlaceholder": "Temuan riset dengan sitasi, pertanyaan yang belum terjawab, eksperimen berikutnya, alasan keputusan…",
+    "copyBrief": "Salin brief riset",
+    "copied": "Tersalin!",
+    "exportMarkdown": "Ekspor Markdown"
+  },
+  "common": { "loading": "Memuat…", "error": "Terjadi kesalahan", "retry": "Coba lagi" }
 }
