@@ -10,7 +10,6 @@ export interface Problem {
   id: number;
   scope: Scope[];
   source: Source[];
-  ai_assisted: boolean;
   title: string;
   body: string;
   status: Status;
@@ -54,7 +53,6 @@ export interface User {
 export interface ProblemInput {
   scope: Scope[];
   source: Source[];
-  ai_assisted: boolean;
   title: string;
   body: string;
   status: Status;

@@ -63,7 +63,7 @@
     "cancel": "Cancel",
     "delete": "Delete"
   },
-  "problem": { "seen": "seen {{count}}×", "aiAssisted": "AI-assisted" },
+  "problem": { "seen": "seen {{count}}×" },
   "detail": {
     "back": "Back to Radar",
     "context": "Context",

@@ -63,7 +63,7 @@
     "cancel": "Batal",
     "delete": "Hapus"
   },
-  "problem": { "seen": "terlihat {{count}}×", "aiAssisted": "Dibantu AI" },
+  "problem": { "seen": "terlihat {{count}}×" },
   "detail": {
     "back": "Kembali ke Radar",
     "context": "Konteks",

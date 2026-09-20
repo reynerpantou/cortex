@@ -105,7 +105,6 @@ type Problem struct {
 	ID         int64     `json:"id"`
 	Scope      Scopes    `json:"scope"`
 	Source     Sources   `json:"source"`
-	AIAssisted bool      `json:"ai_assisted"`
 	Title      string    `json:"title"`
 	Body       string    `json:"body"`
 	Status     Status    `json:"status"`

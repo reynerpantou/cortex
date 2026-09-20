@@ -39,7 +39,7 @@ func splitInts(joined string) []int64 {
 func scanProblemSummary(row rowScanner) (models.Problem, error) {
 	var p models.Problem
 	var scopeJoined, sourceJoined string
-	err := row.Scan(&p.ID, &scopeJoined, &sourceJoined, &p.AIAssisted, &p.Title, &p.Body, &p.Status, &p.SourceURL, &p.Recurrence, &p.CreatedAt, &p.UpdatedAt)
+	err := row.Scan(&p.ID, &scopeJoined, &sourceJoined, &p.Title, &p.Body, &p.Status, &p.SourceURL, &p.Recurrence, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return p, err
 	}
@@ -52,7 +52,7 @@ func scanProblemSummary(row rowScanner) (models.Problem, error) {
 	return p, nil
 }
 
-const summaryColumns = `id, array_to_string(scope, ','), array_to_string(source, ','), ai_assisted, title, body, status, source_url, recurrence, created_at, updated_at`
+const summaryColumns = `id, array_to_string(scope, ','), array_to_string(source, ','), title, body, status, source_url, recurrence, created_at, updated_at`
 
 func (s *Server) ListProblems(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -107,7 +107,6 @@ func (s *Server) ListProblems(w http.ResponseWriter, r *http.Request) {
 type problemInput struct {
 	Scope         models.Scopes  `json:"scope"`
 	Source        models.Sources `json:"source"`
-	AIAssisted    bool           `json:"ai_assisted"`
 	Title         string         `json:"title"`
 	Body          string         `json:"body"`
 	Status        models.Status  `json:"status"`
@@ -162,9 +161,9 @@ func (s *Server) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	var id int64
 	err := s.DB.QueryRow(
-		`INSERT INTO problems (scope, source, ai_assisted, title, body, status, context, brainstorming, research_brief, findings, related_ids, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
-		in.Scope, in.Source, in.AIAssisted, in.Title, in.Body, in.Status,
+		`INSERT INTO problems (scope, source, title, body, status, context, brainstorming, research_brief, findings, related_ids, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+		in.Scope, in.Source, in.Title, in.Body, in.Status,
 		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.RelatedIDs, now, now,
 	).Scan(&id)
 	if err != nil {
@@ -190,10 +189,10 @@ func (s *Server) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := s.DB.Exec(
-		`UPDATE problems SET scope=$1, source=$2, ai_assisted=$3, title=$4, body=$5, status=$6,
-		 context=$7, brainstorming=$8, research_brief=$9, findings=$10, related_ids=$11, updated_at=$12
-		 WHERE id=$13`,
-		in.Scope, in.Source, in.AIAssisted, in.Title, in.Body, in.Status,
+		`UPDATE problems SET scope=$1, source=$2, title=$3, body=$4, status=$5,
+		 context=$6, brainstorming=$7, research_brief=$8, findings=$9, related_ids=$10, updated_at=$11
+		 WHERE id=$12`,
+		in.Scope, in.Source, in.Title, in.Body, in.Status,
 		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.RelatedIDs, time.Now().UTC(), id,
 	)
 	if err != nil {
@@ -238,11 +237,11 @@ func (s *Server) GetProblem(w http.ResponseWriter, r *http.Request) {
 	var scopeJoined, sourceJoined, relatedJoined string
 	var context, brainstorming, researchBrief, findings string
 	err := s.DB.QueryRow(
-		`SELECT id, array_to_string(scope, ','), array_to_string(source, ','), ai_assisted, title, body, status,
+		`SELECT id, array_to_string(scope, ','), array_to_string(source, ','), title, body, status,
 		        source_url, recurrence, context, brainstorming, research_brief, findings,
 		        array_to_string(related_ids, ','), created_at, updated_at
 		 FROM problems WHERE id = $1`, id,
-	).Scan(&p.ID, &scopeJoined, &sourceJoined, &p.AIAssisted, &p.Title, &p.Body, &p.Status,
+	).Scan(&p.ID, &scopeJoined, &sourceJoined, &p.Title, &p.Body, &p.Status,
 		&p.SourceURL, &p.Recurrence, &context, &brainstorming, &researchBrief, &findings,
 		&relatedJoined, &p.CreatedAt, &p.UpdatedAt)
 	if err == sql.ErrNoRows {

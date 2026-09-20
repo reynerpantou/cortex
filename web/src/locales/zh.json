@@ -63,7 +63,7 @@
     "cancel": "取消",
     "delete": "删除"
   },
-  "problem": { "seen": "出现 {{count}} 次", "aiAssisted": "AI 辅助" },
+  "problem": { "seen": "出现 {{count}} 次" },
   "detail": {
     "back": "返回雷达",
     "context": "背景",

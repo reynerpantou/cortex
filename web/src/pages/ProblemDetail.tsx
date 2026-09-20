@@ -27,7 +27,6 @@ export default function ProblemDetail() {
   const [scope, setScope] = useState<Scope[]>([]);
   const [source, setSource] = useState<Source[]>([]);
   const [status, setStatus] = useState<Status>("backlog");
-  const [aiAssisted, setAiAssisted] = useState(false);
   const [context, setContext] = useState("");
   const [brainstorming, setBrainstorming] = useState("");
   const [researchBrief, setResearchBrief] = useState("");
@@ -63,7 +62,6 @@ export default function ProblemDetail() {
       setScope(p.scope);
       setSource(p.source);
       setStatus(p.status);
-      setAiAssisted(p.ai_assisted);
       setContext(p.context ?? "");
       setBrainstorming(p.brainstorming ?? "");
       setResearchBrief(p.research_brief ?? "");
@@ -140,7 +138,6 @@ export default function ProblemDetail() {
       scope,
       source,
       status,
-      ai_assisted: aiAssisted,
       context,
       brainstorming,
       research_brief: researchBrief,
@@ -206,7 +203,6 @@ export default function ProblemDetail() {
           body,
           scope,
           source,
-          ai_assisted: aiAssisted,
           status,
           context,
           brainstorming,
@@ -308,10 +304,6 @@ export default function ProblemDetail() {
             </div>
           </div>
         </div>
-        <label className="checkbox-field">
-          <input type="checkbox" checked={aiAssisted} disabled={readOnly} onChange={(e) => setAiAssisted(e.target.checked)} />
-          {"✨ " + t("problem.aiAssisted")}
-        </label>
       </header>
 
       <details className="workspace-section" open={!!context}>

@@ -262,11 +262,6 @@ select.input { appearance: none; cursor: pointer; }
 }
 .disclosure-toggle:hover { color: var(--azure-strong); }
 
-.checkbox-field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); margin-bottom: 10px; }
-.checkbox-field input { width: 16px; height: 16px; accent-color: var(--azure); }
-.checkbox-field input:disabled { opacity: 0.5; cursor: not-allowed; }
-.checkbox-field:has(input:disabled) { opacity: 0.7; }
-
 .required-mark { color: var(--red); font-weight: 700; margin-left: 3px; }
 
 /* ---- related-problem search (verify-then-link, not a bare id field) ---- */
