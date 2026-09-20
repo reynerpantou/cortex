@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
+import { displayName } from "../lib/displayName";
 import { languages } from "../i18n";
 
 export default function UserMenu({ collapsed }: { collapsed: boolean }) {
@@ -36,7 +37,8 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
   };
 
   if (!user) return null;
-  const initial = user.username.slice(0, 1).toUpperCase();
+  const name = displayName(user, currentLang);
+  const initial = name.slice(0, 1).toUpperCase();
 
   return (
     <div className="user-menu" ref={rootRef}>
@@ -93,11 +95,11 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
         </div>
       )}
 
-      <button type="button" className="user-menu-trigger" onClick={toggle} aria-label={user.username}>
+      <button type="button" className="user-menu-trigger" onClick={toggle} aria-label={name}>
         <span className="user-avatar" aria-hidden="true">{initial}</span>
         {!collapsed && (
           <span className="user-menu-trigger-info">
-            <span className="user-menu-name">{user.username}</span>
+            <span className="user-menu-name">{name}</span>
             <span className="user-menu-sub">{t("nav.session")}</span>
           </span>
         )}

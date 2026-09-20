@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Cortex", "tagline": "Personal command center" },
+  "app": { "name": "Cortex", "tagline": "Second brain" },
   "nav": {
     "home": "Home",
     "radar": "Radar",
@@ -116,6 +116,12 @@
     "username": "Username",
     "usernameRequired": "Username is required",
     "usernameTaken": "That username is already taken",
+    "displayName": "Display name",
+    "displayNameLead": "Shown instead of your username around the app — one per language, switching with your language setting.",
+    "nameEn": "English name",
+    "nameId": "Indonesian name",
+    "nameZh": "Chinese name",
+    "useEnglishName": "Use English name",
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "currentPasswordPlaceholder": "Required only to set a new password",

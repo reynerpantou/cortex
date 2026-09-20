@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
+import { displayName } from "../lib/displayName";
 import { modules } from "../lib/modules";
 
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
   return (
@@ -12,7 +13,7 @@ export default function Home() {
       <header className="page-head">
         <h1 className="page-title">
           {t("home.greeting")}
-          {user ? `, ${user.username}` : ""}
+          {user ? `, ${displayName(user, i18n.resolvedLanguage ?? "en")}` : ""}
         </h1>
         <p className="page-lead">{t("home.lead")}</p>
       </header>
