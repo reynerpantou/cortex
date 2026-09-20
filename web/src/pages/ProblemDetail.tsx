@@ -263,7 +263,11 @@ export default function ProblemDetail() {
             value={status}
             onChange={(e) => setStatus(e.target.value as Status)}
           >
-            {STATUSES.map((s) => (
+            {/* Archiving always goes through the Archive button + reason modal below —
+                offering it here would let it happen with no reason captured. It's only
+                included when already archived, so the dropdown still shows the current
+                value and can be used to unarchive. */}
+            {STATUSES.filter((s) => s !== "archived" || status === "archived").map((s) => (
               <option key={s} value={s}>{statusIcon[s]} {t(`status.${s}`)}</option>
             ))}
           </select>

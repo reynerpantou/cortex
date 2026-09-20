@@ -9,7 +9,12 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
     <aside className={`sidebar ${collapsed ? "is-collapsed" : ""}`}>
       <div className="sidebar-brand">
         <span className="brand-mark" aria-hidden="true" />
-        {!collapsed && <span className="brand-name">{t("app.name")}</span>}
+        {!collapsed && (
+          <span className="sidebar-brand-text">
+            <span className="brand-name">{t("app.name")}</span>
+            <span className="sidebar-brand-tagline">{t("app.tagline")}</span>
+          </span>
+        )}
       </div>
 
       <nav className="sidebar-nav">

@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Cortex" },
+  "app": { "name": "Cortex", "tagline": "个人指挥中心" },
   "nav": {
     "home": "首页",
     "radar": "雷达",
@@ -8,7 +8,8 @@
     "overview": "概览",
     "session": "已登录",
     "collapseSidebar": "收起侧边栏",
-    "expandSidebar": "展开侧边栏"
+    "expandSidebar": "展开侧边栏",
+    "profile": "个人资料"
   },
   "login": {
     "subtitle": "登录以继续",
@@ -102,5 +103,21 @@
     "archiveReasonLabel": "原因（可选）",
     "archiveReasonPlaceholder": "为什么要归档——死路一条、已经解决、失去兴趣……"
   },
-  "common": { "loading": "加载中…", "error": "出错了", "retry": "重试" }
+  "common": { "loading": "加载中…", "error": "出错了", "retry": "重试" },
+  "profile": {
+    "title": "个人资料",
+    "lead": "管理你的账户。",
+    "username": "用户名",
+    "usernameRequired": "请填写用户名",
+    "usernameTaken": "该用户名已被占用",
+    "changePassword": "修改密码",
+    "currentPassword": "当前密码",
+    "currentPasswordPlaceholder": "仅在设置新密码时需要",
+    "currentPasswordRequired": "请输入当前密码以设置新密码",
+    "currentPasswordWrong": "当前密码不正确",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "passwordMismatch": "两次输入的新密码不一致",
+    "saved": "已保存"
+  }
 }

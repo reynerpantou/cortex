@@ -51,6 +51,8 @@ export const api = {
     request<User>("POST", "/login", { username, password }),
   logout: () => request<void>("POST", "/logout"),
   me: () => request<User>("GET", "/me"),
+  updateMe: (input: { username: string; current_password?: string; new_password?: string }) =>
+    request<User>("PUT", "/me", input),
   stats: () => request<Stats>("GET", "/stats"),
 
   listProblems: (params: Record<string, string> = {}) => {

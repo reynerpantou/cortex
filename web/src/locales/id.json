@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Cortex" },
+  "app": { "name": "Cortex", "tagline": "Pusat komando pribadi" },
   "nav": {
     "home": "Beranda",
     "radar": "Radar",
@@ -8,7 +8,8 @@
     "overview": "Ikhtisar",
     "session": "Sudah masuk",
     "collapseSidebar": "Tutup sidebar",
-    "expandSidebar": "Buka sidebar"
+    "expandSidebar": "Buka sidebar",
+    "profile": "Profil"
   },
   "login": {
     "subtitle": "Masuk untuk melanjutkan",
@@ -102,5 +103,21 @@
     "archiveReasonLabel": "Alasan (opsional)",
     "archiveReasonPlaceholder": "Kenapa diarsipkan — jalan buntu, sudah terpecahkan, kehilangan minat…"
   },
-  "common": { "loading": "Memuat…", "error": "Terjadi kesalahan", "retry": "Coba lagi" }
+  "common": { "loading": "Memuat…", "error": "Terjadi kesalahan", "retry": "Coba lagi" },
+  "profile": {
+    "title": "Profil",
+    "lead": "Kelola akun kamu.",
+    "username": "Nama pengguna",
+    "usernameRequired": "Nama pengguna wajib diisi",
+    "usernameTaken": "Nama pengguna itu sudah dipakai",
+    "changePassword": "Ubah kata sandi",
+    "currentPassword": "Kata sandi saat ini",
+    "currentPasswordPlaceholder": "Hanya diperlukan untuk mengatur kata sandi baru",
+    "currentPasswordRequired": "Masukkan kata sandi saat ini untuk mengatur yang baru",
+    "currentPasswordWrong": "Kata sandi saat ini salah",
+    "newPassword": "Kata sandi baru",
+    "confirmPassword": "Konfirmasi kata sandi baru",
+    "passwordMismatch": "Kata sandi baru tidak cocok",
+    "saved": "Tersimpan"
+  }
 }

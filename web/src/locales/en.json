@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Cortex" },
+  "app": { "name": "Cortex", "tagline": "Personal command center" },
   "nav": {
     "home": "Home",
     "radar": "Radar",
@@ -8,7 +8,8 @@
     "overview": "Overview",
     "session": "Signed in",
     "collapseSidebar": "Collapse sidebar",
-    "expandSidebar": "Expand sidebar"
+    "expandSidebar": "Expand sidebar",
+    "profile": "Profile"
   },
   "login": {
     "subtitle": "Sign in to continue",
@@ -102,5 +103,21 @@
     "archiveReasonLabel": "Reason (optional)",
     "archiveReasonPlaceholder": "Why are you archiving this — dead end, already solved, lost interest…"
   },
-  "common": { "loading": "Loading…", "error": "Something went wrong", "retry": "Try again" }
+  "common": { "loading": "Loading…", "error": "Something went wrong", "retry": "Try again" },
+  "profile": {
+    "title": "Profile",
+    "lead": "Manage your account.",
+    "username": "Username",
+    "usernameRequired": "Username is required",
+    "usernameTaken": "That username is already taken",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "currentPasswordPlaceholder": "Required only to set a new password",
+    "currentPasswordRequired": "Enter your current password to set a new one",
+    "currentPasswordWrong": "Current password is incorrect",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "passwordMismatch": "New passwords don't match",
+    "saved": "Saved"
+  }
 }
