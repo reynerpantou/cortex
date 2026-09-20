@@ -48,7 +48,7 @@ export default function ProblemForm({ onSubmit, onCancel }: Props) {
       <h2 className="form-heading">{t("form.new")}</h2>
 
       <label className="field">
-        <span className="field-label">{t("form.title")}</span>
+        <span className="field-label">{t("form.title")}<span className="required-mark">*</span></span>
         <input
           className="input"
           value={title}

@@ -76,15 +76,17 @@
     "brainstorming": "Brainstorming",
     "brainstormingPlaceholder": "Freeform notes, open questions, assumptions, possible solutions…",
     "relatedProblems": "Related problems",
-    "relatedPlaceholder": "#id",
-    "addRelated": "Link",
+    "relatedPlaceholder": "Search by title or #id…",
+    "relatedNoMatch": "No matching problems",
+    "relatedMissing": "(deleted problem)",
     "researchBrief": "Research Brief",
     "researchBriefPlaceholder": "Research goal, target market, constraints, questions for AI…",
     "findings": "Findings & Decisions",
     "findingsPlaceholder": "Research findings with citations, unresolved questions, next experiment, decision rationale…",
     "copyBrief": "Copy research brief",
     "copied": "Copied!",
-    "exportMarkdown": "Export Markdown"
+    "exportMarkdown": "Export Markdown",
+    "saved": "Saved"
   },
   "common": { "loading": "Loading…", "error": "Something went wrong", "retry": "Try again" }
 }
