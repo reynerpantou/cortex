@@ -9,7 +9,13 @@
     "session": "已登录",
     "collapseSidebar": "收起侧边栏",
     "expandSidebar": "展开侧边栏",
-    "profile": "个人资料"
+    "profile": "个人资料",
+    "customizeNavigation": "自定义导航",
+    "organize": "整理",
+    "done": "完成",
+    "newGroup": "新建分组",
+    "groupNamePlaceholder": "分组名称",
+    "deleteGroup": "删除分组"
   },
   "login": {
     "subtitle": "登录以继续",

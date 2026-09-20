@@ -9,7 +9,13 @@
     "session": "Sudah masuk",
     "collapseSidebar": "Tutup sidebar",
     "expandSidebar": "Buka sidebar",
-    "profile": "Profil"
+    "profile": "Profil",
+    "customizeNavigation": "Sesuaikan navigasi",
+    "organize": "Atur",
+    "done": "Selesai",
+    "newGroup": "Grup baru",
+    "groupNamePlaceholder": "Nama grup",
+    "deleteGroup": "Hapus grup"
   },
   "login": {
     "subtitle": "Masuk untuk melanjutkan",

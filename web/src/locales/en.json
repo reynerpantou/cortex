@@ -9,7 +9,13 @@
     "session": "Signed in",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
-    "profile": "Profile"
+    "profile": "Profile",
+    "customizeNavigation": "Customize navigation",
+    "organize": "Organize",
+    "done": "Done",
+    "newGroup": "New group",
+    "groupNamePlaceholder": "Group name",
+    "deleteGroup": "Delete group"
   },
   "login": {
     "subtitle": "Sign in to continue",

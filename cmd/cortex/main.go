@@ -72,6 +72,8 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	api.Handle("POST /logout", protected(s.Logout))
 	api.Handle("GET /me", protected(s.Me))
 	api.Handle("PUT /me", protected(s.UpdateMe))
+	api.Handle("GET /nav", protected(s.GetNav))
+	api.Handle("PUT /nav", protected(s.UpdateNav))
 	api.Handle("GET /stats", protected(s.Stats))
 	api.Handle("GET /problems", protected(s.ListProblems))
 	api.Handle("POST /problems", protected(s.CreateProblem))
