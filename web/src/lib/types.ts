@@ -1,11 +1,15 @@
 export type Scope = "id" | "row";
 export type Source = "personal" | "other" | "ai";
-export type Status = "inbox" | "validated" | "parked" | "dropped";
+export type Status = "backlog" | "researching" | "in_review" | "building" | "shipped" | "archived";
+
+export const SCOPES: Scope[] = ["id", "row"];
+export const SOURCES: Source[] = ["personal", "other", "ai"];
+export const STATUSES: Status[] = ["backlog", "researching", "in_review", "building", "shipped", "archived"];
 
 export interface Problem {
   id: number;
-  scope: Scope;
-  source: Source;
+  scope: Scope[];
+  source: Source[];
   title: string;
   body: string;
   status: Status;
@@ -30,8 +34,8 @@ export interface User {
 }
 
 export interface ProblemInput {
-  scope: Scope;
-  source: Source;
+  scope: Scope[];
+  source: Source[];
   title: string;
   body: string;
   status: Status;

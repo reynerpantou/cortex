@@ -1,26 +1,30 @@
-/* Cortex — "signal desk" dark theme.
-   Deep ink-slate base (never pure black), a single calm azure for anything
-   interactive, and a muted signal-amber reserved for AI + recurrence — the two
-   things that carry demand signal. Deliberately not neon-on-black. */
+/* Cortex — dark theme. Warm-neutral charcoal base (not cold navy-black, and
+   lifted a step brighter so it doesn't read as gloomy), a vivid azure for
+   anything interactive, and a warm amber reserved for AI + recurrence — the
+   two things that carry demand signal. */
 
 :root {
-  --bg-0: #0b0f1a;
-  --bg-1: #121826;
-  --bg-2: #1a2234;
-  --bg-3: #212b40;
-  --border: #232c40;
-  --border-strong: #2e3a52;
+  --bg-0: #17191f;
+  --bg-1: #1e212a;
+  --bg-2: #272b37;
+  --bg-3: #333847;
+  --border: #383e4d;
+  --border-strong: #4a5166;
 
-  --text: #e6eaf2;
-  --text-2: #9ba6bd;
-  --text-3: #6b7688;
+  --text: #f2f3f7;
+  --text-2: #b3b9c9;
+  --text-3: #82899c;
 
-  --azure: #6aa2f0;
-  --azure-strong: #83b4fa;
-  --amber: #e3a857;
-  --amber-deep: #7a5417;
-  --green: #6fbf8b;
-  --red: #e06b6b;
+  --azure: #5b93ff;
+  --azure-strong: #7ea6ff;
+  --amber: #f0ad4e;
+  --amber-deep: #8a5a12;
+  --green: #4fce8d;
+  --red: #f0685f;
+  --violet: #a184f5;
+  --teal: #2fc3ac;
+  --cyan: #4dc4e8;
+  --pink: #ef7fae;
 
   --radius: 10px;
   --gap: 16px;
@@ -57,7 +61,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand-mark {
   width: 14px; height: 14px; border-radius: 4px;
   background: var(--azure);
-  box-shadow: 0 0 0 4px rgba(106, 162, 240, 0.14);
+  box-shadow: 0 0 0 4px rgba(91, 147, 255, 0.16);
 }
 .brand-name { font-weight: 600; letter-spacing: 0.2px; }
 .brand-lg { gap: 12px; }
@@ -170,24 +174,39 @@ select.input { appearance: none; cursor: pointer; }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .card-title { font-size: 15px; font-weight: 600; margin: 0; }
 .card-body { color: var(--text-2); font-size: 14px; margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.card-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+/* Status + recurrence sit in their own band right under the body — the
+   single most important fact about a problem shouldn't fight with its tags. */
+.card-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+/* Source and scope each get their own row (never merged) so the two kinds of
+   tag are never mistaken for one another — a small caption names the row. */
+.card-tag-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.card-tag-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); margin-right: 2px; }
 .recurrence { font-family: var(--mono); font-size: 12px; color: var(--amber); white-space: nowrap; }
 
-/* ---- badges ---- */
+/* ---- tags/badges ----
+   Every distinct value (each scope, each source, each status) gets its own
+   hue so they're never confused for one another at a glance, plus its own
+   icon as a second, color-independent cue. Filled tint background +
+   full-strength text is the shared look; AI stays the deliberate odd one out
+   (solid fill) since it's the one thing that always needs to jump out. */
 .badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border-strong);
-  color: var(--text-2);
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  white-space: nowrap;
 }
-.badge-personal { color: var(--azure); border-color: rgba(106, 162, 240, 0.4); }
-.badge-other { color: var(--text-2); }
-/* AI is the deliberate odd one out: filled amber, with a dot. */
-.badge-ai { background: var(--amber); color: #2a1c06; border-color: var(--amber); font-weight: 600; }
-.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-deep); }
-.badge-scope { color: var(--text-3); }
-.badge-status.status-validated { color: var(--green); border-color: rgba(111, 191, 139, 0.4); }
-.badge-status.status-dropped { color: var(--red); border-color: rgba(224, 107, 107, 0.35); }
-.badge-status.status-parked { color: var(--text-3); }
+.badge-scope-id     { background: color-mix(in srgb, var(--pink) 18%, transparent);   color: var(--pink); }
+.badge-scope-row    { background: color-mix(in srgb, var(--cyan) 18%, transparent);   color: var(--cyan); }
+.badge-source-personal { background: color-mix(in srgb, var(--azure) 18%, transparent); color: var(--azure); }
+.badge-source-other    { background: var(--bg-3); color: var(--text-2); }
+/* AI is the deliberate odd one out: filled amber. */
+.badge-source-ai { background: var(--amber); color: #2a1c06; }
+
+.badge-status-backlog     { background: var(--bg-3); color: var(--text-2); }
+.badge-status-researching { background: color-mix(in srgb, var(--azure) 18%, transparent); color: var(--azure); }
+.badge-status-in_review   { background: color-mix(in srgb, var(--violet) 20%, transparent); color: var(--violet); }
+.badge-status-building    { background: color-mix(in srgb, var(--teal) 18%, transparent); color: var(--teal); }
+.badge-status-shipped     { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+.badge-status-archived    { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
 
 /* ---- form panel + overlay ---- */
 .overlay {
@@ -202,8 +221,59 @@ select.input { appearance: none; cursor: pointer; }
 .form-actions .spacer { flex: 1; }
 .form-error { color: var(--red); font-size: 13px; margin: 4px 0 10px; }
 
-/* ---- toolbar ---- */
-.toolbar { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+/* ---- search + filter groups (TikTok-style chips, grouped by category so
+   it's obvious what each row filters — a flat strip reads as one undivided
+   pile of chips, so each category gets its own labeled line instead) ---- */
+.search-bar { margin-bottom: 14px; }
+.filter-groups {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; margin-bottom: 20px;
+  background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.filter-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filter-group-label {
+  flex: 0 0 auto; min-width: 56px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-3);
+}
+.filter-group-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.chip-select { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.chip-toggle {
+  flex: 0 0 auto; cursor: pointer; white-space: nowrap;
+  font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: transparent; color: var(--text-2);
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+.chip-toggle:hover { border-color: var(--text-3); }
+.chip-clear { color: var(--text-3); border-style: dashed; }
+.chip-clear:hover { color: var(--text); border-color: var(--text-3); }
+
+.chip-toggle.tag-scope-id { color: var(--pink); border-color: color-mix(in srgb, var(--pink) 45%, transparent); }
+.chip-toggle.tag-scope-id.is-on { background: var(--pink); border-color: var(--pink); color: #2a0f1c; }
+.chip-toggle.tag-scope-row { color: var(--cyan); border-color: color-mix(in srgb, var(--cyan) 45%, transparent); }
+.chip-toggle.tag-scope-row.is-on { background: var(--cyan); border-color: var(--cyan); color: #052226; }
+
+.chip-toggle.tag-source-personal { color: var(--azure); border-color: color-mix(in srgb, var(--azure) 45%, transparent); }
+.chip-toggle.tag-source-personal.is-on { background: var(--azure); border-color: var(--azure); color: #08111f; }
+.chip-toggle.tag-source-other { color: var(--text-2); }
+.chip-toggle.tag-source-other.is-on { background: var(--bg-3); border-color: var(--border-strong); color: var(--text); }
+.chip-toggle.tag-source-ai { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+.chip-toggle.tag-source-ai.is-on { background: var(--amber); border-color: var(--amber); color: #2a1c06; }
+
+.chip-toggle.tag-status-backlog { color: var(--text-2); }
+.chip-toggle.tag-status-backlog.is-on { background: var(--bg-3); border-color: var(--border-strong); color: var(--text); }
+.chip-toggle.tag-status-researching { color: var(--azure); border-color: color-mix(in srgb, var(--azure) 45%, transparent); }
+.chip-toggle.tag-status-researching.is-on { background: var(--azure); border-color: var(--azure); color: #08111f; }
+.chip-toggle.tag-status-in_review { color: var(--violet); border-color: color-mix(in srgb, var(--violet) 45%, transparent); }
+.chip-toggle.tag-status-in_review.is-on { background: var(--violet); border-color: var(--violet); color: #1c1330; }
+.chip-toggle.tag-status-building { color: var(--teal); border-color: color-mix(in srgb, var(--teal) 45%, transparent); }
+.chip-toggle.tag-status-building.is-on { background: var(--teal); border-color: var(--teal); color: #05201b; }
+.chip-toggle.tag-status-shipped { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, transparent); }
+.chip-toggle.tag-status-shipped.is-on { background: var(--green); border-color: var(--green); color: #06291a; }
+.chip-toggle.tag-status-archived { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, transparent); }
+.chip-toggle.tag-status-archived.is-on { background: var(--red); border-color: var(--red); color: #2c0d0a; }
 
 /* ---- login ---- */
 .login { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; }
@@ -219,8 +289,8 @@ select.input { appearance: none; cursor: pointer; }
 @media (max-width: 720px) {
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .grid { grid-template-columns: 1fr; }
-  .toolbar { grid-template-columns: 1fr 1fr; }
   .topbar { gap: 12px; padding: 0 14px; }
+  .filter-group { align-items: flex-start; flex-direction: column; gap: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

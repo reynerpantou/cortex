@@ -24,7 +24,7 @@
     "indonesia": "印尼",
     "row": "其他地区",
     "ai": "AI 发现",
-    "validated": "已验证"
+    "validated": "进行中"
   },
   "radar": {
     "title": "雷达",
@@ -35,10 +35,18 @@
     "count_other": "{{count}} 个问题",
     "empty": "没有符合筛选条件的问题。"
   },
-  "filter": { "allScopes": "全部范围", "allSources": "全部来源", "allStatuses": "全部状态" },
+  "filter": { "clear": "清除", "scope": "范围", "source": "来源", "status": "状态" },
+  "tagGroup": { "source": "来源", "scope": "范围" },
   "scope": { "id": "印尼", "row": "其他地区" },
   "source": { "personal": "本人", "other": "他人反馈", "ai": "AI" },
-  "status": { "inbox": "收件箱", "validated": "已验证", "parked": "暂缓", "dropped": "已放弃" },
+  "status": {
+    "backlog": "待处理",
+    "researching": "调研中",
+    "in_review": "评审中",
+    "building": "开发中",
+    "shipped": "已上线",
+    "archived": "已归档"
+  },
   "form": {
     "new": "新建问题",
     "edit": "编辑问题",
@@ -49,6 +57,7 @@
     "scope": "范围",
     "source": "来源",
     "status": "状态",
+    "pickAtLeastOne": "至少选择一个范围和一个来源",
     "save": "保存",
     "cancel": "取消",
     "delete": "删除",
