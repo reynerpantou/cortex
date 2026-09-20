@@ -61,8 +61,7 @@
     "save": "Save",
     "addProblem": "Add problem",
     "cancel": "Cancel",
-    "delete": "Delete",
-    "confirmDelete": "Delete this problem? This can’t be undone."
+    "delete": "Delete"
   },
   "problem": { "seen": "seen {{count}}×", "aiAssisted": "AI-assisted" },
   "detail": {
@@ -83,10 +82,13 @@
     "researchBriefPlaceholder": "Research goal, target market, constraints, questions for AI…",
     "findings": "Findings & Decisions",
     "findingsPlaceholder": "Research findings with citations, unresolved questions, next experiment, decision rationale…",
-    "copyBrief": "Copy research brief",
+    "copyBrief": "Copy Markdown",
     "copied": "Copied!",
     "exportMarkdown": "Export Markdown",
-    "saved": "Saved"
+    "saved": "Saved",
+    "archive": "Archive",
+    "archived": "Archived",
+    "archivedHint": "Archived — change status above to edit"
   },
   "common": { "loading": "Loading…", "error": "Something went wrong", "retry": "Try again" }
 }

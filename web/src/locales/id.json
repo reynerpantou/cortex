@@ -61,8 +61,7 @@
     "save": "Simpan",
     "addProblem": "Tambah masalah",
     "cancel": "Batal",
-    "delete": "Hapus",
-    "confirmDelete": "Hapus masalah ini? Tindakan ini tidak bisa dibatalkan."
+    "delete": "Hapus"
   },
   "problem": { "seen": "terlihat {{count}}×", "aiAssisted": "Dibantu AI" },
   "detail": {
@@ -83,10 +82,13 @@
     "researchBriefPlaceholder": "Tujuan riset, target pasar, batasan, pertanyaan untuk AI…",
     "findings": "Temuan & Keputusan",
     "findingsPlaceholder": "Temuan riset dengan sitasi, pertanyaan yang belum terjawab, eksperimen berikutnya, alasan keputusan…",
-    "copyBrief": "Salin brief riset",
+    "copyBrief": "Salin Markdown",
     "copied": "Tersalin!",
     "exportMarkdown": "Ekspor Markdown",
-    "saved": "Tersimpan"
+    "saved": "Tersimpan",
+    "archive": "Arsipkan",
+    "archived": "Diarsipkan",
+    "archivedHint": "Diarsipkan — ubah status di atas untuk mengedit"
   },
   "common": { "loading": "Memuat…", "error": "Terjadi kesalahan", "retry": "Coba lagi" }
 }
