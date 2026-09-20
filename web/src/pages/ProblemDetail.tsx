@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import type { Problem, Scope, Source, Status } from "../lib/types";
+import type { AiSummary, Problem, Scope, Source, Status } from "../lib/types";
 import { SCOPES, SOURCES, STATUSES } from "../lib/types";
 import { scopeIcon, sourceIcon, statusIcon } from "../lib/icons";
 import { copyToClipboard, downloadMarkdown, fullExportMarkdown } from "../lib/export";
@@ -32,6 +32,16 @@ export default function ProblemDetail() {
   const [researchBrief, setResearchBrief] = useState("");
   const [findings, setFindings] = useState("");
 
+  // Each section's open/closed state is set once when the problem loads and
+  // never recomputed from the live text afterward — otherwise a <details
+  // open={!!context}> snaps shut mid-edit the instant you backspace a field
+  // back to empty, which is exactly the bug this was.
+  const [contextOpen, setContextOpen] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [brainstormingOpen, setBrainstormingOpen] = useState(false);
+  const [researchBriefOpen, setResearchBriefOpen] = useState(false);
+  const [findingsOpen, setFindingsOpen] = useState(false);
+
   const [relatedIds, setRelatedIds] = useState<number[]>([]);
   const [relatedTitles, setRelatedTitles] = useState<Record<number, string>>({});
   const [relatedQuery, setRelatedQuery] = useState("");
@@ -43,6 +53,10 @@ export default function ProblemDetail() {
 
   const [archiveModalOpen, setArchiveModalOpen] = useState(false);
   const [archiveReasonDraft, setArchiveReasonDraft] = useState("");
+
+  const [aiSummary, setAiSummary] = useState<AiSummary | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   // Archived problems are read-only until the status is changed away from
   // "archived" — the status control itself is the only way to unlock them.
@@ -71,6 +85,11 @@ export default function ProblemDetail() {
       setFindings(p.findings ?? "");
       const relIds = p.related_ids ?? [];
       setRelatedIds(relIds);
+      setContextOpen(!!p.context);
+      setEvidenceOpen((p.evidence?.length ?? 0) > 0);
+      setBrainstormingOpen(!!p.brainstorming || relIds.length > 0);
+      setResearchBriefOpen(!!p.research_brief);
+      setFindingsOpen(!!p.findings);
       // Related chips must show what they point to, not just a bare number —
       // fetch each linked problem's title once.
       const titles: Record<number, string> = {};
@@ -239,6 +258,39 @@ export default function ProblemDetail() {
     downloadMarkdown(`cortex-problem-${problem.id}.md`, fullExportMarkdown(currentSnapshot(), relatedTitles));
   };
 
+  const askAI = async () => {
+    if (!problem) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const result = await api.aiSummary(problem.id, {
+        title: title.trim(),
+        body: body.trim(),
+        scope,
+        source,
+        context,
+        brainstorming,
+        research_brief: researchBrief,
+        findings,
+      });
+      setAiSummary(result);
+    } catch {
+      setAiError(t("common.error"));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // The guiding sub-questions used to live only in the placeholder, which
+  // vanishes the moment you type a single character — losing the prompts
+  // for whatever you haven't answered yet. Seeding real markdown headings
+  // into the field on first focus (only while it's still empty) keeps them
+  // visible as you fill in the blanks, without turning this back into rigid
+  // separate fields.
+  const seedOnFocus = (value: string, setValue: (v: string) => void, scaffoldKey: string) => () => {
+    if (!value.trim()) setValue(t(scaffoldKey));
+  };
+
   if (loading) return <div className="page"><p className="muted">{t("common.loading")}</p></div>;
   if (loadError || !problem) {
     return (
@@ -331,7 +383,57 @@ export default function ProblemDetail() {
         </div>
       </header>
 
-      <details className="workspace-section" open={!!context}>
+      <div className="ai-summary-block">
+        {!aiSummary ? (
+          <button type="button" className="btn ai-ask-btn" disabled={aiLoading} onClick={() => void askAI()}>
+            <span aria-hidden="true">{"✨"}</span>
+            {aiLoading ? t("detail.aiAsking") : t("detail.aiAskButton")}
+          </button>
+        ) : (
+          <div className="ai-summary-card">
+            <div className="ai-summary-header">
+              <span className="ai-summary-title"><span aria-hidden="true">{"✨"}</span> {t("detail.aiSummaryTitle")}</span>
+              <div className="ai-summary-header-actions">
+                <button type="button" className="btn btn-ghost btn-sm" disabled={aiLoading} onClick={() => void askAI()}>
+                  {aiLoading ? t("detail.aiAsking") : t("detail.aiRefresh")}
+                </button>
+                <button
+                  type="button"
+                  className="ai-summary-dismiss"
+                  aria-label={t("form.delete")}
+                  onClick={() => setAiSummary(null)}
+                >
+                  {"×"}
+                </button>
+              </div>
+            </div>
+            {aiSummary.mock && <p className="ai-summary-mock-note">{t("detail.aiMockNote")}</p>}
+            <p className="ai-summary-text">{aiSummary.summary}</p>
+
+            <div className="ai-summary-section">
+              <h4>{t("detail.aiClarify")}</h4>
+              <ul>{aiSummary.clarify.map((c, i) => <li key={i}>{c}</li>)}</ul>
+            </div>
+            <div className="ai-summary-section">
+              <h4>{t("detail.aiSolutions")}</h4>
+              <ul>{aiSummary.solutions.map((c, i) => <li key={i}>{c}</li>)}</ul>
+            </div>
+            <div className="ai-summary-section">
+              <h4>{t("detail.aiNextStep")}</h4>
+              <p>{aiSummary.next_step}</p>
+            </div>
+            {aiSummary.obstacle && (
+              <div className="ai-summary-section">
+                <h4>{t("detail.aiObstacle")}</h4>
+                <p>{aiSummary.obstacle}</p>
+              </div>
+            )}
+          </div>
+        )}
+        {aiError && <p className="form-error">{aiError}</p>}
+      </div>
+
+      <details className="workspace-section" open={contextOpen}>
         <summary>{t("detail.context")}</summary>
         <div className="workspace-section-body">
           <textarea
@@ -340,12 +442,13 @@ export default function ProblemDetail() {
             value={context}
             disabled={readOnly}
             placeholder={t("detail.contextPlaceholder")}
+            onFocus={seedOnFocus(context, setContext, "detail.contextScaffold")}
             onChange={(e) => setContext(e.target.value)}
           />
         </div>
       </details>
 
-      <details className="workspace-section" open={(problem.evidence?.length ?? 0) > 0}>
+      <details className="workspace-section" open={evidenceOpen}>
         <summary>{t("detail.evidence")}{problem.evidence?.length ? ` (${problem.evidence.length})` : ""}</summary>
         <div className="workspace-section-body">
           {(problem.evidence ?? []).map((e) => (
@@ -382,7 +485,7 @@ export default function ProblemDetail() {
         </div>
       </details>
 
-      <details className="workspace-section" open={!!brainstorming || relatedIds.length > 0}>
+      <details className="workspace-section" open={brainstormingOpen}>
         <summary>{t("detail.brainstorming")}</summary>
         <div className="workspace-section-body">
           <textarea
@@ -391,6 +494,7 @@ export default function ProblemDetail() {
             value={brainstorming}
             disabled={readOnly}
             placeholder={t("detail.brainstormingPlaceholder")}
+            onFocus={seedOnFocus(brainstorming, setBrainstorming, "detail.brainstormingScaffold")}
             onChange={(e) => setBrainstorming(e.target.value)}
           />
           <div className="related-block">
@@ -433,7 +537,7 @@ export default function ProblemDetail() {
         </div>
       </details>
 
-      <details className="workspace-section" open={!!researchBrief}>
+      <details className="workspace-section" open={researchBriefOpen}>
         <summary>{t("detail.researchBrief")}</summary>
         <div className="workspace-section-body">
           <textarea
@@ -442,12 +546,13 @@ export default function ProblemDetail() {
             value={researchBrief}
             disabled={readOnly}
             placeholder={t("detail.researchBriefPlaceholder")}
+            onFocus={seedOnFocus(researchBrief, setResearchBrief, "detail.researchBriefScaffold")}
             onChange={(e) => setResearchBrief(e.target.value)}
           />
         </div>
       </details>
 
-      <details className="workspace-section" open={!!findings}>
+      <details className="workspace-section" open={findingsOpen}>
         <summary>{t("detail.findings")}</summary>
         <div className="workspace-section-body">
           <textarea
@@ -456,6 +561,7 @@ export default function ProblemDetail() {
             value={findings}
             disabled={readOnly}
             placeholder={t("detail.findingsPlaceholder")}
+            onFocus={seedOnFocus(findings, setFindings, "detail.findingsScaffold")}
             onChange={(e) => setFindings(e.target.value)}
           />
         </div>

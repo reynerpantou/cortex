@@ -71,6 +71,15 @@ export interface NavLayout {
   placements: NavPlacement[];
 }
 
+export interface AiSummary {
+  summary: string;
+  clarify: string[];
+  solutions: string[];
+  next_step: string;
+  obstacle?: string;
+  mock: boolean;
+}
+
 export interface ProblemInput {
   scope: Scope[];
   source: Source[];

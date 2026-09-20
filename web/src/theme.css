@@ -478,6 +478,43 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: 9px; padding: 8px 12px; margin: 0 0 14px;
 }
 
+/* ---- AI summary (OpenClaw hand-off — mock for now) ----
+   Amber is reserved for AI + recurrence elsewhere in this theme, so the ask
+   button and the returned card both carry it, distinguishing this from the
+   azure "just an action" buttons around it. */
+.ai-summary-block { margin-bottom: 20px; }
+.ai-ask-btn {
+  background: color-mix(in srgb, var(--amber) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent);
+  color: var(--amber);
+}
+.ai-ask-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--amber) 24%, transparent); }
+.ai-summary-card {
+  background: color-mix(in srgb, var(--amber) 7%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, var(--border));
+  border-radius: var(--radius); padding: 16px 18px;
+}
+.ai-summary-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.ai-summary-title { font-size: 14px; font-weight: 700; color: var(--amber); }
+.ai-summary-header-actions { display: flex; align-items: center; gap: 6px; }
+.ai-summary-dismiss {
+  background: none; border: none; cursor: pointer; color: var(--text-3);
+  font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 6px;
+}
+.ai-summary-dismiss:hover { color: var(--text); background: var(--bg-2); }
+.ai-summary-mock-note {
+  font-size: 12px; color: var(--text-3); font-style: italic; margin: 0 0 10px;
+}
+.ai-summary-text { font-size: 14px; line-height: 1.6; margin: 0 0 14px; }
+.ai-summary-section { margin-bottom: 12px; }
+.ai-summary-section:last-child { margin-bottom: 0; }
+.ai-summary-section h4 {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-3); margin: 0 0 6px;
+}
+.ai-summary-section p { font-size: 14px; margin: 0; line-height: 1.5; }
+.ai-summary-section ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+
 /* ---- login ---- */
 .login { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; }
 .login-lang { position: absolute; top: 20px; right: 20px; }
