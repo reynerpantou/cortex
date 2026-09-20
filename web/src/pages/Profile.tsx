@@ -11,58 +11,88 @@ export default function Profile() {
   const [nameEn, setNameEn] = useState(user?.display_name_en ?? "");
   const [nameId, setNameId] = useState(user?.display_name_id ?? "");
   const [nameZh, setNameZh] = useState(user?.display_name_zh ?? "");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileToast, setProfileToast] = useState("");
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordToast, setPasswordToast] = useState("");
 
   if (!user) return null;
 
-  const flashToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 1800);
+  const passwordsMismatch = newPassword.length > 0 && confirmPassword.length > 0 && newPassword !== confirmPassword;
+
+  const flash = (setter: (v: string) => void, msg: string) => {
+    setter(msg);
+    setTimeout(() => setter(""), 1800);
   };
 
-  const save = async () => {
-    setError("");
+  // Independent from the password form below — saving your name never
+  // touches your password, and there's nothing to fill in or worry about
+  // here if all you want is to rename yourself.
+  const saveProfile = async () => {
+    setProfileError("");
     const trimmed = username.trim();
     if (!trimmed) {
-      setError(t("profile.usernameRequired"));
+      setProfileError(t("profile.usernameRequired"));
       return;
     }
-    if (newPassword && newPassword !== confirmPassword) {
-      setError(t("profile.passwordMismatch"));
-      return;
-    }
-    if (newPassword && !currentPassword) {
-      setError(t("profile.currentPasswordRequired"));
-      return;
-    }
-    setSaving(true);
+    setSavingProfile(true);
     try {
       const updated = await api.updateMe({
         username: trimmed,
         display_name_en: nameEn.trim(),
         display_name_id: nameId.trim(),
         display_name_zh: nameZh.trim(),
-        current_password: currentPassword || undefined,
-        new_password: newPassword || undefined,
+      });
+      setUser(updated);
+      flash(setProfileToast, t("profile.saved"));
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "username_taken") setProfileError(t("profile.usernameTaken"));
+      else setProfileError(t("common.error"));
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // Independent from the profile form above — sends the account's
+  // already-saved username/names back unchanged, so this action can never
+  // accidentally commit an unsaved edit sitting in the other form.
+  const savePassword = async () => {
+    setPasswordError("");
+    if (!newPassword) return;
+    if (passwordsMismatch) {
+      setPasswordError(t("profile.passwordMismatch"));
+      return;
+    }
+    if (!currentPassword) {
+      setPasswordError(t("profile.currentPasswordRequired"));
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const updated = await api.updateMe({
+        username: user.username,
+        display_name_en: user.display_name_en,
+        display_name_id: user.display_name_id,
+        display_name_zh: user.display_name_zh,
+        current_password: currentPassword,
+        new_password: newPassword,
       });
       setUser(updated);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      flashToast(t("profile.saved"));
+      flash(setPasswordToast, t("profile.saved"));
     } catch (e) {
-      if (e instanceof ApiError && e.code === "username_taken") setError(t("profile.usernameTaken"));
-      else if (e instanceof ApiError && e.code === "invalid_credentials") setError(t("profile.currentPasswordWrong"));
-      else if (e instanceof ApiError && e.code === "validation_error") setError(e.message);
-      else setError(t("common.error"));
+      if (e instanceof ApiError && e.code === "invalid_credentials") setPasswordError(t("profile.currentPasswordWrong"));
+      else setPasswordError(t("common.error"));
     } finally {
-      setSaving(false);
+      setSavingPassword(false);
     }
   };
 
@@ -73,14 +103,14 @@ export default function Profile() {
         <p className="page-lead">{t("profile.lead")}</p>
       </header>
 
-      <div className="filter-groups">
-        <div className="field">
-          <span className="field-label">{t("profile.username")}</span>
-          <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <div className="section profile-section">
+        <div className="filter-groups">
+          <div className="field">
+            <span className="field-label">{t("profile.username")}</span>
+            <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} />
+          </div>
         </div>
-      </div>
 
-      <div className="section">
         <div className="section-head">
           <h2 className="section-title">{t("profile.displayName")}</h2>
         </div>
@@ -109,9 +139,25 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {profileError && <p className="form-error">{profileError}</p>}
+
+        <div className="detail-actions">
+          <div className="spacer" />
+          <button type="button" className="btn btn-primary" disabled={savingProfile} onClick={() => void saveProfile()}>
+            {savingProfile ? t("common.loading") : t("form.save")}
+          </button>
+        </div>
+
+        {profileToast && (
+          <div className="toast toast-success" role="status">
+            <span className="toast-check" aria-hidden="true">{"✓"}</span>
+            {profileToast}
+          </div>
+        )}
       </div>
 
-      <div className="section">
+      <div className="section profile-section">
         <div className="section-head">
           <h2 className="section-title">{t("profile.changePassword")}</h2>
         </div>
@@ -139,31 +185,37 @@ export default function Profile() {
             <div className="field">
               <span className="field-label">{t("profile.confirmPassword")}</span>
               <input
-                className="input"
+                className={`input ${passwordsMismatch ? "input-invalid" : ""}`}
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
+              {passwordsMismatch && <span className="field-error">{t("profile.passwordMismatch")}</span>}
             </div>
           </div>
         </div>
-      </div>
 
-      {error && <p className="form-error">{error}</p>}
+        {passwordError && <p className="form-error">{passwordError}</p>}
 
-      <div className="detail-actions">
-        <div className="spacer" />
-        <button type="button" className="btn btn-primary" disabled={saving} onClick={() => void save()}>
-          {saving ? t("common.loading") : t("form.save")}
-        </button>
-      </div>
-
-      {toast && (
-        <div className="toast toast-success" role="status">
-          <span className="toast-check" aria-hidden="true">{"✓"}</span>
-          {toast}
+        <div className="detail-actions">
+          <div className="spacer" />
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={savingPassword || !newPassword || passwordsMismatch}
+            onClick={() => void savePassword()}
+          >
+            {savingPassword ? t("common.loading") : t("profile.updatePassword")}
+          </button>
         </div>
-      )}
+
+        {passwordToast && (
+          <div className="toast toast-success" role="status">
+            <span className="toast-check" aria-hidden="true">{"✓"}</span>
+            {passwordToast}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

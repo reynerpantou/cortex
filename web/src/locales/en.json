@@ -123,6 +123,7 @@
     "nameZh": "Chinese name",
     "useEnglishName": "Use English name",
     "changePassword": "Change password",
+    "updatePassword": "Update password",
     "currentPassword": "Current password",
     "currentPasswordPlaceholder": "Required only to set a new password",
     "currentPasswordRequired": "Enter your current password to set a new one",

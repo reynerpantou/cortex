@@ -76,15 +76,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
   transition: width 0.16s ease;
 }
 .sidebar.is-collapsed { width: 68px; }
+/* Icon position (left edge + fixed padding) stays constant between expanded
+   and collapsed — only the trailing label disappears — so toggling never
+   makes the logo/icons visibly jump, which centering on collapse used to do. */
 .sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 20px 18px 18px; }
 .sidebar-brand .brand-mark { width: 38px; height: 38px; border-radius: 10px; }
 .sidebar-brand-text { display: flex; flex-direction: column; overflow: hidden; }
 .sidebar-brand-text .brand-name { font-size: 16px; line-height: 1.25; }
 .sidebar-brand-tagline { color: var(--text-3); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar.is-collapsed .sidebar-brand { justify-content: center; padding: 20px 0 18px; }
 
 .sidebar-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 12px; display: flex; flex-direction: column; gap: 2px; }
-.sidebar.is-collapsed .sidebar-nav { padding: 4px 10px; align-items: center; }
 .sidebar-nav-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px 6px 10px; }
 .sidebar-nav-header .sidebar-group-label { padding: 0; }
 .sidebar-group-label {
@@ -103,7 +104,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: var(--text-2); text-decoration: none;
   padding: 9px 10px; border-radius: 8px; font-size: 14px;
 }
-.sidebar.is-collapsed .sidebar-link { justify-content: center; width: 44px; padding: 9px 0; }
 .sidebar-link:hover { color: var(--text); background: var(--bg-2); }
 .sidebar-link.is-active { color: var(--text); background: var(--bg-3); }
 .sidebar-link-icon { flex: 0 0 auto; font-size: 15px; line-height: 1; }
@@ -141,7 +141,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: none; border: none; padding: 6px; cursor: pointer; border-radius: 10px;
 }
 .user-menu-trigger:hover { background: var(--bg-2); }
-.sidebar.is-collapsed .user-menu-trigger { justify-content: center; padding: 6px 0; }
 .user-avatar {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 999px; flex: 0 0 auto;
@@ -237,6 +236,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .profile-name-row { display: flex; gap: 8px; }
 .profile-name-row .input { flex: 1; }
 .profile-name-row .btn { flex: 0 0 auto; white-space: nowrap; }
+/* A single-line username/name/password field reading full page width (up
+   to 1080px) looks stretched past the point of being scannable — cap it to
+   a normal form-field measure regardless of how wide the page is. */
+.profile-section { max-width: 520px; }
+.input-invalid { border-color: var(--red); }
+.field-error { color: var(--red); font-size: 12px; margin-top: 4px; display: block; }
 select.input { appearance: none; cursor: pointer; }
 
 /* ---- module hub (home) ---- */
@@ -486,15 +491,24 @@ select.input { appearance: none; cursor: pointer; }
 
 @media (max-width: 720px) {
   .grid { grid-template-columns: 1fr; }
-  .sidebar { width: 68px; }
-  .sidebar-brand { justify-content: center; padding: 20px 0 16px; }
-  .sidebar-brand-text { display: none; }
-  .sidebar-nav { padding: 4px 10px; align-items: center; }
-  .sidebar-group-label { display: none; }
-  .sidebar-link { justify-content: center; width: 44px; padding: 9px 0; }
-  .sidebar-link span:not(.sidebar-link-icon) { display: none; }
-  .sidebar-nav-header { display: none; }
-  .user-menu-trigger-info { display: none; }
+
+  /* Sidebar becomes a hidden-by-default, off-canvas drawer rather than a
+     permanent icon rail — there's no room to spare on a phone, and a rail
+     that's always present but too narrow to read was the actual bug being
+     reported. It slides in as a full drawer (not the desktop icon-only
+     width) over a backdrop, positioned out of normal flow so it can never
+     cause the page itself to scroll horizontally. */
+  .sidebar {
+    position: fixed; top: 0; left: 0; z-index: 100;
+    width: 240px; height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  }
+  .sidebar.is-collapsed { width: 240px; }
+  .sidebar.is-mobile-open { transform: translateX(0); }
+  .sidebar-backdrop { position: fixed; inset: 0; background: rgba(5, 8, 14, 0.6); z-index: 90; }
+
   .filter-group { align-items: flex-start; flex-direction: column; gap: 6px; }
   .toolbar-row { flex-wrap: wrap; }
   .toolbar-row .search-bar { flex-basis: 100%; }

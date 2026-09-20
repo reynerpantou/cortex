@@ -78,8 +78,21 @@ function buildSaveRequest(draft: Draft) {
   return { groups, placements };
 }
 
-export default function Sidebar({ collapsed }: { collapsed: boolean }) {
+interface SidebarProps {
+  collapsed: boolean;
+  mobileOpen: boolean;
+  onNavigate: () => void;
+}
+
+export default function Sidebar({ collapsed, mobileOpen, onNavigate }: SidebarProps) {
   const { t } = useTranslation();
+
+  // The desktop icon-rail collapse and the mobile off-canvas drawer are
+  // different axes sharing this one component — collapsed is a persisted
+  // desktop preference, mobileOpen is a transient drawer state. Whenever the
+  // drawer is open, it always shows full labels regardless of the desktop
+  // preference; otherwise it's off-canvas and this doesn't matter.
+  const showLabels = !collapsed || mobileOpen;
 
   const [draft, setDraft] = useState<Draft>({ groups: [], topItems: KNOWN_ITEMS.map((i) => i.key), groupItems: {} });
   const committedRef = useRef<Draft>(draft);
@@ -110,10 +123,11 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
         key={key}
         to={item.path}
         end={item.end}
+        onClick={onNavigate}
         className={({ isActive }) => `sidebar-link ${isActive ? "is-active" : ""}`}
       >
         <span className="sidebar-link-icon" aria-hidden="true">{item.icon}</span>
-        {!collapsed && <span>{t(item.labelKey)}</span>}
+        {showLabels && <span>{t(item.labelKey)}</span>}
       </NavLink>
     );
   };
@@ -225,10 +239,10 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   };
 
   return (
-    <aside className={`sidebar ${collapsed ? "is-collapsed" : ""}`}>
+    <aside className={`sidebar ${collapsed ? "is-collapsed" : ""} ${mobileOpen ? "is-mobile-open" : ""}`}>
       <div className="sidebar-brand">
         <span className="brand-mark" aria-hidden="true" />
-        {!collapsed && (
+        {showLabels && (
           <span className="sidebar-brand-text">
             <span className="brand-name">{t("app.name")}</span>
             <span className="sidebar-brand-tagline">{t("app.tagline")}</span>
@@ -238,7 +252,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
 
       {!editing ? (
         <nav className="sidebar-nav">
-          {!collapsed && (
+          {showLabels && (
             <div className="sidebar-nav-header">
               <span className="sidebar-group-label">{t("nav.overview")}</span>
               <button
@@ -255,7 +269,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
           {draft.topItems.map((key) => linkFor(key))}
           {draft.groups.map((g) => (
             <div key={g.id} className="sidebar-nav-group">
-              {!collapsed && <div className="sidebar-group-label">{g.name}</div>}
+              {showLabels && <div className="sidebar-group-label">{g.name}</div>}
               {(draft.groupItems[g.id] ?? []).map((key) => linkFor(key))}
             </div>
           ))}
@@ -335,7 +349,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
       )}
 
       <div className="sidebar-footer">
-        <UserMenu collapsed={collapsed} />
+        <UserMenu collapsed={!showLabels} />
       </div>
     </aside>
   );
