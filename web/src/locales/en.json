@@ -6,7 +6,7 @@
     "username": "Username",
     "password": "Password",
     "submit": "Sign in",
-    "signingIn": "Signing in\u2026",
+    "signingIn": "Signing in…",
     "failed": "Incorrect username or password"
   },
   "home": {
@@ -26,19 +26,19 @@
     "ai": "AI-found",
     "validated": "Active"
   },
+  "sort": { "updated": "Recently updated", "created": "Recently created" },
   "radar": {
     "title": "Radar",
-    "lead": "Every problem you\u2019ve captured, from every source.",
+    "lead": "Every problem you’ve captured, from every source.",
     "add": "Add problem",
     "search": "Search problems",
     "count": "{{count}} problem",
     "count_other": "{{count}} problems",
     "empty": "No problems match these filters."
   },
-  "filter": { "clear": "Clear", "scope": "Scope", "source": "Source", "status": "Status" },
-  "tagGroup": { "source": "Source", "scope": "Scope" },
-  "scope": { "id": "Indonesia", "row": "Rest of world" },
-  "source": { "personal": "Personal", "other": "From others", "ai": "AI" },
+  "filter": { "title": "Filters", "clear": "Clear", "scope": "Scope", "source": "Source", "status": "Status" },
+  "scope": { "unknown": "Unknown", "id": "Indonesia", "row": "Rest of world" },
+  "source": { "unknown": "Unknown", "personal": "Personal", "other": "From others", "ai": "AI" },
   "status": {
     "backlog": "Backlog",
     "researching": "Researching",
@@ -49,20 +49,42 @@
   },
   "form": {
     "new": "New problem",
-    "edit": "Edit problem",
     "title": "Title",
-    "titlePlaceholder": "One line: what\u2019s the pain?",
+    "titlePlaceholder": "One line: what’s the pain?",
+    "titleRequired": "Title is required",
+    "moreDetails": "+ More details (scope, source, status)",
     "body": "Details",
-    "bodyPlaceholder": "Who has it, when it bites, what it costs\u2026",
+    "bodyPlaceholder": "Who has it, when it bites, what it costs…",
     "scope": "Scope",
     "source": "Source",
     "status": "Status",
-    "pickAtLeastOne": "Pick at least one scope and one source",
     "save": "Save",
+    "addProblem": "Add problem",
     "cancel": "Cancel",
     "delete": "Delete",
-    "confirmDelete": "Delete this problem? This can\u2019t be undone."
+    "confirmDelete": "Delete this problem? This can’t be undone."
   },
-  "problem": { "seen": "seen {{count}}\u00d7", "aiTag": "AI" },
-  "common": { "loading": "Loading\u2026", "error": "Something went wrong", "retry": "Try again" }
+  "problem": { "seen": "seen {{count}}×", "aiAssisted": "AI-assisted" },
+  "detail": {
+    "back": "Back to Radar",
+    "context": "Context",
+    "contextPlaceholder": "Who experiences it? Describe a concrete incident. How often does it happen? What's the impact? What's the current workaround — and why does it fall short?",
+    "evidence": "Evidence",
+    "evidenceTextPlaceholder": "A quote, observation, or note…",
+    "evidenceUrlPlaceholder": "Link (optional)",
+    "addEvidence": "Add",
+    "brainstorming": "Brainstorming",
+    "brainstormingPlaceholder": "Freeform notes, open questions, assumptions, possible solutions…",
+    "relatedProblems": "Related problems",
+    "relatedPlaceholder": "#id",
+    "addRelated": "Link",
+    "researchBrief": "Research Brief",
+    "researchBriefPlaceholder": "Research goal, target market, constraints, questions for AI…",
+    "findings": "Findings & Decisions",
+    "findingsPlaceholder": "Research findings with citations, unresolved questions, next experiment, decision rationale…",
+    "copyBrief": "Copy research brief",
+    "copied": "Copied!",
+    "exportMarkdown": "Export Markdown"
+  },
+  "common": { "loading": "Loading…", "error": "Something went wrong", "retry": "Try again" }
 }

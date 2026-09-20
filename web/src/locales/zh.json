@@ -6,7 +6,7 @@
     "username": "用户名",
     "password": "密码",
     "submit": "登录",
-    "signingIn": "登录中\u2026",
+    "signingIn": "登录中…",
     "failed": "用户名或密码错误"
   },
   "home": {
@@ -26,6 +26,7 @@
     "ai": "AI 发现",
     "validated": "进行中"
   },
+  "sort": { "updated": "最近更新", "created": "最近创建" },
   "radar": {
     "title": "雷达",
     "lead": "你记录的每一个问题，来自每一个来源。",
@@ -35,10 +36,9 @@
     "count_other": "{{count}} 个问题",
     "empty": "没有符合筛选条件的问题。"
   },
-  "filter": { "clear": "清除", "scope": "范围", "source": "来源", "status": "状态" },
-  "tagGroup": { "source": "来源", "scope": "范围" },
-  "scope": { "id": "印尼", "row": "其他地区" },
-  "source": { "personal": "本人", "other": "他人反馈", "ai": "AI" },
+  "filter": { "title": "筛选", "clear": "清除", "scope": "范围", "source": "来源", "status": "状态" },
+  "scope": { "unknown": "未知", "id": "印尼", "row": "其他地区" },
+  "source": { "unknown": "未知", "personal": "本人", "other": "他人反馈", "ai": "AI" },
   "status": {
     "backlog": "待处理",
     "researching": "调研中",
@@ -49,20 +49,42 @@
   },
   "form": {
     "new": "新建问题",
-    "edit": "编辑问题",
     "title": "标题",
     "titlePlaceholder": "一句话：痛点是什么？",
+    "titleRequired": "请填写标题",
+    "moreDetails": "+ 更多细节（范围、来源、状态）",
     "body": "详情",
-    "bodyPlaceholder": "谁遇到、何时发生、代价是什么\u2026",
+    "bodyPlaceholder": "谁遇到、何时发生、代价是什么…",
     "scope": "范围",
     "source": "来源",
     "status": "状态",
-    "pickAtLeastOne": "至少选择一个范围和一个来源",
     "save": "保存",
+    "addProblem": "添加问题",
     "cancel": "取消",
     "delete": "删除",
     "confirmDelete": "确定删除这个问题吗？此操作无法撤销。"
   },
-  "problem": { "seen": "出现 {{count}} 次", "aiTag": "AI" },
-  "common": { "loading": "加载中\u2026", "error": "出错了", "retry": "重试" }
+  "problem": { "seen": "出现 {{count}} 次", "aiAssisted": "AI 辅助" },
+  "detail": {
+    "back": "返回雷达",
+    "context": "背景",
+    "contextPlaceholder": "谁遇到这个问题？描述一个具体事件。多久发生一次？影响是什么？目前的变通方法是什么，为什么不够好？",
+    "evidence": "证据",
+    "evidenceTextPlaceholder": "引述、观察或备注…",
+    "evidenceUrlPlaceholder": "链接（可选）",
+    "addEvidence": "添加",
+    "brainstorming": "头脑风暴",
+    "brainstormingPlaceholder": "自由笔记、待解决的问题、假设、可能的解决方案…",
+    "relatedProblems": "相关问题",
+    "relatedPlaceholder": "#编号",
+    "addRelated": "关联",
+    "researchBrief": "调研简报",
+    "researchBriefPlaceholder": "调研目标、目标市场、限制条件、想问 AI 的问题…",
+    "findings": "调研结果与决策",
+    "findingsPlaceholder": "带引用的调研结果、未解决的问题、下一步实验、决策理由…",
+    "copyBrief": "复制调研简报",
+    "copied": "已复制！",
+    "exportMarkdown": "导出 Markdown"
+  },
+  "common": { "loading": "加载中…", "error": "出错了", "retry": "重试" }
 }

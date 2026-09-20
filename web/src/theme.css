@@ -134,7 +134,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .input:hover { border-color: #37455f; }
 .input:focus { outline: none; border-color: var(--azure); }
 .textarea { resize: vertical; min-height: 88px; line-height: 1.5; }
-.field-row { display: flex; gap: 12px; }
+.field-row { display: flex; gap: 12px; flex-wrap: wrap; }
 select.input { appearance: none; cursor: pointer; }
 
 /* ---- module hub (home) ---- */
@@ -151,16 +151,16 @@ select.input { appearance: none; cursor: pointer; }
 .module-card-title { font-size: 16px; font-weight: 600; margin: 0; }
 .module-card-desc { color: var(--text-2); font-size: 13px; margin: 8px 0 0; }
 
-/* ---- stat tiles ---- */
-.tiles {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 0 0 24px;
-}
-.tile {
-  background: var(--bg-1); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 4px;
-}
-.tile-value { font-family: var(--mono); font-size: 26px; font-weight: 600; color: var(--text); }
-.tile-label { font-size: 12px; color: var(--text-3); }
+/* ---- compact stat summary ---- */
+.stat-summary { color: var(--text-2); font-size: 14px; margin: 0 0 18px; }
+.stat-summary strong { color: var(--text); font-family: var(--mono); font-weight: 600; }
+
+/* ---- toolbar ---- */
+.toolbar-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.toolbar-row .search-bar { flex: 1; margin-bottom: 0; }
+.sort-select { flex: 0 0 auto; width: auto; }
+.filters-toggle { flex: 0 0 auto; white-space: nowrap; }
+.filters-toggle.has-active { color: var(--azure); border-color: color-mix(in srgb, var(--azure) 45%, transparent); }
 
 /* ---- problem grid + cards ---- */
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -168,45 +168,45 @@ select.input { appearance: none; cursor: pointer; }
 .card {
   background: var(--bg-1); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 16px; cursor: pointer;
-  transition: border-color 0.14s ease, background 0.14s ease;
+  transition: border-color 0.14s ease;
 }
-.card:hover { border-color: var(--border-strong); background: var(--bg-2); }
-.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.card-title { font-size: 15px; font-weight: 600; margin: 0; }
-.card-body { color: var(--text-2); font-size: 14px; margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-/* Status + recurrence sit in their own band right under the body — the
-   single most important fact about a problem shouldn't fight with its tags. */
-.card-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
-/* Source and scope each get their own row (never merged) so the two kinds of
-   tag are never mistaken for one another — a small caption names the row. */
-.card-tag-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
-.card-tag-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); margin-right: 2px; }
-.recurrence { font-family: var(--mono); font-size: 12px; color: var(--amber); white-space: nowrap; }
+.card:hover { border-color: var(--border-strong); }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.card-title { font-size: 16px; font-weight: 600; margin: 0; line-height: 1.4; }
+.card-id { font-family: var(--mono); font-weight: 500; color: var(--text-3); margin-right: 7px; }
+.card-body { color: var(--text-2); font-size: 14px; margin: 6px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Source/scope/AI-assisted are supporting metadata, not tags to scan — one
+   quiet line, not competing pills. */
+.card-meta-line { color: var(--text-3); font-size: 12px; margin: 10px 0 0; }
+.recurrence { color: var(--amber); }
 
-/* ---- tags/badges ----
-   Every distinct value (each scope, each source, each status) gets its own
-   hue so they're never confused for one another at a glance, plus its own
-   icon as a second, color-independent cue. Filled tint background +
-   full-strength text is the shared look; AI stays the deliberate odd one out
-   (solid fill) since it's the one thing that always needs to jump out. */
+/* ---- badges ----
+   Status is the one place color still carries meaning (the workflow stage);
+   everything else is quiet metadata text, not a wall of colored pills. */
 .badge {
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;
   font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
   white-space: nowrap;
 }
-.badge-scope-id     { background: color-mix(in srgb, var(--pink) 18%, transparent);   color: var(--pink); }
-.badge-scope-row    { background: color-mix(in srgb, var(--cyan) 18%, transparent);   color: var(--cyan); }
-.badge-source-personal { background: color-mix(in srgb, var(--azure) 18%, transparent); color: var(--azure); }
-.badge-source-other    { background: var(--bg-3); color: var(--text-2); }
-/* AI is the deliberate odd one out: filled amber. */
-.badge-source-ai { background: var(--amber); color: #2a1c06; }
-
 .badge-status-backlog     { background: var(--bg-3); color: var(--text-2); }
 .badge-status-researching { background: color-mix(in srgb, var(--azure) 18%, transparent); color: var(--azure); }
 .badge-status-in_review   { background: color-mix(in srgb, var(--violet) 20%, transparent); color: var(--violet); }
 .badge-status-building    { background: color-mix(in srgb, var(--teal) 18%, transparent); color: var(--teal); }
 .badge-status-shipped     { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 .badge-status-archived    { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+/* A <select> styled to look like the badge it replaces, for inline editing. */
+.badge-select {
+  appearance: none; cursor: pointer; border: none; font: inherit;
+  font-size: 12px; font-weight: 600; padding: 4px 26px 4px 10px; border-radius: 999px;
+  background-position: right 8px center; background-repeat: no-repeat; background-size: 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2382899c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+.badge-select.badge-status-backlog     { background-color: var(--bg-3); color: var(--text-2); }
+.badge-select.badge-status-researching { background-color: color-mix(in srgb, var(--azure) 18%, transparent); color: var(--azure); }
+.badge-select.badge-status-in_review   { background-color: color-mix(in srgb, var(--violet) 20%, transparent); color: var(--violet); }
+.badge-select.badge-status-building    { background-color: color-mix(in srgb, var(--teal) 18%, transparent); color: var(--teal); }
+.badge-select.badge-status-shipped     { background-color: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+.badge-select.badge-status-archived    { background-color: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
 
 /* ---- form panel + overlay ---- */
 .overlay {
@@ -221,13 +221,13 @@ select.input { appearance: none; cursor: pointer; }
 .form-actions .spacer { flex: 1; }
 .form-error { color: var(--red); font-size: 13px; margin: 4px 0 10px; }
 
-/* ---- search + filter groups (TikTok-style chips, grouped by category so
-   it's obvious what each row filters — a flat strip reads as one undivided
-   pile of chips, so each category gets its own labeled line instead) ---- */
-.search-bar { margin-bottom: 14px; }
+/* ---- search + filter groups, grouped by category so it's obvious what each
+   row filters. One consistent selected treatment (azure + checkmark) instead
+   of a color per category — color there was signal noise, not information. ---- */
+.search-bar { margin-bottom: 0; }
 .filter-groups {
   display: flex; flex-direction: column; gap: 10px;
-  padding: 14px; margin-bottom: 20px;
+  padding: 14px; margin: 10px 0 20px;
   background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius);
 }
 .filter-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -247,33 +247,66 @@ select.input { appearance: none; cursor: pointer; }
   transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
 }
 .chip-toggle:hover { border-color: var(--text-3); }
+.chip-toggle.is-on { background: color-mix(in srgb, var(--azure) 16%, transparent); border-color: var(--azure); color: var(--azure); }
+.chip-toggle.is-on::before { content: "\2713"; margin-right: 2px; }
 .chip-clear { color: var(--text-3); border-style: dashed; }
 .chip-clear:hover { color: var(--text); border-color: var(--text-3); }
 
-.chip-toggle.tag-scope-id { color: var(--pink); border-color: color-mix(in srgb, var(--pink) 45%, transparent); }
-.chip-toggle.tag-scope-id.is-on { background: var(--pink); border-color: var(--pink); color: #2a0f1c; }
-.chip-toggle.tag-scope-row { color: var(--cyan); border-color: color-mix(in srgb, var(--cyan) 45%, transparent); }
-.chip-toggle.tag-scope-row.is-on { background: var(--cyan); border-color: var(--cyan); color: #052226; }
+/* ---- disclosure toggle (quick-capture "more details") ---- */
+.disclosure-toggle {
+  background: none; border: none; cursor: pointer; padding: 4px 0; margin-bottom: 10px;
+  color: var(--azure); font-size: 13px; font-weight: 600;
+}
+.disclosure-toggle:hover { color: var(--azure-strong); }
 
-.chip-toggle.tag-source-personal { color: var(--azure); border-color: color-mix(in srgb, var(--azure) 45%, transparent); }
-.chip-toggle.tag-source-personal.is-on { background: var(--azure); border-color: var(--azure); color: #08111f; }
-.chip-toggle.tag-source-other { color: var(--text-2); }
-.chip-toggle.tag-source-other.is-on { background: var(--bg-3); border-color: var(--border-strong); color: var(--text); }
-.chip-toggle.tag-source-ai { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
-.chip-toggle.tag-source-ai.is-on { background: var(--amber); border-color: var(--amber); color: #2a1c06; }
+.checkbox-field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); margin-bottom: 10px; }
+.checkbox-field input { width: 16px; height: 16px; accent-color: var(--azure); }
 
-.chip-toggle.tag-status-backlog { color: var(--text-2); }
-.chip-toggle.tag-status-backlog.is-on { background: var(--bg-3); border-color: var(--border-strong); color: var(--text); }
-.chip-toggle.tag-status-researching { color: var(--azure); border-color: color-mix(in srgb, var(--azure) 45%, transparent); }
-.chip-toggle.tag-status-researching.is-on { background: var(--azure); border-color: var(--azure); color: #08111f; }
-.chip-toggle.tag-status-in_review { color: var(--violet); border-color: color-mix(in srgb, var(--violet) 45%, transparent); }
-.chip-toggle.tag-status-in_review.is-on { background: var(--violet); border-color: var(--violet); color: #1c1330; }
-.chip-toggle.tag-status-building { color: var(--teal); border-color: color-mix(in srgb, var(--teal) 45%, transparent); }
-.chip-toggle.tag-status-building.is-on { background: var(--teal); border-color: var(--teal); color: #05201b; }
-.chip-toggle.tag-status-shipped { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, transparent); }
-.chip-toggle.tag-status-shipped.is-on { background: var(--green); border-color: var(--green); color: #06291a; }
-.chip-toggle.tag-status-archived { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, transparent); }
-.chip-toggle.tag-status-archived.is-on { background: var(--red); border-color: var(--red); color: #2c0d0a; }
+/* ---- problem detail page ---- */
+.back-link { color: var(--text-2); text-decoration: none; font-size: 13px; display: inline-block; margin-bottom: 16px; }
+.back-link:hover { color: var(--text); }
+.detail-head { margin-bottom: 20px; }
+.detail-head-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.detail-title-input { font-size: 20px; font-weight: 600; padding: 8px 10px; margin-bottom: 8px; }
+.detail-body-input { margin-bottom: 12px; min-height: 56px; }
+
+.workspace-section {
+  background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 10px; padding: 4px 16px;
+}
+.workspace-section summary {
+  cursor: pointer; padding: 12px 0; font-size: 14px; font-weight: 600; color: var(--text);
+  list-style: none;
+}
+.workspace-section summary::-webkit-details-marker { display: none; }
+.workspace-section summary::before { content: "\25b8"; display: inline-block; margin-right: 8px; color: var(--text-3); transition: transform 0.14s ease; }
+.workspace-section[open] summary::before { transform: rotate(90deg); }
+.workspace-section-body { padding: 0 0 16px; }
+.workspace-section-body .textarea { margin-bottom: 0; }
+
+.evidence-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.evidence-item:last-of-type { border-bottom: none; }
+.evidence-item-body p { margin: 0 0 4px; font-size: 14px; }
+.evidence-item-body a { color: var(--azure); font-size: 13px; word-break: break-all; }
+.evidence-date { display: block; color: var(--text-3); font-size: 11px; margin-top: 4px; font-family: var(--mono); }
+.evidence-add { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.evidence-add .input { flex: 1; min-width: 160px; }
+.btn-sm { padding: 5px 10px; font-size: 12px; flex: 0 0 auto; }
+
+.related-block { margin-top: 14px; }
+.related-list { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.related-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--azure) 16%, transparent); color: var(--azure);
+}
+.related-chip a { color: inherit; text-decoration: none; }
+.related-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.related-add { display: flex; gap: 8px; }
+.related-add .input { max-width: 160px; }
+
+.detail-actions { display: flex; align-items: center; gap: 10px; margin-top: 24px; }
+.detail-actions .spacer { flex: 1; }
 
 /* ---- login ---- */
 .login { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; }
@@ -287,10 +320,11 @@ select.input { appearance: none; cursor: pointer; }
 .center { text-align: center; padding: 48px 0; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 
 @media (max-width: 720px) {
-  .tiles { grid-template-columns: repeat(2, 1fr); }
   .grid { grid-template-columns: 1fr; }
   .topbar { gap: 12px; padding: 0 14px; }
   .filter-group { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .toolbar-row { flex-wrap: wrap; }
+  .toolbar-row .search-bar { flex-basis: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -16,13 +16,30 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
-// scanProblem reads one problem row. scope/source come back as comma-joined
-// text (via array_to_string) since scanning a Postgres text[] directly into a
-// Go slice isn't supported by database/sql without extra plumbing.
-func scanProblem(row rowScanner) (models.Problem, error) {
+// splitInts parses the comma-joined output of array_to_string(int[], ',').
+// An empty source array joins to "", which must map to nil, not [""].
+func splitInts(joined string) []int64 {
+	if joined == "" {
+		return nil
+	}
+	parts := strings.Split(joined, ",")
+	out := make([]int64, 0, len(parts))
+	for _, p := range parts {
+		if n, err := strconv.ParseInt(p, 10, 64); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// scanProblemSummary reads the columns used by list results. scope/source
+// come back as comma-joined text (via array_to_string) since scanning a
+// Postgres array directly into a Go slice isn't supported by database/sql
+// without extra plumbing.
+func scanProblemSummary(row rowScanner) (models.Problem, error) {
 	var p models.Problem
 	var scopeJoined, sourceJoined string
-	err := row.Scan(&p.ID, &scopeJoined, &sourceJoined, &p.Title, &p.Body, &p.Status, &p.SourceURL, &p.Recurrence, &p.CreatedAt, &p.UpdatedAt)
+	err := row.Scan(&p.ID, &scopeJoined, &sourceJoined, &p.AIAssisted, &p.Title, &p.Body, &p.Status, &p.SourceURL, &p.Recurrence, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return p, err
 	}
@@ -35,7 +52,7 @@ func scanProblem(row rowScanner) (models.Problem, error) {
 	return p, nil
 }
 
-const problemColumns = `id, array_to_string(scope, ','), array_to_string(source, ','), title, body, status, source_url, recurrence, created_at, updated_at`
+const summaryColumns = `id, array_to_string(scope, ','), array_to_string(source, ','), ai_assisted, title, body, status, source_url, recurrence, created_at, updated_at`
 
 func (s *Server) ListProblems(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -52,17 +69,21 @@ func (s *Server) ListProblems(w http.ResponseWriter, r *http.Request) {
 		where = append(where, "source && "+param(strings.Split(v, ",")))
 	}
 	if v := q.Get("status"); v != "" {
-		where = append(where, "status = "+param(v))
+		where = append(where, "status = ANY("+param(strings.Split(v, ","))+")")
 	}
 	if v := strings.TrimSpace(q.Get("q")); v != "" {
 		p := param("%" + v + "%")
 		where = append(where, "(title ILIKE "+p+" OR body ILIKE "+p+")")
 	}
-	query := `SELECT ` + problemColumns + ` FROM problems`
+	query := `SELECT ` + summaryColumns + ` FROM problems`
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += " ORDER BY updated_at DESC, id DESC"
+	sort := "updated_at DESC, id DESC"
+	if q.Get("sort") == "created" {
+		sort = "created_at DESC, id DESC"
+	}
+	query += " ORDER BY " + sort
 
 	rows, err := s.DB.Query(query, args...)
 	if err != nil {
@@ -73,7 +94,7 @@ func (s *Server) ListProblems(w http.ResponseWriter, r *http.Request) {
 
 	out := []models.Problem{}
 	for rows.Next() {
-		p, err := scanProblem(rows)
+		p, err := scanProblemSummary(rows)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "server_error", "could not read problems")
 			return
@@ -84,26 +105,44 @@ func (s *Server) ListProblems(w http.ResponseWriter, r *http.Request) {
 }
 
 type problemInput struct {
-	Scope  models.Scopes  `json:"scope"`
-	Source models.Sources `json:"source"`
-	Title  string         `json:"title"`
-	Body   string         `json:"body"`
-	Status models.Status  `json:"status"`
+	Scope         models.Scopes  `json:"scope"`
+	Source        models.Sources `json:"source"`
+	AIAssisted    bool           `json:"ai_assisted"`
+	Title         string         `json:"title"`
+	Body          string         `json:"body"`
+	Status        models.Status  `json:"status"`
+	Context       string         `json:"context"`
+	Brainstorming string         `json:"brainstorming"`
+	ResearchBrief string         `json:"research_brief"`
+	Findings      string         `json:"findings"`
+	RelatedIDs    []int64        `json:"related_ids"`
 }
 
+// normalizeAndValidate fills in the defaults that let capture stay to just a
+// title: unset scope/source become "unknown" rather than forcing a guess,
+// and status defaults to backlog.
 func (in *problemInput) normalizeAndValidate() (string, bool) {
 	in.Title = strings.TrimSpace(in.Title)
 	in.Body = strings.TrimSpace(in.Body)
 	if in.Status == "" {
 		in.Status = models.StatusBacklog
 	}
+	if len(in.Scope) == 0 {
+		in.Scope = models.Scopes{models.ScopeUnknown}
+	}
+	if len(in.Source) == 0 {
+		in.Source = models.Sources{models.SourceUnknown}
+	}
+	if in.RelatedIDs == nil {
+		in.RelatedIDs = []int64{}
+	}
 	switch {
 	case in.Title == "":
 		return "title is required", false
 	case !in.Scope.Valid():
-		return "scope must be one or more of 'id', 'row'", false
+		return "scope must be one or more of 'unknown', 'id', 'row'", false
 	case !in.Source.Valid():
-		return "source must be one or more of 'personal', 'other', 'ai'", false
+		return "source must be one or more of 'unknown', 'personal', 'other', 'ai'", false
 	case !in.Status.Valid():
 		return "invalid status", false
 	}
@@ -123,19 +162,20 @@ func (s *Server) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	var id int64
 	err := s.DB.QueryRow(
-		`INSERT INTO problems (scope, source, title, body, status, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-		in.Scope, in.Source, in.Title, in.Body, in.Status, now, now,
+		`INSERT INTO problems (scope, source, ai_assisted, title, body, status, context, brainstorming, research_brief, findings, related_ids, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+		in.Scope, in.Source, in.AIAssisted, in.Title, in.Body, in.Status,
+		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.RelatedIDs, now, now,
 	).Scan(&id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the problem")
 		return
 	}
-	s.getProblemByID(w, id, http.StatusCreated)
+	s.getProblemSummary(w, id, http.StatusCreated)
 }
 
 func (s *Server) UpdateProblem(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(r)
+	id, ok := pathID(r, "id")
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
 		return
@@ -150,8 +190,11 @@ func (s *Server) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := s.DB.Exec(
-		`UPDATE problems SET scope=$1, source=$2, title=$3, body=$4, status=$5, updated_at=$6 WHERE id=$7`,
-		in.Scope, in.Source, in.Title, in.Body, in.Status, time.Now().UTC(), id,
+		`UPDATE problems SET scope=$1, source=$2, ai_assisted=$3, title=$4, body=$5, status=$6,
+		 context=$7, brainstorming=$8, research_brief=$9, findings=$10, related_ids=$11, updated_at=$12
+		 WHERE id=$13`,
+		in.Scope, in.Source, in.AIAssisted, in.Title, in.Body, in.Status,
+		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.RelatedIDs, time.Now().UTC(), id,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not update the problem")
@@ -161,11 +204,11 @@ func (s *Server) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "problem not found")
 		return
 	}
-	s.getProblemByID(w, id, http.StatusOK)
+	s.GetProblem(w, r)
 }
 
 func (s *Server) DeleteProblem(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(r)
+	id, ok := pathID(r, "id")
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
 		return
@@ -182,9 +225,69 @@ func (s *Server) DeleteProblem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) getProblemByID(w http.ResponseWriter, id int64, status int) {
-	row := s.DB.QueryRow(`SELECT `+problemColumns+` FROM problems WHERE id = $1`, id)
-	p, err := scanProblem(row)
+// GetProblem returns the full workspace (context/brainstorming/research
+// brief/findings/related/evidence) — the heavier detail view. ListProblems
+// deliberately omits these to keep the list payload light.
+func (s *Server) GetProblem(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
+		return
+	}
+	var p models.Problem
+	var scopeJoined, sourceJoined, relatedJoined string
+	var context, brainstorming, researchBrief, findings string
+	err := s.DB.QueryRow(
+		`SELECT id, array_to_string(scope, ','), array_to_string(source, ','), ai_assisted, title, body, status,
+		        source_url, recurrence, context, brainstorming, research_brief, findings,
+		        array_to_string(related_ids, ','), created_at, updated_at
+		 FROM problems WHERE id = $1`, id,
+	).Scan(&p.ID, &scopeJoined, &sourceJoined, &p.AIAssisted, &p.Title, &p.Body, &p.Status,
+		&p.SourceURL, &p.Recurrence, &context, &brainstorming, &researchBrief, &findings,
+		&relatedJoined, &p.CreatedAt, &p.UpdatedAt)
+	if err == sql.ErrNoRows {
+		writeError(w, http.StatusNotFound, "not_found", "problem not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not load the problem")
+		return
+	}
+	for _, v := range strings.Split(scopeJoined, ",") {
+		p.Scope = append(p.Scope, models.Scope(v))
+	}
+	for _, v := range strings.Split(sourceJoined, ",") {
+		p.Source = append(p.Source, models.Source(v))
+	}
+	p.Context, p.Brainstorming, p.ResearchBrief, p.Findings = &context, &brainstorming, &researchBrief, &findings
+	p.RelatedIDs = splitInts(relatedJoined)
+
+	rows, err := s.DB.Query(
+		`SELECT id, problem_id, text, url, noted_at, created_at FROM evidence WHERE problem_id = $1 ORDER BY noted_at DESC, id DESC`, id,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not load evidence")
+		return
+	}
+	defer rows.Close()
+	p.Evidence = []models.Evidence{}
+	for rows.Next() {
+		var e models.Evidence
+		if err := rows.Scan(&e.ID, &e.ProblemID, &e.Text, &e.URL, &e.NotedAt, &e.CreatedAt); err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "could not read evidence")
+			return
+		}
+		p.Evidence = append(p.Evidence, e)
+	}
+	writeJSON(w, http.StatusOK, p)
+}
+
+// getProblemSummary responds with the lean (list-shaped) view of one
+// problem — used after create/update where the caller already has the
+// workspace fields it just sent.
+func (s *Server) getProblemSummary(w http.ResponseWriter, id int64, status int) {
+	row := s.DB.QueryRow(`SELECT `+summaryColumns+` FROM problems WHERE id = $1`, id)
+	p, err := scanProblemSummary(row)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "not_found", "problem not found")
 		return
@@ -194,6 +297,65 @@ func (s *Server) getProblemByID(w http.ResponseWriter, id int64, status int) {
 		return
 	}
 	writeJSON(w, status, p)
+}
+
+type evidenceInput struct {
+	Text string `json:"text"`
+	URL  string `json:"url"`
+}
+
+func (s *Server) CreateEvidence(w http.ResponseWriter, r *http.Request) {
+	problemID, ok := pathID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
+		return
+	}
+	var in evidenceInput
+	if err := decode(r, &in); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "could not read the evidence")
+		return
+	}
+	in.Text = strings.TrimSpace(in.Text)
+	in.URL = strings.TrimSpace(in.URL)
+	if in.Text == "" && in.URL == "" {
+		writeError(w, http.StatusBadRequest, "validation_error", "evidence needs a note or a link")
+		return
+	}
+	now := time.Now().UTC()
+	var e models.Evidence
+	err := s.DB.QueryRow(
+		`INSERT INTO evidence (problem_id, text, url, noted_at, created_at) VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, problem_id, text, url, noted_at, created_at`,
+		problemID, in.Text, in.URL, now, now,
+	).Scan(&e.ID, &e.ProblemID, &e.Text, &e.URL, &e.NotedAt, &e.CreatedAt)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not save the evidence")
+		return
+	}
+	writeJSON(w, http.StatusCreated, e)
+}
+
+func (s *Server) DeleteEvidence(w http.ResponseWriter, r *http.Request) {
+	problemID, ok := pathID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
+		return
+	}
+	evidenceID, ok := pathID(r, "eid")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_request", "invalid evidence id")
+		return
+	}
+	res, err := s.DB.Exec(`DELETE FROM evidence WHERE id = $1 AND problem_id = $2`, evidenceID, problemID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not delete the evidence")
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		writeError(w, http.StatusNotFound, "not_found", "evidence not found")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Stats powers the home cockpit: totals by scope and by source, plus new-today.
@@ -208,14 +370,14 @@ func (s *Server) Stats(w http.ResponseWriter, r *http.Request) {
 	stat["indonesia"] = count(`SELECT COUNT(*) FROM problems WHERE 'id' = ANY(scope)`)
 	stat["row"] = count(`SELECT COUNT(*) FROM problems WHERE 'row' = ANY(scope)`)
 	stat["ai"] = count(`SELECT COUNT(*) FROM problems WHERE 'ai' = ANY(source)`)
-	stat["validated"] = count(`SELECT COUNT(*) FROM problems WHERE status IN ('in_review','building','shipped')`)
+	stat["validated"] = count(`SELECT COUNT(*) FROM problems WHERE status IN ('researching','in_review','building','shipped')`)
 	todayStart := time.Now().UTC().Truncate(24 * time.Hour)
 	stat["new_today"] = count(`SELECT COUNT(*) FROM problems WHERE created_at >= $1`, todayStart)
 	writeJSON(w, http.StatusOK, stat)
 }
 
-func pathID(r *http.Request) (int64, bool) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func pathID(r *http.Request, name string) (int64, bool) {
+	id, err := strconv.ParseInt(r.PathValue(name), 10, 64)
 	if err != nil || id <= 0 {
 		return 0, false
 	}
