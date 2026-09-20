@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
 import { languages } from "../i18n";
@@ -43,6 +44,11 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
         <div className="user-menu-panel">
           {!showLanguage ? (
             <>
+              <Link to="/profile" className="user-menu-item" onClick={() => setOpen(false)}>
+                <span className="user-menu-item-icon" aria-hidden="true">{"\u{1F464}"}</span>
+                <span className="user-menu-item-label">{t("nav.profile")}</span>
+              </Link>
+              <div className="user-menu-divider" />
               <button type="button" className="user-menu-item" onClick={() => setShowLanguage(true)}>
                 <span className="user-menu-item-icon" aria-hidden="true">{"\u{1F310}"}</span>
                 <span className="user-menu-item-label">{t("nav.language")}</span>

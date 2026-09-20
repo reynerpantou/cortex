@@ -122,3 +122,19 @@ type Problem struct {
 	RelatedIDs    []int64    `json:"related_ids,omitempty"`
 	Evidence      []Evidence `json:"evidence,omitempty"`
 }
+
+// NavGroup is a user-created sidebar sub-category (e.g. "My Content").
+type NavGroup struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Position int    `json:"position"`
+}
+
+// NavPlacement records which group (if any) a fixed nav item — "home",
+// "radar", or a future module's key — currently sits in, and its order.
+// An item with no placement row renders at the top level in default order.
+type NavPlacement struct {
+	ItemKey  string `json:"item_key"`
+	GroupID  *int64 `json:"group_id"`
+	Position int    `json:"position"`
+}

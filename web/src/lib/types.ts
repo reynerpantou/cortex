@@ -51,6 +51,23 @@ export interface User {
   username: string;
 }
 
+export interface NavGroup {
+  id: number;
+  name: string;
+  position: number;
+}
+
+export interface NavPlacement {
+  item_key: string;
+  group_id: number | null;
+  position: number;
+}
+
+export interface NavLayout {
+  groups: NavGroup[];
+  placements: NavPlacement[];
+}
+
 export interface ProblemInput {
   scope: Scope[];
   source: Source[];

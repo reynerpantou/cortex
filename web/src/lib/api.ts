@@ -1,4 +1,4 @@
-import type { Evidence, Problem, ProblemInput, Stats, User } from "./types";
+import type { Evidence, NavLayout, Problem, ProblemInput, Stats, User } from "./types";
 
 export class ApiError extends Error {
   code: string;
@@ -51,6 +51,14 @@ export const api = {
     request<User>("POST", "/login", { username, password }),
   logout: () => request<void>("POST", "/logout"),
   me: () => request<User>("GET", "/me"),
+  updateMe: (input: { username: string; current_password?: string; new_password?: string }) =>
+    request<User>("PUT", "/me", input),
+
+  getNav: () => request<NavLayout>("GET", "/nav"),
+  updateNav: (input: {
+    groups: { tempId: string; name: string; position: number }[];
+    placements: { item_key: string; group: string | null; position: number }[];
+  }) => request<NavLayout>("PUT", "/nav", input),
   stats: () => request<Stats>("GET", "/stats"),
 
   listProblems: (params: Record<string, string> = {}) => {
