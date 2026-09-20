@@ -75,7 +75,7 @@ func (s *Server) ListProblems(w http.ResponseWriter, r *http.Request) {
 		p := param("%" + v + "%")
 		where = append(where, "(title ILIKE "+p+" OR body ILIKE "+p+")")
 	}
-	query := `SELECT ` + summaryColumns + ` FROM problems`
+	query := `SELECT ` + summaryColumns + ` FROM radar_problems`
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -163,7 +163,7 @@ func (s *Server) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	var id int64
 	err := s.DB.QueryRow(
-		`INSERT INTO problems (scope, source, title, body, status, context, brainstorming, research_brief, findings, archive_reason, related_ids, created_at, updated_at)
+		`INSERT INTO radar_problems (scope, source, title, body, status, context, brainstorming, research_brief, findings, archive_reason, related_ids, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
 		in.Scope, in.Source, in.Title, in.Body, in.Status,
 		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.ArchiveReason, in.RelatedIDs, now, now,
@@ -191,7 +191,7 @@ func (s *Server) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := s.DB.Exec(
-		`UPDATE problems SET scope=$1, source=$2, title=$3, body=$4, status=$5,
+		`UPDATE radar_problems SET scope=$1, source=$2, title=$3, body=$4, status=$5,
 		 context=$6, brainstorming=$7, research_brief=$8, findings=$9, archive_reason=$10, related_ids=$11, updated_at=$12
 		 WHERE id=$13`,
 		in.Scope, in.Source, in.Title, in.Body, in.Status,
@@ -214,7 +214,7 @@ func (s *Server) DeleteProblem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
 		return
 	}
-	res, err := s.DB.Exec(`DELETE FROM problems WHERE id = $1`, id)
+	res, err := s.DB.Exec(`DELETE FROM radar_problems WHERE id = $1`, id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not delete the problem")
 		return
@@ -242,7 +242,7 @@ func (s *Server) GetProblem(w http.ResponseWriter, r *http.Request) {
 		`SELECT id, array_to_string(scope, ','), array_to_string(source, ','), title, body, status,
 		        source_url, recurrence, context, brainstorming, research_brief, findings, archive_reason,
 		        array_to_string(related_ids, ','), created_at, updated_at
-		 FROM problems WHERE id = $1`, id,
+		 FROM radar_problems WHERE id = $1`, id,
 	).Scan(&p.ID, &scopeJoined, &sourceJoined, &p.Title, &p.Body, &p.Status,
 		&p.SourceURL, &p.Recurrence, &context, &brainstorming, &researchBrief, &findings, &archiveReason,
 		&relatedJoined, &p.CreatedAt, &p.UpdatedAt)
@@ -265,7 +265,7 @@ func (s *Server) GetProblem(w http.ResponseWriter, r *http.Request) {
 	p.RelatedIDs = splitInts(relatedJoined)
 
 	rows, err := s.DB.Query(
-		`SELECT id, problem_id, text, url, noted_at, created_at FROM evidence WHERE problem_id = $1 ORDER BY noted_at DESC, id DESC`, id,
+		`SELECT id, problem_id, text, url, noted_at, created_at FROM radar_evidence WHERE problem_id = $1 ORDER BY noted_at DESC, id DESC`, id,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load evidence")
@@ -288,7 +288,7 @@ func (s *Server) GetProblem(w http.ResponseWriter, r *http.Request) {
 // problem — used after create/update where the caller already has the
 // workspace fields it just sent.
 func (s *Server) getProblemSummary(w http.ResponseWriter, id int64, status int) {
-	row := s.DB.QueryRow(`SELECT `+summaryColumns+` FROM problems WHERE id = $1`, id)
+	row := s.DB.QueryRow(`SELECT `+summaryColumns+` FROM radar_problems WHERE id = $1`, id)
 	p, err := scanProblemSummary(row)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "not_found", "problem not found")
@@ -326,7 +326,7 @@ func (s *Server) CreateEvidence(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	var e models.Evidence
 	err := s.DB.QueryRow(
-		`INSERT INTO evidence (problem_id, text, url, noted_at, created_at) VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO radar_evidence (problem_id, text, url, noted_at, created_at) VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, problem_id, text, url, noted_at, created_at`,
 		problemID, in.Text, in.URL, now, now,
 	).Scan(&e.ID, &e.ProblemID, &e.Text, &e.URL, &e.NotedAt, &e.CreatedAt)
@@ -348,7 +348,7 @@ func (s *Server) DeleteEvidence(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_request", "invalid evidence id")
 		return
 	}
-	res, err := s.DB.Exec(`DELETE FROM evidence WHERE id = $1 AND problem_id = $2`, evidenceID, problemID)
+	res, err := s.DB.Exec(`DELETE FROM radar_evidence WHERE id = $1 AND problem_id = $2`, evidenceID, problemID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not delete the evidence")
 		return
@@ -368,14 +368,95 @@ func (s *Server) Stats(w http.ResponseWriter, r *http.Request) {
 		_ = s.DB.QueryRow(q, args...).Scan(&n)
 		return n
 	}
-	stat["total"] = count(`SELECT COUNT(*) FROM problems`)
-	stat["indonesia"] = count(`SELECT COUNT(*) FROM problems WHERE 'id' = ANY(scope)`)
-	stat["row"] = count(`SELECT COUNT(*) FROM problems WHERE 'row' = ANY(scope)`)
-	stat["ai"] = count(`SELECT COUNT(*) FROM problems WHERE 'ai' = ANY(source)`)
-	stat["validated"] = count(`SELECT COUNT(*) FROM problems WHERE status IN ('researching','in_review','building','shipped')`)
+	stat["total"] = count(`SELECT COUNT(*) FROM radar_problems`)
+	stat["indonesia"] = count(`SELECT COUNT(*) FROM radar_problems WHERE 'id' = ANY(scope)`)
+	stat["row"] = count(`SELECT COUNT(*) FROM radar_problems WHERE 'row' = ANY(scope)`)
+	stat["ai"] = count(`SELECT COUNT(*) FROM radar_problems WHERE 'ai' = ANY(source)`)
+	stat["validated"] = count(`SELECT COUNT(*) FROM radar_problems WHERE status IN ('researching','in_review','building','shipped')`)
 	todayStart := time.Now().UTC().Truncate(24 * time.Hour)
-	stat["new_today"] = count(`SELECT COUNT(*) FROM problems WHERE created_at >= $1`, todayStart)
+	stat["new_today"] = count(`SELECT COUNT(*) FROM radar_problems WHERE created_at >= $1`, todayStart)
 	writeJSON(w, http.StatusOK, stat)
+}
+
+type aiSummaryRequest struct {
+	Title         string   `json:"title"`
+	Body          string   `json:"body"`
+	Scope         []string `json:"scope"`
+	Source        []string `json:"source"`
+	Context       string   `json:"context"`
+	Brainstorming string   `json:"brainstorming"`
+	ResearchBrief string   `json:"research_brief"`
+	Findings      string   `json:"findings"`
+}
+
+// RadarAISummary is the integration seam for handing a problem off to
+// OpenClaw for the "Summary & Suggestions" analysis. There's no real
+// OpenClaw connection yet, so this returns a templated mock shaped exactly
+// like the real response will be (see the AI prompt template this mirrors),
+// clearly marked as a mock so it's never mistaken for genuine analysis.
+// The frontend posts the on-screen snapshot rather than this handler
+// re-reading the DB, so a request reflects unsaved edits too, same as
+// Copy/Export already do.
+func (s *Server) RadarAISummary(w http.ResponseWriter, r *http.Request) {
+	if _, ok := pathID(r, "id"); !ok {
+		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
+		return
+	}
+	var in aiSummaryRequest
+	if err := decode(r, &in); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "could not read the problem")
+		return
+	}
+	writeJSON(w, http.StatusOK, mockAISummary(in))
+}
+
+func mockAISummary(in aiSummaryRequest) map[string]any {
+	title := strings.TrimSpace(in.Title)
+	if title == "" {
+		title = "This problem"
+	}
+
+	var clarify []string
+	if strings.TrimSpace(in.Context) == "" {
+		clarify = append(clarify, "Who experiences this, and how often does it happen?")
+	}
+	if strings.TrimSpace(in.Body) == "" {
+		clarify = append(clarify, "What's the concrete impact when it happens?")
+	}
+	if strings.TrimSpace(in.Brainstorming) == "" && len(clarify) < 2 {
+		clarify = append(clarify, "What's the current workaround, and why does it fall short?")
+	}
+	if len(clarify) == 0 {
+		clarify = append(clarify, "What would most change the assessment of this problem right now?")
+	}
+	if len(clarify) > 2 {
+		clarify = clarify[:2]
+	}
+
+	scope := "unspecified scope"
+	if len(in.Scope) > 0 {
+		scope = strings.Join(in.Scope, "/")
+	}
+	source := "unspecified source"
+	if len(in.Source) > 0 {
+		source = strings.Join(in.Source, "/")
+	}
+
+	summary := fmt.Sprintf(
+		"%s is captured with %s and %s. Based on what's recorded so far, frequency and impact aren't independently verified — this reflects what's written in the record, not confirmed prevalence. Mock response: OpenClaw isn't connected yet, so this is placeholder output shaped like the real analysis will be, not a genuine read of this problem.",
+		title, scope, source,
+	)
+
+	return map[string]any{
+		"summary": summary,
+		"clarify": clarify,
+		"solutions": []string{
+			"Hypothesis: a lightweight manual or process fix before building anything.",
+			"Hypothesis: an existing tool could already cover this with different configuration or habits.",
+		},
+		"next_step": "Talk to 2-3 people who'd plausibly hit this and check whether it's a real, recurring pain rather than a one-off.",
+		"mock":      true,
+	}
 }
 
 func pathID(r *http.Request, name string) (int64, bool) {
