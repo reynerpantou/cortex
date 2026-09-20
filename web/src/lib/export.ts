@@ -9,8 +9,10 @@ function section(heading: string, body: string | undefined): string {
  * the file export so the two are never inconsistent with each other. */
 export function fullExportMarkdown(p: Problem, relatedTitles: Record<number, string> = {}): string {
   let md = `# #${p.id} ${p.title}\n\n`;
-  md += `Status: ${p.status} · Scope: ${p.scope.join(", ")} · Source: ${p.source.join(", ")}`;
-  md += p.ai_assisted ? " · AI-assisted\n\n" : "\n\n";
+  md += `Status: ${p.status} · Scope: ${p.scope.join(", ")} · Source: ${p.source.join(", ")}\n\n`;
+  if (p.status === "archived" && p.archive_reason?.trim()) {
+    md += `Archived: ${p.archive_reason.trim()}\n\n`;
+  }
   if (p.body?.trim()) md += `${p.body.trim()}\n\n`;
 
   md += section("Context", p.context);

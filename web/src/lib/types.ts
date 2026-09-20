@@ -10,7 +10,6 @@ export interface Problem {
   id: number;
   scope: Scope[];
   source: Source[];
-  ai_assisted: boolean;
   title: string;
   body: string;
   status: Status;
@@ -24,6 +23,7 @@ export interface Problem {
   brainstorming?: string;
   research_brief?: string;
   findings?: string;
+  archive_reason?: string;
   related_ids?: number[];
   evidence?: Evidence[];
 }
@@ -54,7 +54,6 @@ export interface User {
 export interface ProblemInput {
   scope: Scope[];
   source: Source[];
-  ai_assisted: boolean;
   title: string;
   body: string;
   status: Status;
@@ -62,5 +61,6 @@ export interface ProblemInput {
   brainstorming: string;
   research_brief: string;
   findings: string;
+  archive_reason: string;
   related_ids: number[];
 }

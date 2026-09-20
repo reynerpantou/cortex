@@ -1,6 +1,6 @@
 {
   "app": { "name": "Cortex" },
-  "nav": { "home": "Beranda", "radar": "Radar", "logout": "Keluar" },
+  "nav": { "home": "Beranda", "radar": "Radar", "logout": "Keluar", "language": "Bahasa" },
   "login": {
     "subtitle": "Masuk untuk melanjutkan",
     "username": "Nama pengguna",
@@ -63,7 +63,7 @@
     "cancel": "Batal",
     "delete": "Hapus"
   },
-  "problem": { "seen": "terlihat {{count}}×", "aiAssisted": "Dibantu AI" },
+  "problem": { "seen": "terlihat {{count}}×" },
   "detail": {
     "back": "Kembali ke Radar",
     "context": "Konteks",
@@ -88,7 +88,10 @@
     "saved": "Tersimpan",
     "archive": "Arsipkan",
     "archived": "Diarsipkan",
-    "archivedHint": "Diarsipkan — ubah status di atas untuk mengedit"
+    "archivedHint": "Diarsipkan — ubah status di atas untuk mengedit",
+    "archiveConfirmTitle": "Arsipkan masalah ini?",
+    "archiveReasonLabel": "Alasan (opsional)",
+    "archiveReasonPlaceholder": "Kenapa diarsipkan — jalan buntu, sudah terpecahkan, kehilangan minat…"
   },
   "common": { "loading": "Memuat…", "error": "Terjadi kesalahan", "retry": "Coba lagi" }
 }

@@ -27,7 +27,6 @@ export default function ProblemDetail() {
   const [scope, setScope] = useState<Scope[]>([]);
   const [source, setSource] = useState<Source[]>([]);
   const [status, setStatus] = useState<Status>("backlog");
-  const [aiAssisted, setAiAssisted] = useState(false);
   const [context, setContext] = useState("");
   const [brainstorming, setBrainstorming] = useState("");
   const [researchBrief, setResearchBrief] = useState("");
@@ -41,6 +40,9 @@ export default function ProblemDetail() {
 
   const [evidenceText, setEvidenceText] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
+
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [archiveReasonDraft, setArchiveReasonDraft] = useState("");
 
   // Archived problems are read-only until the status is changed away from
   // "archived" — the status control itself is the only way to unlock them.
@@ -63,7 +65,6 @@ export default function ProblemDetail() {
       setScope(p.scope);
       setSource(p.source);
       setStatus(p.status);
-      setAiAssisted(p.ai_assisted);
       setContext(p.context ?? "");
       setBrainstorming(p.brainstorming ?? "");
       setResearchBrief(p.research_brief ?? "");
@@ -132,21 +133,25 @@ export default function ProblemDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [relatedQuery]);
 
-  const persist = async (overrides: Partial<{ status: Status }> = {}) => {
+  // archive_reason is only ever set by confirmArchive below, at the moment
+  // of archiving — a plain Save (or unarchiving via the status dropdown)
+  // always clears it, so a stale reason never lingers past the archived
+  // state it was given for.
+  const persist = async (overrides: Partial<{ status: Status; archive_reason: string }> = {}) => {
     if (!problem) return null;
+    const resolvedStatus = overrides.status ?? status;
     const updated = await api.updateProblem(problem.id, {
       title: title.trim(),
       body: body.trim(),
       scope,
       source,
-      status,
-      ai_assisted: aiAssisted,
       context,
       brainstorming,
       research_brief: researchBrief,
       findings,
       related_ids: relatedIds,
-      ...overrides,
+      status: resolvedStatus,
+      archive_reason: resolvedStatus === "archived" ? (overrides.archive_reason ?? problem.archive_reason ?? "") : "",
     });
     setProblem(updated);
     setStatus(updated.status);
@@ -162,10 +167,18 @@ export default function ProblemDetail() {
     }
   };
 
-  const archive = async () => {
+  const openArchiveModal = () => {
+    setArchiveReasonDraft("");
+    setArchiveModalOpen(true);
+  };
+
+  const confirmArchive = async () => {
     setSaving(true);
     try {
-      if (await persist({ status: "archived" })) flashToast(t("detail.archived"));
+      if (await persist({ status: "archived", archive_reason: archiveReasonDraft.trim() })) {
+        setArchiveModalOpen(false);
+        flashToast(t("detail.archived"));
+      }
     } finally {
       setSaving(false);
     }
@@ -206,7 +219,6 @@ export default function ProblemDetail() {
           body,
           scope,
           source,
-          ai_assisted: aiAssisted,
           status,
           context,
           brainstorming,
@@ -256,7 +268,12 @@ export default function ProblemDetail() {
             ))}
           </select>
         </div>
-        {readOnly && <p className="archived-hint">{t("detail.archivedHint")}</p>}
+        {readOnly && (
+          <p className="archived-hint">
+            {t("detail.archivedHint")}
+            {problem.archive_reason ? ` — "${problem.archive_reason}"` : ""}
+          </p>
+        )}
         <span className="field-label">{t("form.title")}<span className="required-mark">*</span></span>
         <input
           className="input detail-title-input"
@@ -308,10 +325,6 @@ export default function ProblemDetail() {
             </div>
           </div>
         </div>
-        <label className="checkbox-field">
-          <input type="checkbox" checked={aiAssisted} disabled={readOnly} onChange={(e) => setAiAssisted(e.target.checked)} />
-          {"✨ " + t("problem.aiAssisted")}
-        </label>
       </header>
 
       <details className="workspace-section" open={!!context}>
@@ -446,7 +459,7 @@ export default function ProblemDetail() {
 
       <div className="detail-actions">
         {!readOnly ? (
-          <button type="button" className="btn btn-danger" disabled={saving} onClick={() => void archive()}>
+          <button type="button" className="btn btn-danger" disabled={saving} onClick={openArchiveModal}>
             {t("detail.archive")}
           </button>
         ) : (
@@ -461,6 +474,36 @@ export default function ProblemDetail() {
           {saving ? t("common.loading") : t("form.save")}
         </button>
       </div>
+
+      {archiveModalOpen && (
+        <div className="overlay" onClick={() => setArchiveModalOpen(false)}>
+          <div className="overlay-body" onClick={(e) => e.stopPropagation()}>
+            <div className="form-panel">
+              <h2 className="form-heading">{t("detail.archiveConfirmTitle")}</h2>
+              <div className="field">
+                <span className="field-label">{t("detail.archiveReasonLabel")}</span>
+                <textarea
+                  className="input textarea"
+                  rows={3}
+                  autoFocus
+                  value={archiveReasonDraft}
+                  placeholder={t("detail.archiveReasonPlaceholder")}
+                  onChange={(e) => setArchiveReasonDraft(e.target.value)}
+                />
+              </div>
+              <div className="form-actions">
+                <div className="spacer" />
+                <button type="button" className="btn btn-ghost" onClick={() => setArchiveModalOpen(false)}>
+                  {t("form.cancel")}
+                </button>
+                <button type="button" className="btn btn-danger" disabled={saving} onClick={() => void confirmArchive()}>
+                  {t("detail.archive")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="toast toast-success" role="status">

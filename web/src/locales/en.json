@@ -1,6 +1,6 @@
 {
   "app": { "name": "Cortex" },
-  "nav": { "home": "Home", "radar": "Radar", "logout": "Sign out" },
+  "nav": { "home": "Home", "radar": "Radar", "logout": "Sign out", "language": "Language" },
   "login": {
     "subtitle": "Sign in to continue",
     "username": "Username",
@@ -63,7 +63,7 @@
     "cancel": "Cancel",
     "delete": "Delete"
   },
-  "problem": { "seen": "seen {{count}}×", "aiAssisted": "AI-assisted" },
+  "problem": { "seen": "seen {{count}}×" },
   "detail": {
     "back": "Back to Radar",
     "context": "Context",
@@ -88,7 +88,10 @@
     "saved": "Saved",
     "archive": "Archive",
     "archived": "Archived",
-    "archivedHint": "Archived — change status above to edit"
+    "archivedHint": "Archived — change status above to edit",
+    "archiveConfirmTitle": "Archive this problem?",
+    "archiveReasonLabel": "Reason (optional)",
+    "archiveReasonPlaceholder": "Why are you archiving this — dead end, already solved, lost interest…"
   },
   "common": { "loading": "Loading…", "error": "Something went wrong", "retry": "Try again" }
 }
