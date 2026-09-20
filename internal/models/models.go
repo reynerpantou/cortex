@@ -11,6 +11,11 @@ const (
 
 func (s Scope) Valid() bool { return s == ScopeIndonesia || s == ScopeROW }
 
+// Scopes is a set of Scope values. A problem can affect more than one.
+type Scopes []Scope
+
+func (s Scopes) Valid() bool { return validSet(s, Scope.Valid) }
+
 type Source string
 
 const (
@@ -23,18 +28,43 @@ func (s Source) Valid() bool {
 	return s == SourcePersonal || s == SourceOther || s == SourceAI
 }
 
+// Sources is a set of Source values. A problem can come from more than one.
+type Sources []Source
+
+func (s Sources) Valid() bool { return validSet(s, Source.Valid) }
+
+// validSet reports whether every element is valid per isValid, there's at
+// least one element, and there are no duplicates.
+func validSet[T comparable](vals []T, isValid func(T) bool) bool {
+	if len(vals) == 0 {
+		return false
+	}
+	seen := make(map[T]bool, len(vals))
+	for _, v := range vals {
+		if !isValid(v) || seen[v] {
+			return false
+		}
+		seen[v] = true
+	}
+	return true
+}
+
+// Status is a Jira-style pipeline tracking how far a captured problem has
+// progressed, from first capture to a shipped product or a closed dead end.
 type Status string
 
 const (
-	StatusInbox     Status = "inbox"
-	StatusValidated Status = "validated"
-	StatusParked    Status = "parked"
-	StatusDropped   Status = "dropped"
+	StatusBacklog     Status = "backlog"     // just captured, not yet looked at
+	StatusResearching Status = "researching" // actively digging into the signal
+	StatusInReview    Status = "in_review"   // judged, awaiting a pursue/drop call
+	StatusBuilding    Status = "building"    // decided to pursue, in progress
+	StatusShipped     Status = "shipped"     // built and launched
+	StatusArchived    Status = "archived"    // parked or rejected
 )
 
 func (s Status) Valid() bool {
 	switch s {
-	case StatusInbox, StatusValidated, StatusParked, StatusDropped:
+	case StatusBacklog, StatusResearching, StatusInReview, StatusBuilding, StatusShipped, StatusArchived:
 		return true
 	}
 	return false
@@ -49,8 +79,8 @@ type User struct {
 
 type Problem struct {
 	ID         int64     `json:"id"`
-	Scope      Scope     `json:"scope"`
-	Source     Source    `json:"source"`
+	Scope      Scopes    `json:"scope"`
+	Source     Sources   `json:"source"`
 	Title      string    `json:"title"`
 	Body       string    `json:"body"`
 	Status     Status    `json:"status"`

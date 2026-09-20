@@ -24,7 +24,7 @@
     "indonesia": "Indonesia",
     "row": "Luar negeri",
     "ai": "Temuan AI",
-    "validated": "Tervalidasi"
+    "validated": "Aktif"
   },
   "radar": {
     "title": "Radar",
@@ -35,10 +35,17 @@
     "count_other": "{{count}} masalah",
     "empty": "Tidak ada masalah yang cocok dengan filter ini."
   },
-  "filter": { "allScopes": "Semua cakupan", "allSources": "Semua sumber", "allStatuses": "Semua status" },
+  "filter": { "clear": "Bersihkan" },
   "scope": { "id": "Indonesia", "row": "Luar negeri" },
   "source": { "personal": "Pribadi", "other": "Dari orang lain", "ai": "AI" },
-  "status": { "inbox": "Masuk", "validated": "Tervalidasi", "parked": "Ditunda", "dropped": "Dibatalkan" },
+  "status": {
+    "backlog": "Backlog",
+    "researching": "Riset",
+    "in_review": "Ditinjau",
+    "building": "Dibangun",
+    "shipped": "Dirilis",
+    "archived": "Diarsipkan"
+  },
   "form": {
     "new": "Masalah baru",
     "edit": "Ubah masalah",
@@ -49,6 +56,7 @@
     "scope": "Cakupan",
     "source": "Sumber",
     "status": "Status",
+    "pickAtLeastOne": "Pilih minimal satu cakupan dan satu sumber",
     "save": "Simpan",
     "cancel": "Batal",
     "delete": "Hapus",

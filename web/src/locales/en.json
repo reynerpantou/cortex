@@ -24,7 +24,7 @@
     "indonesia": "Indonesia",
     "row": "Rest of world",
     "ai": "AI-found",
-    "validated": "Validated"
+    "validated": "Active"
   },
   "radar": {
     "title": "Radar",
@@ -35,10 +35,17 @@
     "count_other": "{{count}} problems",
     "empty": "No problems match these filters."
   },
-  "filter": { "allScopes": "All scopes", "allSources": "All sources", "allStatuses": "All statuses" },
+  "filter": { "clear": "Clear" },
   "scope": { "id": "Indonesia", "row": "Rest of world" },
   "source": { "personal": "Personal", "other": "From others", "ai": "AI" },
-  "status": { "inbox": "Inbox", "validated": "Validated", "parked": "Parked", "dropped": "Dropped" },
+  "status": {
+    "backlog": "Backlog",
+    "researching": "Researching",
+    "in_review": "In Review",
+    "building": "Building",
+    "shipped": "Shipped",
+    "archived": "Archived"
+  },
   "form": {
     "new": "New problem",
     "edit": "Edit problem",
@@ -49,6 +56,7 @@
     "scope": "Scope",
     "source": "Source",
     "status": "Status",
+    "pickAtLeastOne": "Pick at least one scope and one source",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",

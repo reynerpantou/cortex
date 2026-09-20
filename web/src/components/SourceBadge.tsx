@@ -6,7 +6,7 @@ import type { Source } from "../lib/types";
 export default function SourceBadge({ source }: { source: Source }) {
   const { t } = useTranslation();
   return (
-    <span className={`badge badge-src badge-${source}`}>
+    <span className={`badge badge-source-${source}`}>
       {source === "ai" && <span className="badge-dot" aria-hidden="true" />}
       {t(`source.${source}`)}
     </span>

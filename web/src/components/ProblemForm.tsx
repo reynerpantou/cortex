@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Problem, ProblemInput, Scope, Source, Status } from "../lib/types";
+import { SCOPES, SOURCES, STATUSES } from "../lib/types";
 
 interface Props {
   initial?: Problem;
@@ -9,23 +10,27 @@ interface Props {
   onDelete?: () => Promise<void> | void;
 }
 
-const scopes: Scope[] = ["id", "row"];
-const sources: Source[] = ["personal", "other", "ai"];
-const statuses: Status[] = ["inbox", "validated", "parked", "dropped"];
+function toggle<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
 
 export default function ProblemForm({ initial, onSubmit, onCancel, onDelete }: Props) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
-  const [scope, setScope] = useState<Scope>(initial?.scope ?? "row");
-  const [source, setSource] = useState<Source>(initial?.source ?? "other");
-  const [status, setStatus] = useState<Status>(initial?.status ?? "inbox");
+  const [scope, setScope] = useState<Scope[]>(initial?.scope ?? ["row"]);
+  const [source, setSource] = useState<Source[]>(initial?.source ?? ["other"]);
+  const [status, setStatus] = useState<Status>(initial?.status ?? "backlog");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     if (!title.trim()) {
       setError(t("form.title"));
+      return;
+    }
+    if (scope.length === 0 || source.length === 0) {
+      setError(t("form.pickAtLeastOne"));
       return;
     }
     setBusy(true);
@@ -65,32 +70,48 @@ export default function ProblemForm({ initial, onSubmit, onCancel, onDelete }: P
         />
       </label>
 
-      <div className="field-row">
-        <label className="field">
-          <span className="field-label">{t("form.scope")}</span>
-          <select className="input" value={scope} onChange={(e) => setScope(e.target.value as Scope)}>
-            {scopes.map((s) => (
-              <option key={s} value={s}>{t(`scope.${s}`)}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span className="field-label">{t("form.source")}</span>
-          <select className="input" value={source} onChange={(e) => setSource(e.target.value as Source)}>
-            {sources.map((s) => (
-              <option key={s} value={s}>{t(`source.${s}`)}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span className="field-label">{t("form.status")}</span>
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value as Status)}>
-            {statuses.map((s) => (
-              <option key={s} value={s}>{t(`status.${s}`)}</option>
-            ))}
-          </select>
-        </label>
+      <div className="field">
+        <span className="field-label">{t("form.scope")}</span>
+        <div className="chip-select">
+          {SCOPES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`chip-toggle tag-scope-${s} ${scope.includes(s) ? "is-on" : ""}`}
+              aria-pressed={scope.includes(s)}
+              onClick={() => setScope(toggle(scope, s))}
+            >
+              {t(`scope.${s}`)}
+            </button>
+          ))}
+        </div>
       </div>
+
+      <div className="field">
+        <span className="field-label">{t("form.source")}</span>
+        <div className="chip-select">
+          {SOURCES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`chip-toggle tag-source-${s} ${source.includes(s) ? "is-on" : ""}`}
+              aria-pressed={source.includes(s)}
+              onClick={() => setSource(toggle(source, s))}
+            >
+              {t(`source.${s}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="field">
+        <span className="field-label">{t("form.status")}</span>
+        <select className="input" value={status} onChange={(e) => setStatus(e.target.value as Status)}>
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>{t(`status.${s}`)}</option>
+          ))}
+        </select>
+      </label>
 
       {error && <p className="form-error">{error}</p>}
 

@@ -21,9 +21,13 @@ export default function ProblemCard({ problem, onEdit }: Props) {
       </div>
       {problem.body && <p className="card-body">{problem.body}</p>}
       <div className="card-tags">
-        <SourceBadge source={problem.source} />
-        <span className="badge badge-scope">{t(`scope.${problem.scope}`)}</span>
-        <span className={`badge badge-status status-${problem.status}`}>
+        {problem.source.map((s) => (
+          <SourceBadge key={s} source={s} />
+        ))}
+        {problem.scope.map((s) => (
+          <span key={s} className={`badge badge-scope-${s}`}>{t(`scope.${s}`)}</span>
+        ))}
+        <span className={`badge badge-status-${problem.status}`}>
           {t(`status.${problem.status}`)}
         </span>
       </div>

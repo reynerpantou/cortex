@@ -1,11 +1,23 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import type { Problem, ProblemInput, Stats } from "../lib/types";
+import type { Problem, ProblemInput, Scope, Source, Stats, Status } from "../lib/types";
+import { SCOPES, SOURCES, STATUSES } from "../lib/types";
 import ProblemCard from "../components/ProblemCard";
 import ProblemForm from "../components/ProblemForm";
 
 type Editing = Problem | "new" | null;
+
+interface Filters {
+  scope: Scope[];
+  source: Source[];
+  status: Status[];
+  q: string;
+}
+
+function toggle<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
 
 export default function Radar() {
   const { t } = useTranslation();
@@ -14,13 +26,21 @@ export default function Radar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState<Editing>(null);
-  const [filters, setFilters] = useState({ scope: "", source: "", status: "", q: "" });
+  const [filters, setFilters] = useState<Filters>({ scope: [], source: [], status: [], q: "" });
 
   const load = async () => {
     setLoading(true);
     setError(false);
     try {
-      const [list, s] = await Promise.all([api.listProblems(filters), api.stats()]);
+      const [list, s] = await Promise.all([
+        api.listProblems({
+          scope: filters.scope.join(","),
+          source: filters.source.join(","),
+          status: filters.status.join(","),
+          q: filters.q,
+        }),
+        api.stats(),
+      ]);
       setProblems(list);
       setStats(s);
     } catch {
@@ -63,8 +83,7 @@ export default function Radar() {
     }
   };
 
-  const setFilter = (k: keyof typeof filters, v: string) =>
-    setFilters((f) => ({ ...f, [k]: v }));
+  const activeCount = filters.scope.length + filters.source.length + filters.status.length;
 
   return (
     <div className="page">
@@ -87,31 +106,58 @@ export default function Radar() {
         ))}
       </div>
 
-      <div className="toolbar">
-        <input
-          className="input"
-          placeholder={t("radar.search")}
-          value={filters.q}
-          onChange={(e) => setFilter("q", e.target.value)}
-        />
-        <select className="input" value={filters.scope} onChange={(e) => setFilter("scope", e.target.value)}>
-          <option value="">{t("filter.allScopes")}</option>
-          <option value="id">{t("scope.id")}</option>
-          <option value="row">{t("scope.row")}</option>
-        </select>
-        <select className="input" value={filters.source} onChange={(e) => setFilter("source", e.target.value)}>
-          <option value="">{t("filter.allSources")}</option>
-          <option value="personal">{t("source.personal")}</option>
-          <option value="other">{t("source.other")}</option>
-          <option value="ai">{t("source.ai")}</option>
-        </select>
-        <select className="input" value={filters.status} onChange={(e) => setFilter("status", e.target.value)}>
-          <option value="">{t("filter.allStatuses")}</option>
-          <option value="inbox">{t("status.inbox")}</option>
-          <option value="validated">{t("status.validated")}</option>
-          <option value="parked">{t("status.parked")}</option>
-          <option value="dropped">{t("status.dropped")}</option>
-        </select>
+      <input
+        className="input search-bar"
+        placeholder={t("radar.search")}
+        value={filters.q}
+        onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+      />
+
+      <div className="filter-strip">
+        {SCOPES.map((s) => (
+          <button
+            key={`scope-${s}`}
+            type="button"
+            className={`chip-toggle tag-scope-${s} ${filters.scope.includes(s) ? "is-on" : ""}`}
+            aria-pressed={filters.scope.includes(s)}
+            onClick={() => setFilters((f) => ({ ...f, scope: toggle(f.scope, s) }))}
+          >
+            {t(`scope.${s}`)}
+          </button>
+        ))}
+        <span className="filter-sep" aria-hidden="true" />
+        {SOURCES.map((s) => (
+          <button
+            key={`source-${s}`}
+            type="button"
+            className={`chip-toggle tag-source-${s} ${filters.source.includes(s) ? "is-on" : ""}`}
+            aria-pressed={filters.source.includes(s)}
+            onClick={() => setFilters((f) => ({ ...f, source: toggle(f.source, s) }))}
+          >
+            {t(`source.${s}`)}
+          </button>
+        ))}
+        <span className="filter-sep" aria-hidden="true" />
+        {STATUSES.map((s) => (
+          <button
+            key={`status-${s}`}
+            type="button"
+            className={`chip-toggle tag-status-${s} ${filters.status.includes(s) ? "is-on" : ""}`}
+            aria-pressed={filters.status.includes(s)}
+            onClick={() => setFilters((f) => ({ ...f, status: toggle(f.status, s) }))}
+          >
+            {t(`status.${s}`)}
+          </button>
+        ))}
+        {activeCount > 0 && (
+          <button
+            type="button"
+            className="chip-toggle chip-clear"
+            onClick={() => setFilters((f) => ({ ...f, scope: [], source: [], status: [] }))}
+          >
+            {t("filter.clear")} ({activeCount})
+          </button>
+        )}
       </div>
 
       {loading ? (
