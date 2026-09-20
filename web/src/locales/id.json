@@ -1,6 +1,15 @@
 {
   "app": { "name": "Cortex" },
-  "nav": { "home": "Beranda", "radar": "Radar", "logout": "Keluar", "language": "Bahasa" },
+  "nav": {
+    "home": "Beranda",
+    "radar": "Radar",
+    "logout": "Keluar",
+    "language": "Bahasa",
+    "overview": "Ikhtisar",
+    "session": "Sudah masuk",
+    "collapseSidebar": "Tutup sidebar",
+    "expandSidebar": "Buka sidebar"
+  },
   "login": {
     "subtitle": "Masuk untuk melanjutkan",
     "username": "Nama pengguna",

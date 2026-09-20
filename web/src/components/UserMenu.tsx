@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
 import { languages } from "../i18n";
 
-export default function UserMenu() {
+export default function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -39,19 +39,10 @@ export default function UserMenu() {
 
   return (
     <div className="user-menu" ref={rootRef}>
-      <button type="button" className="user-menu-trigger" onClick={toggle} aria-label={user.username}>
-        <span className="user-avatar" aria-hidden="true">{initial}</span>
-      </button>
-
       {open && (
         <div className="user-menu-panel">
           {!showLanguage ? (
             <>
-              <div className="user-menu-header">
-                <span className="user-avatar user-avatar-lg" aria-hidden="true">{initial}</span>
-                <span className="user-menu-name">{user.username}</span>
-              </div>
-              <div className="user-menu-divider" />
               <button type="button" className="user-menu-item" onClick={() => setShowLanguage(true)}>
                 <span className="user-menu-item-icon" aria-hidden="true">{"\u{1F310}"}</span>
                 <span className="user-menu-item-label">{t("nav.language")}</span>
@@ -95,6 +86,16 @@ export default function UserMenu() {
           )}
         </div>
       )}
+
+      <button type="button" className="user-menu-trigger" onClick={toggle} aria-label={user.username}>
+        <span className="user-avatar" aria-hidden="true">{initial}</span>
+        {!collapsed && (
+          <span className="user-menu-trigger-info">
+            <span className="user-menu-name">{user.username}</span>
+            <span className="user-menu-sub">{t("nav.session")}</span>
+          </span>
+        )}
+      </button>
     </div>
   );
 }
