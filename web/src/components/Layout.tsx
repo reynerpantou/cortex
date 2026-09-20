@@ -1,35 +1,31 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../lib/auth";
 import { modules } from "../lib/modules";
-import LanguageSwitcher from "./LanguageSwitcher";
+import UserMenu from "./UserMenu";
 
 export default function Layout() {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          <span className="brand-name">{t("app.name")}</span>
-        </div>
-        <nav className="nav">
-          <NavLink to="/" end className={({ isActive }) => (isActive ? "is-active" : "")}>
-            {t("nav.home")}
-          </NavLink>
-          {modules.map((m) => (
-            <NavLink key={m.key} to={m.path} className={({ isActive }) => (isActive ? "is-active" : "")}>
-              {t(m.navKey)}
+        <div className="topbar-inner">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true" />
+            <span className="brand-name">{t("app.name")}</span>
+          </div>
+          <nav className="nav">
+            <NavLink to="/" end className={({ isActive }) => (isActive ? "is-active" : "")}>
+              {t("nav.home")}
             </NavLink>
-          ))}
-        </nav>
-        <div className="topbar-right">
-          <LanguageSwitcher />
-          {user && <span className="who">{user.username}</span>}
-          <button type="button" className="btn btn-ghost" onClick={() => void logout()}>
-            {t("nav.logout")}
-          </button>
+            {modules.map((m) => (
+              <NavLink key={m.key} to={m.path} className={({ isActive }) => (isActive ? "is-active" : "")}>
+                {t(m.navKey)}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="topbar-right">
+            <UserMenu />
+          </div>
         </div>
       </header>
       <main className="main">

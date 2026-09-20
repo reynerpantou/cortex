@@ -8,12 +8,21 @@ export default function ProblemCard({ problem }: { problem: Problem }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  // "Unknown" alone doesn't say which axis is unset — scope and source both
+  // render the identical word, so flattened side by side they're
+  // indistinguishable ("? Unknown · ? Unknown"). Prefix only the unknown
+  // case with its field name; real values (Personal, Indonesia, ...) are
+  // already self-explanatory and don't need one.
   const metaParts = [
     ...problem.source.map((s) => (
-      <span key={`source-${s}`}>{sourceIcon[s]} {t(`source.${s}`)}</span>
+      <span key={`source-${s}`}>
+        {sourceIcon[s]} {s === "unknown" ? `${t("filter.source")}: ` : ""}{t(`source.${s}`)}
+      </span>
     )),
     ...problem.scope.map((s) => (
-      <span key={`scope-${s}`}>{scopeIcon[s]} {t(`scope.${s}`)}</span>
+      <span key={`scope-${s}`}>
+        {scopeIcon[s]} {s === "unknown" ? `${t("filter.scope")}: ` : ""}{t(`scope.${s}`)}
+      </span>
     )),
   ];
 

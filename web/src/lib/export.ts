@@ -10,6 +10,9 @@ function section(heading: string, body: string | undefined): string {
 export function fullExportMarkdown(p: Problem, relatedTitles: Record<number, string> = {}): string {
   let md = `# #${p.id} ${p.title}\n\n`;
   md += `Status: ${p.status} · Scope: ${p.scope.join(", ")} · Source: ${p.source.join(", ")}\n\n`;
+  if (p.status === "archived" && p.archive_reason?.trim()) {
+    md += `Archived: ${p.archive_reason.trim()}\n\n`;
+  }
   if (p.body?.trim()) md += `${p.body.trim()}\n\n`;
 
   md += section("Context", p.context);

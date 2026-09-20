@@ -23,6 +23,7 @@ export interface Problem {
   brainstorming?: string;
   research_brief?: string;
   findings?: string;
+  archive_reason?: string;
   related_ids?: number[];
   evidence?: Evidence[];
 }
@@ -60,5 +61,6 @@ export interface ProblemInput {
   brainstorming: string;
   research_brief: string;
   findings: string;
+  archive_reason: string;
   related_ids: number[];
 }

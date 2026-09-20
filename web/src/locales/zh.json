@@ -1,6 +1,6 @@
 {
   "app": { "name": "Cortex" },
-  "nav": { "home": "首页", "radar": "雷达", "logout": "退出登录" },
+  "nav": { "home": "首页", "radar": "雷达", "logout": "退出登录", "language": "语言" },
   "login": {
     "subtitle": "登录以继续",
     "username": "用户名",
@@ -88,7 +88,10 @@
     "saved": "已保存",
     "archive": "归档",
     "archived": "已归档",
-    "archivedHint": "已归档 — 请在上方更改状态以编辑"
+    "archivedHint": "已归档 — 请在上方更改状态以编辑",
+    "archiveConfirmTitle": "归档这个问题？",
+    "archiveReasonLabel": "原因（可选）",
+    "archiveReasonPlaceholder": "为什么要归档——死路一条、已经解决、失去兴趣……"
   },
   "common": { "loading": "加载中…", "error": "出错了", "retry": "重试" }
 }

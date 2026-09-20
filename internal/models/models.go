@@ -118,6 +118,7 @@ type Problem struct {
 	Brainstorming *string    `json:"brainstorming,omitempty"`
 	ResearchBrief *string    `json:"research_brief,omitempty"`
 	Findings      *string    `json:"findings,omitempty"`
+	ArchiveReason *string    `json:"archive_reason,omitempty"`
 	RelatedIDs    []int64    `json:"related_ids,omitempty"`
 	Evidence      []Evidence `json:"evidence,omitempty"`
 }

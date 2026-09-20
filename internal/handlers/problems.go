@@ -114,6 +114,7 @@ type problemInput struct {
 	Brainstorming string         `json:"brainstorming"`
 	ResearchBrief string         `json:"research_brief"`
 	Findings      string         `json:"findings"`
+	ArchiveReason string         `json:"archive_reason"`
 	RelatedIDs    []int64        `json:"related_ids"`
 }
 
@@ -123,6 +124,7 @@ type problemInput struct {
 func (in *problemInput) normalizeAndValidate() (string, bool) {
 	in.Title = strings.TrimSpace(in.Title)
 	in.Body = strings.TrimSpace(in.Body)
+	in.ArchiveReason = strings.TrimSpace(in.ArchiveReason)
 	if in.Status == "" {
 		in.Status = models.StatusBacklog
 	}
@@ -161,10 +163,10 @@ func (s *Server) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	var id int64
 	err := s.DB.QueryRow(
-		`INSERT INTO problems (scope, source, title, body, status, context, brainstorming, research_brief, findings, related_ids, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+		`INSERT INTO problems (scope, source, title, body, status, context, brainstorming, research_brief, findings, archive_reason, related_ids, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
 		in.Scope, in.Source, in.Title, in.Body, in.Status,
-		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.RelatedIDs, now, now,
+		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.ArchiveReason, in.RelatedIDs, now, now,
 	).Scan(&id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the problem")
@@ -190,10 +192,10 @@ func (s *Server) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := s.DB.Exec(
 		`UPDATE problems SET scope=$1, source=$2, title=$3, body=$4, status=$5,
-		 context=$6, brainstorming=$7, research_brief=$8, findings=$9, related_ids=$10, updated_at=$11
-		 WHERE id=$12`,
+		 context=$6, brainstorming=$7, research_brief=$8, findings=$9, archive_reason=$10, related_ids=$11, updated_at=$12
+		 WHERE id=$13`,
 		in.Scope, in.Source, in.Title, in.Body, in.Status,
-		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.RelatedIDs, time.Now().UTC(), id,
+		in.Context, in.Brainstorming, in.ResearchBrief, in.Findings, in.ArchiveReason, in.RelatedIDs, time.Now().UTC(), id,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not update the problem")
@@ -235,14 +237,14 @@ func (s *Server) GetProblem(w http.ResponseWriter, r *http.Request) {
 	}
 	var p models.Problem
 	var scopeJoined, sourceJoined, relatedJoined string
-	var context, brainstorming, researchBrief, findings string
+	var context, brainstorming, researchBrief, findings, archiveReason string
 	err := s.DB.QueryRow(
 		`SELECT id, array_to_string(scope, ','), array_to_string(source, ','), title, body, status,
-		        source_url, recurrence, context, brainstorming, research_brief, findings,
+		        source_url, recurrence, context, brainstorming, research_brief, findings, archive_reason,
 		        array_to_string(related_ids, ','), created_at, updated_at
 		 FROM problems WHERE id = $1`, id,
 	).Scan(&p.ID, &scopeJoined, &sourceJoined, &p.Title, &p.Body, &p.Status,
-		&p.SourceURL, &p.Recurrence, &context, &brainstorming, &researchBrief, &findings,
+		&p.SourceURL, &p.Recurrence, &context, &brainstorming, &researchBrief, &findings, &archiveReason,
 		&relatedJoined, &p.CreatedAt, &p.UpdatedAt)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "not_found", "problem not found")
@@ -259,6 +261,7 @@ func (s *Server) GetProblem(w http.ResponseWriter, r *http.Request) {
 		p.Source = append(p.Source, models.Source(v))
 	}
 	p.Context, p.Brainstorming, p.ResearchBrief, p.Findings = &context, &brainstorming, &researchBrief, &findings
+	p.ArchiveReason = &archiveReason
 	p.RelatedIDs = splitInts(relatedJoined)
 
 	rows, err := s.DB.Query(
