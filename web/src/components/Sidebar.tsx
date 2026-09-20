@@ -202,7 +202,14 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
         key={itemKey}
         className="sidebar-edit-item"
         draggable
-        onDragStart={() => setDragging({ kind: "item", key: itemKey })}
+        onDragStart={(e) => {
+          // dragstart bubbles: without stopping it here, an item nested inside a
+          // group's own draggable container also triggers the group's onDragStart
+          // right after, overwriting this to a group-drag — which is exactly why
+          // items got stuck unable to leave their group.
+          e.stopPropagation();
+          setDragging({ kind: "item", key: itemKey });
+        }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.stopPropagation();
