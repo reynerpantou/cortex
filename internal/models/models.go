@@ -83,10 +83,13 @@ func (s Status) Active() bool {
 }
 
 type User struct {
-	ID           int64     `json:"id"`
-	Username     string    `json:"username"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID            int64     `json:"id"`
+	Username      string    `json:"username"`
+	DisplayNameEN string    `json:"display_name_en"`
+	DisplayNameID string    `json:"display_name_id"`
+	DisplayNameZH string    `json:"display_name_zh"`
+	PasswordHash  string    `json:"-"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // Evidence is one attributed observation supporting a problem: a quote, a

@@ -49,6 +49,9 @@ export interface Stats {
 export interface User {
   id: number;
   username: string;
+  display_name_en: string;
+  display_name_id: string;
+  display_name_zh: string;
 }
 
 export interface NavGroup {

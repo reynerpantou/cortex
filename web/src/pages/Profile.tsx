@@ -8,6 +8,9 @@ export default function Profile() {
   const { user, setUser } = useAuth();
 
   const [username, setUsername] = useState(user?.username ?? "");
+  const [nameEn, setNameEn] = useState(user?.display_name_en ?? "");
+  const [nameId, setNameId] = useState(user?.display_name_id ?? "");
+  const [nameZh, setNameZh] = useState(user?.display_name_zh ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,6 +45,9 @@ export default function Profile() {
     try {
       const updated = await api.updateMe({
         username: trimmed,
+        display_name_en: nameEn.trim(),
+        display_name_id: nameId.trim(),
+        display_name_zh: nameZh.trim(),
         current_password: currentPassword || undefined,
         new_password: newPassword || undefined,
       });
@@ -71,6 +77,37 @@ export default function Profile() {
         <div className="field">
           <span className="field-label">{t("profile.username")}</span>
           <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
+          <h2 className="section-title">{t("profile.displayName")}</h2>
+        </div>
+        <p className="page-lead">{t("profile.displayNameLead")}</p>
+        <div className="filter-groups">
+          <div className="field">
+            <span className="field-label">{t("profile.nameEn")}</span>
+            <input className="input" value={nameEn} onChange={(e) => setNameEn(e.target.value)} />
+          </div>
+          <div className="field">
+            <span className="field-label">{t("profile.nameId")}</span>
+            <div className="profile-name-row">
+              <input className="input" value={nameId} onChange={(e) => setNameId(e.target.value)} />
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNameId(nameEn)}>
+                {t("profile.useEnglishName")}
+              </button>
+            </div>
+          </div>
+          <div className="field">
+            <span className="field-label">{t("profile.nameZh")}</span>
+            <div className="profile-name-row">
+              <input className="input" value={nameZh} onChange={(e) => setNameZh(e.target.value)} />
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNameZh(nameEn)}>
+                {t("profile.useEnglishName")}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

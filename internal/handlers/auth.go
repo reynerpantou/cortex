@@ -27,8 +27,8 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 
 	var u models.User
 	err := s.DB.QueryRow(
-		`SELECT id, username, password_hash FROM users WHERE username = $1`, req.Username,
-	).Scan(&u.ID, &u.Username, &u.PasswordHash)
+		`SELECT id, username, display_name_en, display_name_id, display_name_zh, password_hash FROM users WHERE username = $1`, req.Username,
+	).Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.PasswordHash)
 
 	// Always run a verify to keep timing uniform whether or not the user exists.
 	valid := false
@@ -62,7 +62,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: false, Secure: s.Cfg.CookieSecure, SameSite: http.SameSiteLaxMode,
 		Expires: time.Now().Add(s.Cfg.SessionTTL),
 	})
-	writeJSON(w, http.StatusOK, map[string]any{"id": u.ID, "username": u.Username})
+	writeJSON(w, http.StatusOK, userJSON(u))
 }
 
 func (s *Server) Logout(w http.ResponseWriter, r *http.Request) {
@@ -77,20 +77,37 @@ func (s *Server) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// userJSON is the shape returned for the signed-in user everywhere
+// (login, /me, profile update) — kept in one place so they can't drift.
+func userJSON(u models.User) map[string]any {
+	return map[string]any{
+		"id":              u.ID,
+		"username":        u.Username,
+		"display_name_en": u.DisplayNameEN,
+		"display_name_id": u.DisplayNameID,
+		"display_name_zh": u.DisplayNameZH,
+	}
+}
+
 // Me returns the authenticated user; used by the SPA to restore a session.
 func (s *Server) Me(w http.ResponseWriter, r *http.Request) {
 	uid, _ := middleware.UserIDFrom(r.Context())
 	var u models.User
-	err := s.DB.QueryRow(`SELECT id, username FROM users WHERE id = $1`, uid).Scan(&u.ID, &u.Username)
+	err := s.DB.QueryRow(
+		`SELECT id, username, display_name_en, display_name_id, display_name_zh FROM users WHERE id = $1`, uid,
+	).Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "not signed in")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"id": u.ID, "username": u.Username})
+	writeJSON(w, http.StatusOK, userJSON(u))
 }
 
 type updateMeRequest struct {
 	Username        string `json:"username"`
+	DisplayNameEN   string `json:"display_name_en"`
+	DisplayNameID   string `json:"display_name_id"`
+	DisplayNameZH   string `json:"display_name_zh"`
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
 }
@@ -106,6 +123,9 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Username = strings.TrimSpace(req.Username)
+	req.DisplayNameEN = strings.TrimSpace(req.DisplayNameEN)
+	req.DisplayNameID = strings.TrimSpace(req.DisplayNameID)
+	req.DisplayNameZH = strings.TrimSpace(req.DisplayNameZH)
 	if req.Username == "" {
 		writeError(w, http.StatusBadRequest, "validation_error", "username is required")
 		return
@@ -136,7 +156,10 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		newHash = hash
 	}
 
-	_, err := s.DB.Exec(`UPDATE users SET username = $1, password_hash = $2 WHERE id = $3`, req.Username, newHash, uid)
+	_, err := s.DB.Exec(
+		`UPDATE users SET username = $1, display_name_en = $2, display_name_id = $3, display_name_zh = $4, password_hash = $5 WHERE id = $6`,
+		req.Username, req.DisplayNameEN, req.DisplayNameID, req.DisplayNameZH, newHash, uid,
+	)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -146,5 +169,8 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not update your account")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"id": uid, "username": req.Username})
+	writeJSON(w, http.StatusOK, userJSON(models.User{
+		ID: uid, Username: req.Username,
+		DisplayNameEN: req.DisplayNameEN, DisplayNameID: req.DisplayNameID, DisplayNameZH: req.DisplayNameZH,
+	}))
 }

@@ -229,29 +229,22 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
         )}
       </div>
 
-      {!collapsed && (
-        <div className="sidebar-customize">
-          {!editing ? (
-            <>
-              <span className="sidebar-customize-label">{t("nav.customizeNavigation")}</span>
-              <button type="button" className="btn btn-ghost btn-sm sidebar-organize-btn" onClick={() => setEditing(true)}>
-                <span aria-hidden="true">{"✎"}</span> {t("nav.organize")}
-              </button>
-            </>
-          ) : (
-            <div className="sidebar-organize-actions">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={cancelOrganize}>{t("form.cancel")}</button>
-              <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => void saveOrganize()}>
-                {saving ? t("common.loading") : t("nav.done")}
+      {!editing ? (
+        <nav className="sidebar-nav">
+          {!collapsed && (
+            <div className="sidebar-nav-header">
+              <span className="sidebar-group-label">{t("nav.overview")}</span>
+              <button
+                type="button"
+                className="sidebar-organize-btn"
+                aria-label={t("nav.organize")}
+                title={t("nav.organize")}
+                onClick={() => setEditing(true)}
+              >
+                {"✎"}
               </button>
             </div>
           )}
-        </div>
-      )}
-
-      {!editing ? (
-        <nav className="sidebar-nav">
-          <div className="sidebar-group-label">{t("nav.overview")}</div>
           {draft.topItems.map((key) => linkFor(key))}
           {draft.groups.map((g) => (
             <div key={g.id} className="sidebar-nav-group">
@@ -262,6 +255,12 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
         </nav>
       ) : (
         <div className="sidebar-nav sidebar-editor">
+          <div className="sidebar-organize-actions">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={cancelOrganize}>{t("form.cancel")}</button>
+            <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => void saveOrganize()}>
+              {saving ? t("common.loading") : t("nav.done")}
+            </button>
+          </div>
           <div
             className="sidebar-edit-section"
             onDragOver={(e) => e.preventDefault()}

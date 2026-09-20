@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Cortex", "tagline": "Pusat komando pribadi" },
+  "app": { "name": "Cortex", "tagline": "Otak kedua" },
   "nav": {
     "home": "Beranda",
     "radar": "Radar",
@@ -116,6 +116,12 @@
     "username": "Nama pengguna",
     "usernameRequired": "Nama pengguna wajib diisi",
     "usernameTaken": "Nama pengguna itu sudah dipakai",
+    "displayName": "Nama tampilan",
+    "displayNameLead": "Ditampilkan menggantikan nama pengguna di seluruh aplikasi — satu per bahasa, mengikuti pengaturan bahasa kamu.",
+    "nameEn": "Nama (Inggris)",
+    "nameId": "Nama (Indonesia)",
+    "nameZh": "Nama (Mandarin)",
+    "useEnglishName": "Gunakan nama Inggris",
     "changePassword": "Ubah kata sandi",
     "currentPassword": "Kata sandi saat ini",
     "currentPasswordPlaceholder": "Hanya diperlukan untuk mengatur kata sandi baru",

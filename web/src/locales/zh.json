@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Cortex", "tagline": "个人指挥中心" },
+  "app": { "name": "Cortex", "tagline": "第二大脑" },
   "nav": {
     "home": "首页",
     "radar": "雷达",
@@ -116,6 +116,12 @@
     "username": "用户名",
     "usernameRequired": "请填写用户名",
     "usernameTaken": "该用户名已被占用",
+    "displayName": "显示名称",
+    "displayNameLead": "在应用中代替用户名显示——每种语言各一个，随语言设置切换。",
+    "nameEn": "英文名称",
+    "nameId": "印尼语名称",
+    "nameZh": "中文名称",
+    "useEnglishName": "使用英文名称",
     "changePassword": "修改密码",
     "currentPassword": "当前密码",
     "currentPasswordPlaceholder": "仅在设置新密码时需要",

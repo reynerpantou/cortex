@@ -51,8 +51,14 @@ export const api = {
     request<User>("POST", "/login", { username, password }),
   logout: () => request<void>("POST", "/logout"),
   me: () => request<User>("GET", "/me"),
-  updateMe: (input: { username: string; current_password?: string; new_password?: string }) =>
-    request<User>("PUT", "/me", input),
+  updateMe: (input: {
+    username: string;
+    display_name_en: string;
+    display_name_id: string;
+    display_name_zh: string;
+    current_password?: string;
+    new_password?: string;
+  }) => request<User>("PUT", "/me", input),
 
   getNav: () => request<NavLayout>("GET", "/nav"),
   updateNav: (input: {
