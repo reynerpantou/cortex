@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Cortex", "tagline": "Otak kedua" },
+  "app": {
+    "name": "Cortex",
+    "tagline": "Otak kedua"
+  },
   "nav": {
     "home": "Beranda",
     "radar": "Radar",
@@ -15,7 +18,8 @@
     "done": "Selesai",
     "newGroup": "Grup baru",
     "groupNamePlaceholder": "Nama grup",
-    "deleteGroup": "Hapus grup"
+    "deleteGroup": "Hapus grup",
+    "finance": "Keuangan"
   },
   "login": {
     "subtitle": "Masuk untuk melanjutkan",
@@ -32,6 +36,9 @@
   "modules": {
     "radar": {
       "description": "Catat masalah dan pain point bisnis, lalu dapatkan ide produk yang layak dibangun."
+    },
+    "finance": {
+      "description": "Catat pemasukan dan pengeluaran — manual, suara, atau CSV — dalam mata uang apa pun."
     }
   },
   "stats": {
@@ -42,7 +49,10 @@
     "ai": "Temuan AI",
     "validated": "Aktif"
   },
-  "sort": { "updated": "Baru diperbarui", "created": "Baru dibuat" },
+  "sort": {
+    "updated": "Baru diperbarui",
+    "created": "Baru dibuat"
+  },
   "radar": {
     "title": "Radar",
     "lead": "Setiap masalah yang kamu catat, dari setiap sumber.",
@@ -52,9 +62,24 @@
     "count_other": "{{count}} masalah",
     "empty": "Tidak ada masalah yang cocok dengan filter ini."
   },
-  "filter": { "title": "Filter", "clear": "Bersihkan", "scope": "Cakupan", "source": "Sumber", "status": "Status" },
-  "scope": { "unknown": "Belum diketahui", "id": "Indonesia", "row": "Luar negeri" },
-  "source": { "unknown": "Belum diketahui", "personal": "Pribadi", "other": "Dari orang lain", "ai": "AI" },
+  "filter": {
+    "title": "Filter",
+    "clear": "Bersihkan",
+    "scope": "Cakupan",
+    "source": "Sumber",
+    "status": "Status"
+  },
+  "scope": {
+    "unknown": "Belum diketahui",
+    "id": "Indonesia",
+    "row": "Luar negeri"
+  },
+  "source": {
+    "unknown": "Belum diketahui",
+    "personal": "Pribadi",
+    "other": "Dari orang lain",
+    "ai": "AI"
+  },
   "status": {
     "backlog": "Backlog",
     "researching": "Riset",
@@ -79,7 +104,9 @@
     "cancel": "Batal",
     "delete": "Hapus"
   },
-  "problem": { "seen": "terlihat {{count}}×" },
+  "problem": {
+    "seen": "terlihat {{count}}×"
+  },
   "detail": {
     "back": "Kembali ke Radar",
     "context": "Konteks",
@@ -122,7 +149,11 @@
     "aiNextStep": "Langkah berikutnya",
     "aiObstacle": "Hambatan penting"
   },
-  "common": { "loading": "Memuat…", "error": "Terjadi kesalahan", "retry": "Coba lagi" },
+  "common": {
+    "loading": "Memuat…",
+    "error": "Terjadi kesalahan",
+    "retry": "Coba lagi"
+  },
   "profile": {
     "title": "Profil",
     "lead": "Kelola akun kamu.",
@@ -145,5 +176,140 @@
     "confirmPassword": "Konfirmasi kata sandi baru",
     "passwordMismatch": "Kata sandi baru tidak cocok",
     "saved": "Tersimpan"
+  },
+  "finance": {
+    "title": "Keuangan",
+    "lead": "Pemasukan dan pengeluaran, dalam satu buku.",
+    "add": "Tambah",
+    "tabs": {
+      "transactions": "Transaksi",
+      "stats": "Statistik",
+      "budgets": "Anggaran",
+      "settings": "Pengaturan"
+    },
+    "prev": "Sebelumnya",
+    "next": "Berikutnya",
+    "today": "Hari ini",
+    "uncategorized": "Tanpa kategori",
+    "net": "Selisih",
+    "kind": {
+      "income": "Pemasukan",
+      "expense": "Pengeluaran"
+    },
+    "view": {
+      "daily": "Harian",
+      "calendar": "Kalender"
+    },
+    "period": {
+      "month": "Bulan",
+      "year": "Tahun"
+    },
+    "searchNotes": "Cari catatan",
+    "allCategories": "Semua kategori",
+    "allMethods": "Semua metode pembayaran",
+    "emptyMonth": "Belum ada catatan bulan ini.",
+    "emptyFiltered": "Tidak ada transaksi yang cocok dengan filter ini.",
+    "emptyDay": "Tidak ada catatan pada {{day}}.",
+    "editTitle": "Ubah transaksi",
+    "backToTransactions": "Transaksi",
+    "form": {
+      "type": "Jenis",
+      "date": "Tanggal",
+      "amount": "Jumlah",
+      "currency": "Mata uang",
+      "rate": "Kurs",
+      "category": "Kategori",
+      "subcategory": "Subkategori",
+      "noSubcategory": "Tidak ada",
+      "paidWith": "Dibayar dengan",
+      "note": "Catatan",
+      "notePlaceholder": "Untuk apa? (opsional)",
+      "amountRequired": "Masukkan jumlah lebih dari nol",
+      "rateRequired": "Masukkan kurs untuk mata uang ini",
+      "fetchingRate": "Mengambil kurs hari ini…",
+      "useMarketRate": "Pakai kurs pasar",
+      "rateSource": "Kurs ECB, {{date}}",
+      "editRate": "Ubah kurs",
+      "rateUnavailable": "Kurs langsung tidak tersedia — ketik kurs yang benar-benar kamu dapat.",
+      "saveAndAdd": "Simpan & tambah lagi",
+      "confirmDelete": "Hapus transaksi ini?"
+    },
+    "stats": {
+      "general": "{{name}} (umum)",
+      "other": "Lainnya",
+      "all": {
+        "income": "Semua pemasukan",
+        "expense": "Semua pengeluaran"
+      },
+      "byCategory": {
+        "income": "Pemasukan per kategori",
+        "expense": "Pengeluaran per kategori"
+      },
+      "empty": "Tidak ada catatan pada periode ini.",
+      "viewTransactions": "Lihat transaksinya",
+      "trend": "6 bulan terakhir",
+      "trendYear": "Per bulan"
+    },
+    "budgets": {
+      "lead": "Batas bulanan per kategori, dalam mata uang dasar. Subkategori dihitung ke kategorinya.",
+      "total": "Semua anggaran",
+      "ofBudget": "{{spent}} dari {{budget}}",
+      "allSpending": "Semua pengeluaran bulan ini (termasuk kategori tanpa anggaran): {{amount}}",
+      "amountPlaceholder": "Anggaran bulanan ({{currency}})",
+      "edit": "Ubah",
+      "spentOnly": "{{spent}} terpakai",
+      "set": "Atur anggaran",
+      "over": "Lebih {{amount}}",
+      "left": "Sisa {{amount}}"
+    },
+    "addPage": {
+      "single": "Satu",
+      "bulk": "Banyak",
+      "quickPlaceholder": "mis. makan siang 45rb gopay, parkir 5k kemarin",
+      "quickAdd": "Tambah ke daftar",
+      "quickHint": "Ketik atau ucapkan satu atau beberapa catatan — jumlah, untuk apa, bayar pakai apa, dan kapan. Semuanya masuk ke daftar untuk dicek sebelum disimpan.",
+      "quickNoAmount": "Tidak ada jumlah yang terbaca — coba seperti \"makan siang 45rb\".",
+      "quickAdded": "{{count}} catatan ditambahkan ke daftar — cek lalu simpan di bawah.",
+      "speak": "Ucapkan catatan",
+      "stopListening": "Berhenti mendengarkan",
+      "listening": "Mendengarkan…",
+      "voiceUnsupported": "Browser ini tidak mendukung input suara — silakan ketik",
+      "voiceError": "Input suara berhenti — cek izin mikrofon lalu coba lagi.",
+      "importCsv": "Impor CSV",
+      "template": "Unduh template",
+      "pasteHint": "Tips: tempel baris langsung dari Excel atau Google Sheets ke tabel.",
+      "importEmpty": "Tidak ada baris di file itu.",
+      "imported": "{{count}} baris diimpor — cek lalu simpan di bawah.",
+      "missing": "Tidak ada di pengaturan: {{names}}.",
+      "createMissing": "Buat sekarang",
+      "addRow": "Tambah baris",
+      "removeRow": "Hapus baris",
+      "saveAll": "Simpan {{count}} transaksi",
+      "saved": "{{count}} transaksi tersimpan",
+      "fixRows": "Beberapa baris perlu diperbaiki — lihat baris yang ditandai.",
+      "errDate": "Masukkan tanggal yang valid",
+      "errCategory": "Kategori ini belum ada — buat di atas atau pilih yang lain",
+      "errMethod": "Metode pembayaran ini belum ada — buat di atas atau pilih yang lain",
+      "ratePlaceholder": "1 {{currency}} = ? {{base}}"
+    },
+    "settings": {
+      "categories": "Kategori",
+      "subcount": "{{count}} subkategori",
+      "newCategory": "Kategori baru",
+      "newSubcategory": "Subkategori baru di {{name}}",
+      "add": "Tambah",
+      "paymentMethods": "Metode pembayaran",
+      "paymentLead": "Dibayar pakai apa — hanya label, saldo tidak dilacak.",
+      "newMethod": "Metode pembayaran baru",
+      "baseCurrency": "Mata uang dasar",
+      "baseLead": "Semua total dan grafik ditampilkan dalam mata uang ini. Hanya bisa diubah selama belum ada transaksi.",
+      "baseLocked": "Semua total dan grafik ditampilkan dalam mata uang ini. Terkunci karena transaksi sudah menyimpan nilainya dalam mata uang ini.",
+      "archivedNotice": "\"{{name}}\" dipakai transaksi lama, jadi disembunyikan dari pilihan, bukan dihapus.",
+      "icon": "Ikon",
+      "name": "Nama",
+      "rename": "Klik untuk ganti nama",
+      "moveUp": "Naikkan",
+      "moveDown": "Turunkan"
+    }
   }
 }

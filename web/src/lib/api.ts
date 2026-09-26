@@ -3,10 +3,12 @@ import type { AiSummary, Evidence, NavLayout, Problem, ProblemInput, Stats, User
 export class ApiError extends Error {
   code: string;
   status: number;
-  constructor(status: number, code: string, message: string) {
+  body: unknown;
+  constructor(status: number, code: string, message: string, body: unknown = null) {
     super(message);
     this.code = code;
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -15,7 +17,7 @@ function csrfToken(): string {
   return m ? decodeURIComponent(m[1]) : "";
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (method !== "GET" && method !== "HEAD") headers["X-CSRF-Token"] = csrfToken();
@@ -41,7 +43,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   if (!res.ok) {
     const err = data as { code?: string; message?: string } | null;
-    throw new ApiError(res.status, err?.code ?? "error", err?.message ?? "request failed");
+    throw new ApiError(res.status, err?.code ?? "error", err?.message ?? "request failed", data);
   }
   return data as T;
 }

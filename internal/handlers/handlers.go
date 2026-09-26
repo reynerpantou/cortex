@@ -34,3 +34,10 @@ func decode(r *http.Request, v any) error {
 	dec.DisallowUnknownFields()
 	return dec.Decode(v)
 }
+
+// decodeLarge is decode with a bigger body cap, for bulk imports.
+func decodeLarge(r *http.Request, v any) error {
+	dec := json.NewDecoder(http.MaxBytesReader(nil, r.Body, 8<<20))
+	dec.DisallowUnknownFields()
+	return dec.Decode(v)
+}

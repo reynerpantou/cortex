@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Cortex", "tagline": "第二大脑" },
+  "app": {
+    "name": "Cortex",
+    "tagline": "第二大脑"
+  },
   "nav": {
     "home": "首页",
     "radar": "雷达",
@@ -15,7 +18,8 @@
     "done": "完成",
     "newGroup": "新建分组",
     "groupNamePlaceholder": "分组名称",
-    "deleteGroup": "删除分组"
+    "deleteGroup": "删除分组",
+    "finance": "财务"
   },
   "login": {
     "subtitle": "登录以继续",
@@ -32,6 +36,9 @@
   "modules": {
     "radar": {
       "description": "记录商业问题和痛点，获取值得开发的产品创意。"
+    },
+    "finance": {
+      "description": "记录收入与支出——手动、语音或 CSV 导入，支持多币种。"
     }
   },
   "stats": {
@@ -42,7 +49,10 @@
     "ai": "AI 发现",
     "validated": "进行中"
   },
-  "sort": { "updated": "最近更新", "created": "最近创建" },
+  "sort": {
+    "updated": "最近更新",
+    "created": "最近创建"
+  },
   "radar": {
     "title": "雷达",
     "lead": "你记录的每一个问题，来自每一个来源。",
@@ -52,9 +62,24 @@
     "count_other": "{{count}} 个问题",
     "empty": "没有符合筛选条件的问题。"
   },
-  "filter": { "title": "筛选", "clear": "清除", "scope": "范围", "source": "来源", "status": "状态" },
-  "scope": { "unknown": "未知", "id": "印尼", "row": "其他地区" },
-  "source": { "unknown": "未知", "personal": "本人", "other": "他人反馈", "ai": "AI" },
+  "filter": {
+    "title": "筛选",
+    "clear": "清除",
+    "scope": "范围",
+    "source": "来源",
+    "status": "状态"
+  },
+  "scope": {
+    "unknown": "未知",
+    "id": "印尼",
+    "row": "其他地区"
+  },
+  "source": {
+    "unknown": "未知",
+    "personal": "本人",
+    "other": "他人反馈",
+    "ai": "AI"
+  },
   "status": {
     "backlog": "待处理",
     "researching": "调研中",
@@ -79,7 +104,9 @@
     "cancel": "取消",
     "delete": "删除"
   },
-  "problem": { "seen": "出现 {{count}} 次" },
+  "problem": {
+    "seen": "出现 {{count}} 次"
+  },
   "detail": {
     "back": "返回雷达",
     "context": "背景",
@@ -122,7 +149,11 @@
     "aiNextStep": "下一步",
     "aiObstacle": "重要障碍"
   },
-  "common": { "loading": "加载中…", "error": "出错了", "retry": "重试" },
+  "common": {
+    "loading": "加载中…",
+    "error": "出错了",
+    "retry": "重试"
+  },
   "profile": {
     "title": "个人资料",
     "lead": "管理你的账户。",
@@ -145,5 +176,140 @@
     "confirmPassword": "确认新密码",
     "passwordMismatch": "两次输入的新密码不一致",
     "saved": "已保存"
+  },
+  "finance": {
+    "title": "财务",
+    "lead": "收入与支出，一本账。",
+    "add": "记一笔",
+    "tabs": {
+      "transactions": "流水",
+      "stats": "统计",
+      "budgets": "预算",
+      "settings": "设置"
+    },
+    "prev": "上一个",
+    "next": "下一个",
+    "today": "今天",
+    "uncategorized": "未分类",
+    "net": "结余",
+    "kind": {
+      "income": "收入",
+      "expense": "支出"
+    },
+    "view": {
+      "daily": "按日",
+      "calendar": "日历"
+    },
+    "period": {
+      "month": "月",
+      "year": "年"
+    },
+    "searchNotes": "搜索备注",
+    "allCategories": "全部类别",
+    "allMethods": "全部支付方式",
+    "emptyMonth": "本月还没有记录。",
+    "emptyFiltered": "没有符合筛选条件的记录。",
+    "emptyDay": "{{day}} 没有记录。",
+    "editTitle": "编辑记录",
+    "backToTransactions": "流水",
+    "form": {
+      "type": "类型",
+      "date": "日期",
+      "amount": "金额",
+      "currency": "币种",
+      "rate": "汇率",
+      "category": "类别",
+      "subcategory": "子类别",
+      "noSubcategory": "无",
+      "paidWith": "支付方式",
+      "note": "备注",
+      "notePlaceholder": "用途（可选）",
+      "amountRequired": "请输入大于零的金额",
+      "rateRequired": "请输入该币种的汇率",
+      "fetchingRate": "正在获取今日汇率…",
+      "useMarketRate": "使用市场汇率",
+      "rateSource": "欧洲央行汇率，{{date}}",
+      "editRate": "修改汇率",
+      "rateUnavailable": "无法获取实时汇率——请输入你实际拿到的汇率。",
+      "saveAndAdd": "保存并再记一笔",
+      "confirmDelete": "删除这条记录？"
+    },
+    "stats": {
+      "general": "{{name}}（通用）",
+      "other": "其他",
+      "all": {
+        "income": "全部收入",
+        "expense": "全部支出"
+      },
+      "byCategory": {
+        "income": "收入构成",
+        "expense": "支出构成"
+      },
+      "empty": "该期间没有记录。",
+      "viewTransactions": "查看这些记录",
+      "trend": "近 6 个月",
+      "trendYear": "按月"
+    },
+    "budgets": {
+      "lead": "每个类别的月度上限，以本位币计。子类别计入所属类别。",
+      "total": "全部预算",
+      "ofBudget": "{{spent}} / {{budget}}",
+      "allSpending": "本月全部支出（含未设预算的类别）：{{amount}}",
+      "amountPlaceholder": "月度预算（{{currency}}）",
+      "edit": "修改",
+      "spentOnly": "已花 {{spent}}",
+      "set": "设置预算",
+      "over": "超支 {{amount}}",
+      "left": "剩余 {{amount}}"
+    },
+    "addPage": {
+      "single": "单笔",
+      "bulk": "批量",
+      "quickPlaceholder": "例如：午饭 50元 现金，打车 30 昨天",
+      "quickAdd": "加入列表",
+      "quickHint": "输入或说出一条或多条记录——金额、用途、支付方式和时间。它们会先进入批量列表，确认后再保存。",
+      "quickNoAmount": "没有识别到金额——试试“午饭 45000”。",
+      "quickAdded": "已加入 {{count}} 条到列表——请在下方确认并保存。",
+      "speak": "语音记账",
+      "stopListening": "停止聆听",
+      "listening": "正在聆听…",
+      "voiceUnsupported": "此浏览器不支持语音输入——请手动输入",
+      "voiceError": "语音输入已停止——请检查麦克风权限后重试。",
+      "importCsv": "导入 CSV",
+      "template": "下载模板",
+      "pasteHint": "提示：可以直接从 Excel 或 Google 表格复制多行粘贴到表格中。",
+      "importEmpty": "文件中没有数据行。",
+      "imported": "已导入 {{count}} 行——请在下方确认并保存。",
+      "missing": "设置中不存在：{{names}}。",
+      "createMissing": "立即创建",
+      "addRow": "添加一行",
+      "removeRow": "删除此行",
+      "saveAll": "保存 {{count}} 条记录",
+      "saved": "已保存 {{count}} 条记录",
+      "fixRows": "部分行需要修改——请查看标出的行。",
+      "errDate": "请输入有效日期",
+      "errCategory": "该类别还不存在——请在上方创建或选择其他类别",
+      "errMethod": "该支付方式还不存在——请在上方创建或选择其他方式",
+      "ratePlaceholder": "1 {{currency}} = ? {{base}}"
+    },
+    "settings": {
+      "categories": "类别",
+      "subcount": "{{count}} 个子类别",
+      "newCategory": "新类别",
+      "newSubcategory": "在 {{name}} 下新建子类别",
+      "add": "添加",
+      "paymentMethods": "支付方式",
+      "paymentLead": "用什么付的款——仅作标记，不追踪余额。",
+      "newMethod": "新支付方式",
+      "baseCurrency": "本位币",
+      "baseLead": "所有合计和图表都以此币种显示。仅在没有任何记录时可以修改。",
+      "baseLocked": "所有合计和图表都以此币种显示。已有记录按此币种保存，因此已锁定。",
+      "archivedNotice": "“{{name}}”已被历史记录使用，因此从选项中隐藏而不是删除。",
+      "icon": "图标",
+      "name": "名称",
+      "rename": "点击重命名",
+      "moveUp": "上移",
+      "moveDown": "下移"
+    }
   }
 }
