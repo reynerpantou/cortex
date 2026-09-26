@@ -420,6 +420,10 @@
       "download": "Download CSV",
       "nothing": "No transactions in that range.",
       "badRange": "Pick a start date on or before the end date."
+    },
+    "notes": {
+      "used": "used {{count}}×",
+      "filled": "Filled in from last time: {{what}}"
     }
   }
 }

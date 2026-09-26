@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/reynerpantou/cortex/internal/config"
 )
@@ -13,6 +14,8 @@ import (
 type Server struct {
 	DB  *sql.DB
 	Cfg config.Config
+
+	financeReady sync.Map // user ids whose finance setup is known to exist
 }
 
 func New(db *sql.DB, cfg config.Config) *Server { return &Server{DB: db, Cfg: cfg} }

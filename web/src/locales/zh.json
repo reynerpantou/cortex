@@ -410,6 +410,10 @@
       "download": "下载 CSV",
       "nothing": "该范围内没有记录。",
       "badRange": "开始日期不能晚于结束日期。"
+    },
+    "notes": {
+      "used": "用过 {{count}} 次",
+      "filled": "已按上次填写：{{what}}"
     }
   }
 }

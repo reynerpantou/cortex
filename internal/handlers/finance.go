@@ -21,16 +21,16 @@ const dateLayout = "2006-01-02"
 
 var currencyRe = regexp.MustCompile(`^[A-Z]{3}$`)
 
-func (s *Server) baseCurrency(ctx context.Context) (string, error) {
+func (s *Server) baseCurrency(ctx context.Context, userID int64) (string, error) {
 	var base string
-	err := s.DB.QueryRowContext(ctx, `SELECT base_currency FROM finance_settings WHERE id = 1`).Scan(&base)
+	err := s.DB.QueryRowContext(ctx, `SELECT base_currency FROM finance_settings WHERE user_id = $1`, userID).Scan(&base)
 	return base, err
 }
 
-func (s *Server) loadCategories(ctx context.Context) ([]models.FinanceCategory, error) {
+func (s *Server) loadCategories(ctx context.Context, userID int64) ([]models.FinanceCategory, error) {
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT id, kind, parent_id, name, icon, position, archived FROM finance_categories
-		 ORDER BY kind, parent_id NULLS FIRST, position, id`)
+		 WHERE user_id = $1 ORDER BY kind, parent_id NULLS FIRST, position, id`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +46,9 @@ func (s *Server) loadCategories(ctx context.Context) ([]models.FinanceCategory, 
 	return out, rows.Err()
 }
 
-func (s *Server) loadPaymentMethods(ctx context.Context) ([]models.FinancePaymentMethod, error) {
+func (s *Server) loadPaymentMethods(ctx context.Context, userID int64) ([]models.FinancePaymentMethod, error) {
 	rows, err := s.DB.QueryContext(ctx,
-		`SELECT id, name, icon, position, archived FROM finance_payment_methods ORDER BY position, id`)
+		`SELECT id, name, icon, position, archived FROM finance_payment_methods WHERE user_id = $1 ORDER BY position, id`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -70,26 +70,27 @@ func (s *Server) loadPaymentMethods(ctx context.Context) ([]models.FinancePaymen
 // can still show their names.
 func (s *Server) FinanceMeta(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	base, err := s.baseCurrency(ctx)
+	u := uid(r)
+	base, err := s.baseCurrency(ctx, u)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
 		return
 	}
-	cats, err := s.loadCategories(ctx)
+	cats, err := s.loadCategories(ctx, u)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load categories")
 		return
 	}
-	pms, err := s.loadPaymentMethods(ctx)
+	pms, err := s.loadPaymentMethods(ctx, u)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load payment methods")
 		return
 	}
 	var txCount, budgetCount int
-	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM finance_transactions`).Scan(&txCount)
-	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM finance_budgets`).Scan(&budgetCount)
+	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM finance_transactions WHERE user_id = $1`, u).Scan(&txCount)
+	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM finance_budgets WHERE user_id = $1`, u).Scan(&budgetCount)
 	var layout []byte
-	_ = s.DB.QueryRowContext(ctx, `SELECT stats_layout FROM finance_settings WHERE id = 1`).Scan(&layout)
+	_ = s.DB.QueryRowContext(ctx, `SELECT stats_layout FROM finance_settings WHERE user_id = $1`, u).Scan(&layout)
 	var statsLayout json.RawMessage
 	if len(layout) > 0 {
 		statsLayout = layout
@@ -127,7 +128,8 @@ func (s *Server) ChangeBaseCurrency(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	current, err := s.baseCurrency(ctx)
+	u := uid(r)
+	current, err := s.baseCurrency(ctx, u)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
 		return
@@ -138,7 +140,7 @@ func (s *Server) ChangeBaseCurrency(w http.ResponseWriter, r *http.Request) {
 	}
 	var dataCount int
 	if err := s.DB.QueryRowContext(ctx,
-		`SELECT (SELECT COUNT(*) FROM finance_transactions) + (SELECT COUNT(*) FROM finance_budgets)`,
+		`SELECT (SELECT COUNT(*) FROM finance_transactions WHERE user_id = $1) + (SELECT COUNT(*) FROM finance_budgets WHERE user_id = $1)`, u,
 	).Scan(&dataCount); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save settings")
 		return
@@ -169,14 +171,20 @@ func (s *Server) ChangeBaseCurrency(w http.ResponseWriter, r *http.Request) {
 				`UPDATE finance_transactions SET
 				   rate = CASE WHEN currency = $1 THEN 1 ELSE rate * $2 END,
 				   base_amount = CASE WHEN currency = $1 THEN amount ELSE round(amount * rate * $2, 2) END,
-				   updated_at = now()`, in.BaseCurrency, in.Rate)
+				   updated_at = now()
+				 WHERE user_id = $3`, in.BaseCurrency, in.Rate, u)
 			if err == nil {
-				_, err = tx.ExecContext(ctx, `UPDATE finance_budgets SET amount = GREATEST(round(amount * $1, 2), 0.01)`, in.Rate)
+				_, err = tx.ExecContext(ctx, `UPDATE finance_budgets SET amount = GREATEST(round(amount * $1, 2), 0.01) WHERE user_id = $2`, in.Rate, u)
 			}
 		} else {
-			_, err = tx.ExecContext(ctx, `DELETE FROM finance_transactions`)
-			if err == nil {
-				_, err = tx.ExecContext(ctx, `DELETE FROM finance_budgets`)
+			for _, q := range []string{
+				`DELETE FROM finance_transactions WHERE user_id = $1`,
+				`DELETE FROM finance_budgets WHERE user_id = $1`,
+				`DELETE FROM finance_notes WHERE user_id = $1`,
+			} {
+				if _, err = tx.ExecContext(ctx, q, u); err != nil {
+					break
+				}
 			}
 		}
 		if err != nil {
@@ -184,7 +192,7 @@ func (s *Server) ChangeBaseCurrency(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE finance_settings SET base_currency = $1 WHERE id = 1`, in.BaseCurrency); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE finance_settings SET base_currency = $1 WHERE user_id = $2`, in.BaseCurrency, u); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save settings")
 		return
 	}
@@ -223,7 +231,7 @@ func (s *Server) UpdateStatsLayout(w http.ResponseWriter, r *http.Request) {
 		clean = append(clean, statsWidget{Key: k, Visible: wd.Visible})
 	}
 	raw, _ := json.Marshal(clean)
-	if _, err := s.DB.Exec(`UPDATE finance_settings SET stats_layout = $1 WHERE id = 1`, raw); err != nil {
+	if _, err := s.DB.Exec(`UPDATE finance_settings SET stats_layout = $1 WHERE user_id = $2`, raw, uid(r)); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the layout")
 		return
 	}
@@ -254,7 +262,7 @@ func (s *Server) CreateFinanceCategory(w http.ResponseWriter, r *http.Request) {
 	if in.ParentID != nil {
 		var parentKind models.FinanceKind
 		var grandparent *int64
-		err := s.DB.QueryRow(`SELECT kind, parent_id FROM finance_categories WHERE id = $1`, *in.ParentID).Scan(&parentKind, &grandparent)
+		err := s.DB.QueryRow(`SELECT kind, parent_id FROM finance_categories WHERE id = $1 AND user_id = $2`, *in.ParentID, uid(r)).Scan(&parentKind, &grandparent)
 		if err == sql.ErrNoRows || grandparent != nil {
 			writeError(w, http.StatusBadRequest, "validation_error", "subcategories can only sit under a top-level category")
 			return
@@ -271,11 +279,11 @@ func (s *Server) CreateFinanceCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	var c models.FinanceCategory
 	err := s.DB.QueryRow(
-		`INSERT INTO finance_categories (kind, parent_id, name, icon, position)
-		 VALUES ($1, $2, $3, $4, (SELECT COALESCE(MAX(position) + 1, 0) FROM finance_categories
-		                          WHERE kind = $1 AND parent_id IS NOT DISTINCT FROM $2))
+		`INSERT INTO finance_categories (user_id, kind, parent_id, name, icon, position)
+		 VALUES ($5, $1, $2, $3, $4, (SELECT COALESCE(MAX(position) + 1, 0) FROM finance_categories
+		                              WHERE user_id = $5 AND kind = $1 AND parent_id IS NOT DISTINCT FROM $2))
 		 RETURNING id, kind, parent_id, name, icon, position, archived`,
-		in.Kind, in.ParentID, in.Name, in.Icon,
+		in.Kind, in.ParentID, in.Name, in.Icon, uid(r),
 	).Scan(&c.ID, &c.Kind, &c.ParentID, &c.Name, &c.Icon, &c.Position, &c.Archived)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the category")
@@ -317,7 +325,7 @@ func (s *Server) renameRow(w http.ResponseWriter, r *http.Request, table, noun s
 		writeError(w, http.StatusBadRequest, "validation_error", "name is required")
 		return
 	}
-	res, err := s.DB.Exec(`UPDATE `+table+` SET name = $1, icon = $2, archived = $3 WHERE id = $4`, in.Name, in.Icon, in.Archived, id)
+	res, err := s.DB.Exec(`UPDATE `+table+` SET name = $1, icon = $2, archived = $3 WHERE id = $4 AND user_id = $5`, in.Name, in.Icon, in.Archived, id, uid(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the "+noun)
 		return
@@ -338,10 +346,11 @@ func (s *Server) DeleteFinanceCategory(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
 		return
 	}
+	u := uid(r)
 	var used int
 	err := s.DB.QueryRow(
-		`SELECT COUNT(*) FROM finance_transactions WHERE category_id IN
-		   (SELECT id FROM finance_categories WHERE id = $1 OR parent_id = $1)`, id,
+		`SELECT COUNT(*) FROM finance_transactions WHERE user_id = $2 AND category_id IN
+		   (SELECT id FROM finance_categories WHERE user_id = $2 AND (id = $1 OR parent_id = $1))`, id, u,
 	).Scan(&used)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not remove the category")
@@ -349,9 +358,9 @@ func (s *Server) DeleteFinanceCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	var res sql.Result
 	if used > 0 {
-		res, err = s.DB.Exec(`UPDATE finance_categories SET archived = true WHERE id = $1 OR parent_id = $1`, id)
+		res, err = s.DB.Exec(`UPDATE finance_categories SET archived = true WHERE user_id = $2 AND (id = $1 OR parent_id = $1)`, id, u)
 	} else {
-		res, err = s.DB.Exec(`DELETE FROM finance_categories WHERE id = $1`, id)
+		res, err = s.DB.Exec(`DELETE FROM finance_categories WHERE id = $1 AND user_id = $2`, id, u)
 	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not remove the category")
@@ -391,7 +400,7 @@ func (s *Server) reorder(w http.ResponseWriter, r *http.Request, table string) {
 	}
 	defer tx.Rollback()
 	for i, id := range in.IDs {
-		if _, err := tx.Exec(`UPDATE `+table+` SET position = $1 WHERE id = $2`, i, id); err != nil {
+		if _, err := tx.Exec(`UPDATE `+table+` SET position = $1 WHERE id = $2 AND user_id = $3`, i, id, uid(r)); err != nil {
 			writeError(w, http.StatusInternalServerError, "server_error", "could not save the order")
 			return
 		}
@@ -419,10 +428,10 @@ func (s *Server) CreateFinancePaymentMethod(w http.ResponseWriter, r *http.Reque
 	}
 	var p models.FinancePaymentMethod
 	err := s.DB.QueryRow(
-		`INSERT INTO finance_payment_methods (name, icon, position)
-		 VALUES ($1, $2, (SELECT COALESCE(MAX(position) + 1, 0) FROM finance_payment_methods))
+		`INSERT INTO finance_payment_methods (user_id, name, icon, position)
+		 VALUES ($3, $1, $2, (SELECT COALESCE(MAX(position) + 1, 0) FROM finance_payment_methods WHERE user_id = $3))
 		 RETURNING id, name, icon, position, archived`,
-		in.Name, in.Icon,
+		in.Name, in.Icon, uid(r),
 	).Scan(&p.ID, &p.Name, &p.Icon, &p.Position, &p.Archived)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the payment method")
@@ -437,17 +446,18 @@ func (s *Server) DeleteFinancePaymentMethod(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
 		return
 	}
+	u := uid(r)
 	var used int
-	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM finance_transactions WHERE payment_method_id = $1`, id).Scan(&used); err != nil {
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM finance_transactions WHERE payment_method_id = $1 AND user_id = $2`, id, u).Scan(&used); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not remove the payment method")
 		return
 	}
 	var res sql.Result
 	var err error
 	if used > 0 {
-		res, err = s.DB.Exec(`UPDATE finance_payment_methods SET archived = true WHERE id = $1`, id)
+		res, err = s.DB.Exec(`UPDATE finance_payment_methods SET archived = true WHERE id = $1 AND user_id = $2`, id, u)
 	} else {
-		res, err = s.DB.Exec(`DELETE FROM finance_payment_methods WHERE id = $1`, id)
+		res, err = s.DB.Exec(`DELETE FROM finance_payment_methods WHERE id = $1 AND user_id = $2`, id, u)
 	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not remove the payment method")
@@ -495,20 +505,22 @@ type txRefs struct {
 	methods    map[int64]bool
 }
 
-func (s *Server) loadTxRefs(ctx context.Context) (txRefs, error) {
+// Only the user's own categories and payment methods are loaded, so a
+// transaction can never point at another account's.
+func (s *Server) loadTxRefs(ctx context.Context, userID int64) (txRefs, error) {
 	refs := txRefs{categories: map[int64]models.FinanceKind{}, methods: map[int64]bool{}}
 	var err error
-	if refs.base, err = s.baseCurrency(ctx); err != nil {
+	if refs.base, err = s.baseCurrency(ctx, userID); err != nil {
 		return refs, err
 	}
-	cats, err := s.loadCategories(ctx)
+	cats, err := s.loadCategories(ctx, userID)
 	if err != nil {
 		return refs, err
 	}
 	for _, c := range cats {
 		refs.categories[c.ID] = c.Kind
 	}
-	pms, err := s.loadPaymentMethods(ctx)
+	pms, err := s.loadPaymentMethods(ctx, userID)
 	if err != nil {
 		return refs, err
 	}
@@ -585,12 +597,12 @@ func (s *Server) ListFinanceTransactions(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, "validation_error", "from/to must be YYYY-MM-DD")
 		return
 	}
-	args := []any{from, to}
+	args := []any{from, to, uid(r)}
 	param := func(v any) string {
 		args = append(args, v)
 		return fmt.Sprintf("$%d", len(args))
 	}
-	where := []string{"occurred_on BETWEEN $1 AND $2"}
+	where := []string{"occurred_on BETWEEN $1 AND $2", "user_id = $3"}
 	if v := q.Get("kind"); v != "" {
 		where = append(where, "kind = "+param(v))
 	}
@@ -601,7 +613,7 @@ func (s *Server) ListFinanceTransactions(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		p := param(id)
-		where = append(where, "category_id IN (SELECT id FROM finance_categories WHERE id = "+p+" OR parent_id = "+p+")")
+		where = append(where, "category_id IN (SELECT id FROM finance_categories WHERE user_id = $3 AND (id = "+p+" OR parent_id = "+p+"))")
 	}
 	if v := q.Get("payment_method_id"); v != "" {
 		id, err := strconv.ParseInt(v, 10, 64)
@@ -640,20 +652,34 @@ func (s *Server) CreateFinanceTransaction(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusBadRequest, "invalid_request", "could not read the transaction")
 		return
 	}
-	refs, err := s.loadTxRefs(r.Context())
+	ctx := r.Context()
+	u := uid(r)
+	refs, err := s.loadTxRefs(ctx, u)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transaction")
 		return
 	}
-	if msg := s.prepareTx(r.Context(), &in, refs); msg != "" {
+	if msg := s.prepareTx(ctx, &in, refs); msg != "" {
 		writeError(w, http.StatusBadRequest, "validation_error", msg)
 		return
 	}
-	t, err := scanTx(s.DB.QueryRow(
-		`INSERT INTO finance_transactions (kind, occurred_on, amount, currency, rate, base_amount, category_id, payment_method_id, note, source, external_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING `+txColumns,
-		in.Kind, in.OccurredOn, in.Amount, in.Currency, in.Rate, in.baseAmount, in.CategoryID, in.PaymentMethodID, in.Note, in.Source, in.ExternalID,
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transaction")
+		return
+	}
+	defer tx.Rollback()
+	t, err := scanTx(tx.QueryRowContext(ctx,
+		`INSERT INTO finance_transactions (user_id, kind, occurred_on, amount, currency, rate, base_amount, category_id, payment_method_id, note, source, external_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING `+txColumns,
+		u, in.Kind, in.OccurredOn, in.Amount, in.Currency, in.Rate, in.baseAmount, in.CategoryID, in.PaymentMethodID, in.Note, in.Source, in.ExternalID,
 	))
+	if err == nil {
+		err = refreshNotes(ctx, tx, u, []string{in.Note})
+	}
+	if err == nil {
+		err = tx.Commit()
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transaction")
 		return
@@ -674,8 +700,7 @@ func (s *Server) BulkCreateFinanceTransactions(w http.ResponseWriter, r *http.Re
 	var in struct {
 		Transactions []txInput `json:"transactions"`
 	}
-	dec := decodeLarge(r, &in)
-	if dec != nil {
+	if err := decodeLarge(r, &in); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", "could not read the transactions")
 		return
 	}
@@ -683,14 +708,16 @@ func (s *Server) BulkCreateFinanceTransactions(w http.ResponseWriter, r *http.Re
 		writeError(w, http.StatusBadRequest, "validation_error", "send between 1 and 2000 transactions")
 		return
 	}
-	refs, err := s.loadTxRefs(r.Context())
+	ctx := r.Context()
+	u := uid(r)
+	refs, err := s.loadTxRefs(ctx, u)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transactions")
 		return
 	}
 	var rowErrs []rowError
 	for i := range in.Transactions {
-		if msg := s.prepareTx(r.Context(), &in.Transactions[i], refs); msg != "" {
+		if msg := s.prepareTx(ctx, &in.Transactions[i], refs); msg != "" {
 			rowErrs = append(rowErrs, rowError{Index: i, Message: msg})
 		}
 	}
@@ -703,19 +730,20 @@ func (s *Server) BulkCreateFinanceTransactions(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	tx, err := s.DB.BeginTx(r.Context(), nil)
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transactions")
 		return
 	}
 	defer tx.Rollback()
 	created := 0
+	keys := make([]string, 0, len(in.Transactions))
 	for _, t := range in.Transactions {
-		res, err := tx.Exec(
-			`INSERT INTO finance_transactions (kind, occurred_on, amount, currency, rate, base_amount, category_id, payment_method_id, note, source, external_id)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			 ON CONFLICT (source, external_id) WHERE external_id IS NOT NULL DO NOTHING`,
-			t.Kind, t.OccurredOn, t.Amount, t.Currency, t.Rate, t.baseAmount, t.CategoryID, t.PaymentMethodID, t.Note, t.Source, t.ExternalID,
+		res, err := tx.ExecContext(ctx,
+			`INSERT INTO finance_transactions (user_id, kind, occurred_on, amount, currency, rate, base_amount, category_id, payment_method_id, note, source, external_id)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			 ON CONFLICT (user_id, source, external_id) WHERE external_id IS NOT NULL DO NOTHING`,
+			u, t.Kind, t.OccurredOn, t.Amount, t.Currency, t.Rate, t.baseAmount, t.CategoryID, t.PaymentMethodID, t.Note, t.Source, t.ExternalID,
 		)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "server_error", "could not save the transactions")
@@ -723,6 +751,11 @@ func (s *Server) BulkCreateFinanceTransactions(w http.ResponseWriter, r *http.Re
 		}
 		n, _ := res.RowsAffected()
 		created += int(n)
+		keys = append(keys, t.Note)
+	}
+	if err := refreshNotes(ctx, tx, u, keys); err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transactions")
+		return
 	}
 	if err := tx.Commit(); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transactions")
@@ -742,24 +775,43 @@ func (s *Server) UpdateFinanceTransaction(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusBadRequest, "invalid_request", "could not read the transaction")
 		return
 	}
-	refs, err := s.loadTxRefs(r.Context())
+	ctx := r.Context()
+	u := uid(r)
+	refs, err := s.loadTxRefs(ctx, u)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transaction")
 		return
 	}
-	if msg := s.prepareTx(r.Context(), &in, refs); msg != "" {
+	if msg := s.prepareTx(ctx, &in, refs); msg != "" {
 		writeError(w, http.StatusBadRequest, "validation_error", msg)
 		return
 	}
-	t, err := scanTx(s.DB.QueryRow(
-		`UPDATE finance_transactions SET kind=$1, occurred_on=$2, amount=$3, currency=$4, rate=$5, base_amount=$6,
-		 category_id=$7, payment_method_id=$8, note=$9, updated_at=now()
-		 WHERE id=$10 RETURNING `+txColumns,
-		in.Kind, in.OccurredOn, in.Amount, in.Currency, in.Rate, in.baseAmount, in.CategoryID, in.PaymentMethodID, in.Note, id,
-	))
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transaction")
+		return
+	}
+	defer tx.Rollback()
+	var oldKey string
+	err = tx.QueryRowContext(ctx, `SELECT note_key FROM finance_transactions WHERE id = $1 AND user_id = $2 FOR UPDATE`, id, u).Scan(&oldKey)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "not_found", "transaction not found")
 		return
+	}
+	var t models.FinanceTransaction
+	if err == nil {
+		t, err = scanTx(tx.QueryRowContext(ctx,
+			`UPDATE finance_transactions SET kind=$1, occurred_on=$2, amount=$3, currency=$4, rate=$5, base_amount=$6,
+			 category_id=$7, payment_method_id=$8, note=$9, updated_at=now()
+			 WHERE id=$10 AND user_id=$11 RETURNING `+txColumns,
+			in.Kind, in.OccurredOn, in.Amount, in.Currency, in.Rate, in.baseAmount, in.CategoryID, in.PaymentMethodID, in.Note, id, u,
+		))
+	}
+	if err == nil {
+		err = refreshNotes(ctx, tx, u, []string{oldKey, in.Note})
+	}
+	if err == nil {
+		err = tx.Commit()
 	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the transaction")
@@ -774,13 +826,28 @@ func (s *Server) DeleteFinanceTransaction(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusBadRequest, "invalid_request", "invalid id")
 		return
 	}
-	res, err := s.DB.Exec(`DELETE FROM finance_transactions WHERE id = $1`, id)
+	ctx := r.Context()
+	u := uid(r)
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not delete the transaction")
 		return
 	}
-	if n, _ := res.RowsAffected(); n == 0 {
+	defer tx.Rollback()
+	var oldKey string
+	err = tx.QueryRowContext(ctx, `DELETE FROM finance_transactions WHERE id = $1 AND user_id = $2 RETURNING note_key`, id, u).Scan(&oldKey)
+	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "not_found", "transaction not found")
+		return
+	}
+	if err == nil {
+		err = refreshNotes(ctx, tx, u, []string{oldKey})
+	}
+	if err == nil {
+		err = tx.Commit()
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not delete the transaction")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -809,8 +876,8 @@ func (s *Server) FinanceStats(w http.ResponseWriter, r *http.Request) {
 		        SUM(t.base_amount)
 		 FROM finance_transactions t
 		 LEFT JOIN finance_categories c ON c.id = t.category_id
-		 WHERE t.occurred_on BETWEEN $1 AND $2
-		 GROUP BY 1, 2, 3`, from, to)
+		 WHERE t.user_id = $3 AND t.occurred_on BETWEEN $1 AND $2
+		 GROUP BY 1, 2, 3`, from, to, uid(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load stats")
 		return
@@ -891,10 +958,10 @@ func (s *Server) FinanceTrend(w http.ResponseWriter, r *http.Request) {
 		        COALESCE(SUM(t.base_amount) FILTER (WHERE t.kind = 'income'), 0),
 		        COALESCE(SUM(t.base_amount) FILTER (WHERE t.kind = 'expense'), 0)
 		 FROM generate_series($1::date, $2::date, interval '1 month') AS m
-		 LEFT JOIN finance_transactions t ON date_trunc('month', t.occurred_on) = m
-		   AND ($3::int = 0 OR t.category_id IN (SELECT id FROM finance_categories WHERE id = $3 OR parent_id = $3))
+		 LEFT JOIN finance_transactions t ON date_trunc('month', t.occurred_on) = m AND t.user_id = $4
+		   AND ($3::int = 0 OR t.category_id IN (SELECT id FROM finance_categories WHERE user_id = $4 AND (id = $3 OR parent_id = $3)))
 		 GROUP BY m ORDER BY m`,
-		start.Format(dateLayout), end.Format(dateLayout), categoryID)
+		start.Format(dateLayout), end.Format(dateLayout), categoryID, uid(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load the trend")
 		return
@@ -930,13 +997,13 @@ func (s *Server) FinanceBudgets(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.DB.QueryContext(r.Context(),
 		`SELECT c.id, b.amount,
 		        COALESCE((SELECT SUM(t.base_amount) FROM finance_transactions t
-		                  WHERE t.kind = 'expense' AND t.occurred_on BETWEEN $1 AND $2
+		                  WHERE t.user_id = $3 AND t.kind = 'expense' AND t.occurred_on BETWEEN $1 AND $2
 		                    AND t.category_id IN (SELECT id FROM finance_categories WHERE id = c.id OR parent_id = c.id)), 0)
 		 FROM finance_categories c
 		 LEFT JOIN finance_budgets b ON b.category_id = c.id
-		 WHERE c.kind = 'expense' AND c.parent_id IS NULL AND (NOT c.archived OR b.amount IS NOT NULL)
+		 WHERE c.user_id = $3 AND c.kind = 'expense' AND c.parent_id IS NULL AND (NOT c.archived OR b.amount IS NOT NULL)
 		 ORDER BY c.position, c.id`,
-		start.Format(dateLayout), end.Format(dateLayout))
+		start.Format(dateLayout), end.Format(dateLayout), uid(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load budgets")
 		return
@@ -974,9 +1041,10 @@ func (s *Server) SetFinanceBudget(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_request", "could not read the budget")
 		return
 	}
+	u := uid(r)
 	var kind string
 	var parent *int64
-	err := s.DB.QueryRow(`SELECT kind, parent_id FROM finance_categories WHERE id = $1`, id).Scan(&kind, &parent)
+	err := s.DB.QueryRow(`SELECT kind, parent_id FROM finance_categories WHERE id = $1 AND user_id = $2`, id, u).Scan(&kind, &parent)
 	if errors.Is(err, sql.ErrNoRows) || (err == nil && (kind != "expense" || parent != nil)) {
 		writeError(w, http.StatusBadRequest, "validation_error", "budgets apply to top-level expense categories")
 		return
@@ -986,11 +1054,11 @@ func (s *Server) SetFinanceBudget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if in.Amount <= 0 {
-		_, err = s.DB.Exec(`DELETE FROM finance_budgets WHERE category_id = $1`, id)
+		_, err = s.DB.Exec(`DELETE FROM finance_budgets WHERE category_id = $1 AND user_id = $2`, id, u)
 	} else {
 		_, err = s.DB.Exec(
-			`INSERT INTO finance_budgets (category_id, amount) VALUES ($1, $2)
-			 ON CONFLICT (category_id) DO UPDATE SET amount = EXCLUDED.amount`, id, in.Amount)
+			`INSERT INTO finance_budgets (category_id, user_id, amount) VALUES ($1, $2, $3)
+			 ON CONFLICT (category_id) DO UPDATE SET amount = EXCLUDED.amount`, id, u, in.Amount)
 	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save the budget")

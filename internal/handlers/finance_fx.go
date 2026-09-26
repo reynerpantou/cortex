@@ -120,7 +120,7 @@ func (s *Server) FinanceFX(w http.ResponseWriter, r *http.Request) {
 	// flow asks for a rate into a different one.
 	base := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("base")))
 	if base == "" {
-		b, err := s.baseCurrency(r.Context())
+		b, err := s.baseCurrency(r.Context(), uid(r))
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
 			return

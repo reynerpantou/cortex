@@ -410,6 +410,10 @@
       "download": "Unduh CSV",
       "nothing": "Tidak ada transaksi di rentang itu.",
       "badRange": "Pilih tanggal mulai yang tidak setelah tanggal akhir."
+    },
+    "notes": {
+      "used": "dipakai {{count}}×",
+      "filled": "Diisi dari sebelumnya: {{what}}"
     }
   }
 }
