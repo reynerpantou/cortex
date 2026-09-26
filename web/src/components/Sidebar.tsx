@@ -5,6 +5,8 @@ import { modules } from "../lib/modules";
 import { api } from "../lib/api";
 import type { NavGroup, NavPlacement } from "../lib/types";
 import UserMenu from "./UserMenu";
+import { useAuth } from "../lib/auth";
+import { canUse } from "../lib/modules";
 
 interface NavItemDef {
   key: string;
@@ -86,6 +88,10 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, mobileOpen, onNavigate }: SidebarProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  // Items for modules this account wasn't granted simply don't render; their
+  // saved placement is kept, so re-granting puts them back where they were.
+  const allowed = (key: string) => key === "home" || canUse(user, key);
 
   // The desktop icon-rail collapse and the mobile off-canvas drawer are
   // different axes sharing this one component — collapsed is a persisted
@@ -117,7 +123,7 @@ export default function Sidebar({ collapsed, mobileOpen, onNavigate }: SidebarPr
 
   const linkFor = (key: string) => {
     const item = KNOWN_ITEMS.find((i) => i.key === key);
-    if (!item) return null;
+    if (!item || !allowed(key)) return null;
     return (
       <NavLink
         key={key}
@@ -210,7 +216,7 @@ export default function Sidebar({ collapsed, mobileOpen, onNavigate }: SidebarPr
 
   const editableItem = (itemKey: string, listId: string, index: number) => {
     const item = KNOWN_ITEMS.find((i) => i.key === itemKey);
-    if (!item) return null;
+    if (!item || !allowed(itemKey)) return null;
     return (
       <div
         key={itemKey}

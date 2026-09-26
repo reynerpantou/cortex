@@ -50,6 +50,12 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
                 <span className="user-menu-item-icon" aria-hidden="true">{"\u{1F464}"}</span>
                 <span className="user-menu-item-label">{t("nav.profile")}</span>
               </Link>
+              {user.is_admin && (
+                <Link to="/admin" className="user-menu-item" onClick={() => setOpen(false)}>
+                  <span className="user-menu-item-icon" aria-hidden="true">{"\u{1F6E1}\uFE0F"}</span>
+                  <span className="user-menu-item-label">{t("nav.admin")}</span>
+                </Link>
+              )}
               <div className="user-menu-divider" />
               <button type="button" className="user-menu-item" onClick={() => setShowLanguage(true)}>
                 <span className="user-menu-item-icon" aria-hidden="true">{"\u{1F310}"}</span>

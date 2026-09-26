@@ -26,9 +26,11 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var u models.User
+	var modules string
 	err := s.DB.QueryRow(
-		`SELECT id, username, display_name_en, display_name_id, display_name_zh, password_hash FROM users WHERE username = $1`, req.Username,
-	).Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.PasswordHash)
+		`SELECT `+userColumns+`, password_hash FROM users WHERE username = $1`, req.Username,
+	).Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &modules, &u.PasswordHash)
+	u.Modules = splitModules(modules)
 
 	// Always run a verify to keep timing uniform whether or not the user exists.
 	valid := false
@@ -86,16 +88,33 @@ func userJSON(u models.User) map[string]any {
 		"display_name_en": u.DisplayNameEN,
 		"display_name_id": u.DisplayNameID,
 		"display_name_zh": u.DisplayNameZH,
+		"is_admin":        u.IsAdmin,
+		"modules":         u.Modules,
 	}
+}
+
+const userColumns = `id, username, display_name_en, display_name_id, display_name_zh, is_admin, array_to_string(modules, ',')`
+
+func splitModules(joined string) []string {
+	if joined == "" {
+		return []string{}
+	}
+	return strings.Split(joined, ",")
+}
+
+func (s *Server) loadUser(id int64) (models.User, error) {
+	var u models.User
+	var modules string
+	err := s.DB.QueryRow(`SELECT `+userColumns+` FROM users WHERE id = $1`, id).
+		Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &modules)
+	u.Modules = splitModules(modules)
+	return u, err
 }
 
 // Me returns the authenticated user; used by the SPA to restore a session.
 func (s *Server) Me(w http.ResponseWriter, r *http.Request) {
 	uid, _ := middleware.UserIDFrom(r.Context())
-	var u models.User
-	err := s.DB.QueryRow(
-		`SELECT id, username, display_name_en, display_name_id, display_name_zh FROM users WHERE id = $1`, uid,
-	).Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH)
+	u, err := s.loadUser(uid)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "not signed in")
 		return
@@ -169,8 +188,5 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not update your account")
 		return
 	}
-	writeJSON(w, http.StatusOK, userJSON(models.User{
-		ID: uid, Username: req.Username,
-		DisplayNameEN: req.DisplayNameEN, DisplayNameID: req.DisplayNameID, DisplayNameZH: req.DisplayNameZH,
-	}))
+	s.Me(w, r)
 }

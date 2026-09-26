@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
 import { displayName } from "../lib/displayName";
-import { modules } from "../lib/modules";
+import { canUse, modules } from "../lib/modules";
 
 export default function Home() {
   const { t, i18n } = useTranslation();
@@ -19,7 +19,7 @@ export default function Home() {
       </header>
 
       <div className="module-grid">
-        {modules.map((m) => (
+        {modules.filter((m) => canUse(user, m.key)).map((m) => (
           <Link key={m.key} to={m.path} className="module-card">
             <h2 className="module-card-title">{t(m.navKey)}</h2>
             <p className="module-card-desc">{t(m.descriptionKey)}</p>

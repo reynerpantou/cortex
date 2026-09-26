@@ -67,8 +67,13 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	protected := func(h http.HandlerFunc) http.Handler {
 		return middleware.Chain(h, middleware.RequireAuth(db), middleware.CSRF)
 	}
-	// Finance handlers also make sure the account's own ledger exists first.
-	finance := func(h http.HandlerFunc) http.Handler { return protected(s.WithFinanceUser(h)) }
+	// Module routes also check the account was granted that module; finance
+	// additionally makes sure the account's own ledger exists first.
+	radar := func(h http.HandlerFunc) http.Handler { return protected(s.RequireModule("radar", h)) }
+	finance := func(h http.HandlerFunc) http.Handler {
+		return protected(s.RequireModule("finance", s.WithFinanceUser(h)))
+	}
+	admin := func(h http.HandlerFunc) http.Handler { return protected(s.RequireAdmin(h)) }
 
 	api.Handle("POST /login", loginRL.Wrap(http.HandlerFunc(s.Login)))
 	api.Handle("POST /logout", protected(s.Logout))
@@ -76,15 +81,19 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	api.Handle("PUT /me", protected(s.UpdateMe))
 	api.Handle("GET /nav", protected(s.GetNav))
 	api.Handle("PUT /nav", protected(s.UpdateNav))
-	api.Handle("GET /radar/stats", protected(s.Stats))
-	api.Handle("GET /radar/problems", protected(s.ListProblems))
-	api.Handle("POST /radar/problems", protected(s.CreateProblem))
-	api.Handle("GET /radar/problems/{id}", protected(s.GetProblem))
-	api.Handle("PUT /radar/problems/{id}", protected(s.UpdateProblem))
-	api.Handle("DELETE /radar/problems/{id}", protected(s.DeleteProblem))
-	api.Handle("POST /radar/problems/{id}/evidence", protected(s.CreateEvidence))
-	api.Handle("DELETE /radar/problems/{id}/evidence/{eid}", protected(s.DeleteEvidence))
-	api.Handle("POST /radar/problems/{id}/ai-summary", protected(s.RadarAISummary))
+	api.Handle("GET /admin/users", admin(s.AdminListUsers))
+	api.Handle("POST /admin/users", admin(s.AdminCreateUser))
+	api.Handle("PUT /admin/users/{id}", admin(s.AdminUpdateUser))
+	api.Handle("DELETE /admin/users/{id}", admin(s.AdminDeleteUser))
+	api.Handle("GET /radar/stats", radar(s.Stats))
+	api.Handle("GET /radar/problems", radar(s.ListProblems))
+	api.Handle("POST /radar/problems", radar(s.CreateProblem))
+	api.Handle("GET /radar/problems/{id}", radar(s.GetProblem))
+	api.Handle("PUT /radar/problems/{id}", radar(s.UpdateProblem))
+	api.Handle("DELETE /radar/problems/{id}", radar(s.DeleteProblem))
+	api.Handle("POST /radar/problems/{id}/evidence", radar(s.CreateEvidence))
+	api.Handle("DELETE /radar/problems/{id}/evidence/{eid}", radar(s.DeleteEvidence))
+	api.Handle("POST /radar/problems/{id}/ai-summary", radar(s.RadarAISummary))
 
 	api.Handle("GET /finance/meta", finance(s.FinanceMeta))
 	api.Handle("PUT /finance/settings/base-currency", finance(s.ChangeBaseCurrency))
@@ -145,8 +154,9 @@ func seedAdmin(db *sql.DB, cfg config.Config) error {
 		return err
 	}
 	if _, err := db.Exec(
-		`INSERT INTO users (username, password_hash, created_at) VALUES ($1, $2, $3)`,
-		cfg.AdminUser, hash, time.Now().UTC(),
+		`INSERT INTO users (username, password_hash, created_at, display_name_en, display_name_id, display_name_zh, is_admin, modules)
+		 VALUES ($1, $2, $3, $1, $1, $1, true, $4)`,
+		cfg.AdminUser, hash, time.Now().UTC(), handlers.Modules,
 	); err != nil {
 		return err
 	}

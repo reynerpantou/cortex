@@ -567,8 +567,10 @@ const CURRENCY_WORDS: [RegExp, string][] = [
 ];
 
 const INCOME_HINTS = /\b(salary|gaji|income|pemasukan|received|receive|got paid|paid me|terima|dapat|bonus|refund|dividend|interest|freelance)\b|收入|工资|薪水|奖金|退款|收到/i;
-const YESTERDAY = /\b(yesterday|kemarin|kmrn)\b|昨天/i;
-const DAY_BEFORE = /day before yesterday|kemarin lusa|前天/i;
+const YESTERDAY = /\b(?:yesterday|kemarin|kmrn)\b|昨天/i;
+const DAY_BEFORE = /\b(?:the )?day before(?: yesterday)?\b|\b(?:two|2) days ago\b|\bkemarin lusa\b|\b(?:dua|2) hari (?:yang )?lalu\b|前天/i;
+const DAYS_AGO = /\b(\d{1,2}) (?:days? ago|hari (?:yang )?lalu)\b|(\d{1,2}) ?天前/i;
+const TODAY = /\b(?:today|hari ini)\b|今天/i;
 
 // Everyday words (as people say them, in all three languages) that should
 // land in a starter category. Only used when a category with that exact name
@@ -635,7 +637,9 @@ function containsWord(haystack: string, needle: string): boolean {
 // kemarin" into draft transactions. It's deliberately simple pattern
 // matching (no AI yet), so every draft goes to the grid for review before
 // anything is saved.
-const QUICK_SPLIT = /\s*(?:[;；，、\n]|,\s+|\band\b|\bdan\b|\blalu\b|\bterus\b|然后|还有)\s*/i;
+// "lalu" means "then" (a new entry) — except in "2 hari lalu" / "yang lalu",
+// where it means "ago" and belongs to the date.
+const QUICK_SPLIT = /\s*(?:[;；，、\n]|,\s+|\band\b|\bdan\b|(?<!hari |yang )\blalu\b|\bterus\b|然后|还有)\s*/i;
 const UNIT_WORDS = new Set(["k", "rb", "ribu", "thousand", "jt", "juta", "million", "mio", "m", "rp", "rp.", "idr"]);
 
 function lastQuickSegment(text: string): { head: string; seg: string } {
@@ -697,7 +701,23 @@ export function parseQuickEntry(text: string, meta: FinanceMeta, notes: NoteSugg
 
   const drafts: QuickDraft[] = [];
   for (const seg of segments) {
-    const lower = seg.toLowerCase();
+    // Dates come out first, so the "2" in "2 days ago" is never read as the amount.
+    let occurred = todayISO();
+    let work = seg;
+    const ago = work.match(DAYS_AGO);
+    if (ago) {
+      occurred = addDays(occurred, -Number(ago[1] ?? ago[2]));
+      work = work.replace(DAYS_AGO, " ");
+    } else if (DAY_BEFORE.test(work)) {
+      occurred = addDays(occurred, -2);
+      work = work.replace(DAY_BEFORE, " ");
+    } else if (YESTERDAY.test(work)) {
+      occurred = addDays(occurred, -1);
+      work = work.replace(YESTERDAY, " ");
+    }
+    work = work.replace(TODAY, " ");
+
+    const lower = work.toLowerCase();
     const m = lower.match(AMOUNT_RE);
     if (!m || !m[1]) {
       if (drafts.length > 0) drafts[drafts.length - 1].note += ` ${seg}`;
@@ -706,7 +726,7 @@ export function parseQuickEntry(text: string, meta: FinanceMeta, notes: NoteSugg
     const base = parseAmount(m[1]);
     const amount = base === null ? null : base * multiplierFor(m[2] ?? m[3]);
 
-    let rest = seg.replace(new RegExp(AMOUNT_RE.source, "iu"), " ");
+    let rest = work.replace(new RegExp(AMOUNT_RE.source, "iu"), " ");
 
     let currency = meta.base_currency;
     for (const [re, code] of CURRENCY_WORDS) {
@@ -716,11 +736,6 @@ export function parseQuickEntry(text: string, meta: FinanceMeta, notes: NoteSugg
         break;
       }
     }
-
-    let occurred = todayISO();
-    if (DAY_BEFORE.test(seg)) occurred = addDays(occurred, -2);
-    else if (YESTERDAY.test(seg)) occurred = addDays(occurred, -1);
-    rest = rest.replace(DAY_BEFORE, " ").replace(YESTERDAY, " ");
 
     let method: PaymentMethod | null = null;
     for (const p of activeMethods(meta)) {

@@ -1,4 +1,4 @@
-import type { AiSummary, Evidence, NavLayout, Problem, ProblemInput, Stats, User } from "./types";
+import type { AdminUser, AiSummary, Evidence, NavLayout, Problem, ProblemInput, Stats, User } from "./types";
 
 export class ApiError extends Error {
   code: string;
@@ -63,6 +63,13 @@ export const api = {
   }) => request<User>("PUT", "/me", input),
 
   getNav: () => request<NavLayout>("GET", "/nav"),
+
+  adminListUsers: () => request<{ users: AdminUser[]; modules: string[] }>("GET", "/admin/users"),
+  adminCreateUser: (input: { username: string; password: string; is_admin: boolean; modules: string[] }) =>
+    request<{ id: number }>("POST", "/admin/users", input),
+  adminUpdateUser: (id: number, input: { is_admin: boolean; modules: string[]; password?: string }) =>
+    request<void>("PUT", `/admin/users/${id}`, input),
+  adminDeleteUser: (id: number) => request<void>("DELETE", `/admin/users/${id}`),
   updateNav: (input: {
     groups: { tempId: string; name: string; position: number }[];
     placements: { item_key: string; group: string | null; position: number }[];
