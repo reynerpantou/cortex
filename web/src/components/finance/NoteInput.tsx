@@ -14,18 +14,23 @@ import {
 interface Props {
   meta: FinanceMeta;
   value: string;
+  // What to look up, when that's not the whole field (quick entry matches
+  // only the entry being typed, without its amount). Defaults to value.
+  query?: string;
   onChange: (v: string) => void;
   onPick: (s: NoteSuggestion) => void;
   placeholder?: string;
   className?: string;
   ariaLabel?: string;
+  disabled?: boolean;
 }
 
 // A note field that suggests notes used before, so "Mie Gomak" is picked
 // rather than re-typed (and misspelled). The account's note list is loaded
 // once and filtered locally; only when it was too big to send whole does a
 // query also go to the server for the long tail.
-export default function NoteInput({ meta, value, onChange, onPick, placeholder, className, ariaLabel }: Props) {
+export default function NoteInput({ meta, value, query, onChange, onPick, placeholder, className, ariaLabel, disabled }: Props) {
+  const lookup = query ?? value;
   const { t } = useTranslation();
   const { user } = useAuth();
   const listId = useId();
@@ -40,14 +45,14 @@ export default function NoteInput({ meta, value, onChange, onPick, placeholder, 
   };
 
   useEffect(() => {
-    if (!list?.truncated || value.trim().length < 2 || !open) {
+    if (!list?.truncated || lookup.trim().length < 2 || !open) {
       setRemote([]);
       return;
     }
     let cancelled = false;
     const id = setTimeout(() => {
       financeApi
-        .notes(value)
+        .notes(lookup)
         .then((r) => !cancelled && setRemote(r.notes))
         .catch(() => undefined);
     }, 180);
@@ -55,9 +60,9 @@ export default function NoteInput({ meta, value, onChange, onPick, placeholder, 
       cancelled = true;
       clearTimeout(id);
     };
-  }, [value, list, open]);
+  }, [lookup, list, open]);
 
-  const local = list ? matchNotes(list.notes, value) : [];
+  const local = list ? matchNotes(list.notes, lookup) : [];
   const seen = new Set(local.map((n) => n.note.toLowerCase()));
   const suggestions = [...local, ...remote.filter((n) => !seen.has(n.note.toLowerCase()))].slice(0, 6);
   const show = open && typedRef.current && suggestions.length > 0;
@@ -76,6 +81,7 @@ export default function NoteInput({ meta, value, onChange, onPick, placeholder, 
         value={value}
         placeholder={placeholder}
         aria-label={ariaLabel}
+        disabled={disabled}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={show}

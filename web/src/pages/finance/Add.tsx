@@ -14,6 +14,10 @@ import {
   parseDate,
   parseImport,
   parseQuickEntry,
+  quickEntryQuery,
+  applyQuickSuggestion,
+  loadNotes,
+  type NoteSuggestion,
   suggestIcon,
   todayISO,
   topLevel,
@@ -28,6 +32,7 @@ import { ApiError } from "../../lib/api";
 import TxForm from "../../components/finance/TxForm";
 import { useFx } from "../../components/finance/useFx";
 import NoteInput from "../../components/finance/NoteInput";
+import { useAuth } from "../../lib/auth";
 import { useFinance } from "./FinanceLayout";
 
 interface GridRow {
@@ -125,6 +130,13 @@ export default function Add() {
 
   const [rows, setRows] = useState<GridRow[]>(() => [blankRow(meta, defaultDate)]);
   const [quickText, setQuickText] = useState("");
+  const { user } = useAuth();
+  const [rememberedNotes, setRememberedNotes] = useState<NoteSuggestion[]>([]);
+  const reloadNotes = () => {
+    if (user) void loadNotes(user.id).then((l) => setRememberedNotes(l.notes)).catch(() => undefined);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(reloadNotes, [user]);
   const [listening, setListening] = useState(false);
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -149,7 +161,7 @@ export default function Add() {
   };
 
   const addFromQuick = (text: string, source: TxSource) => {
-    const drafts = parseQuickEntry(text, meta);
+    const drafts = parseQuickEntry(text, meta, rememberedNotes);
     if (drafts.length === 0) {
       setNotice({ kind: "error", text: t("finance.addPage.quickNoAmount") });
       return;
@@ -331,6 +343,7 @@ export default function Add() {
       setRows([blankRow(meta)]);
       setToast(t("finance.addPage.saved", { count: res.created }));
       void reloadMeta();
+      reloadNotes();
     } catch (e) {
       const rowErrors = e instanceof ApiError ? ((e.body as { row_errors?: RowError[] } | null)?.row_errors ?? []) : [];
       if (rowErrors.length > 0) {
@@ -380,11 +393,14 @@ export default function Add() {
           >
             {listening ? "■" : "🎤"}
           </button>
-          <input
-            className="input"
+          <NoteInput
+            meta={meta}
             value={quickText}
+            query={quickEntryQuery(quickText)}
+            ariaLabel={t("finance.addPage.quickPlaceholder")}
             placeholder={listening ? t("finance.addPage.listening") : t("finance.addPage.quickPlaceholder")}
-            onChange={(e) => setQuickText(e.target.value)}
+            onChange={setQuickText}
+            onPick={(sg) => setQuickText((prev) => applyQuickSuggestion(prev, sg.note))}
           />
           <button type="submit" className="btn btn-ghost" disabled={!quickText.trim()}>
             {t("finance.addPage.quickAdd")}
@@ -402,6 +418,7 @@ export default function Add() {
             defaultDate={defaultDate}
             onSaved={(tx, addAnother) => {
               void reloadMeta();
+              reloadNotes();
               if (addAnother) setToast(t("finance.addPage.saved", { count: 1 }));
               else navigate(`/finance?m=${tx.occurred_on.slice(0, 7)}`);
             }}

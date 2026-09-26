@@ -711,7 +711,7 @@ select.input { appearance: none; cursor: pointer; }
 .add-head .back-link { margin-bottom: 0; }
 .quick-entry { margin-bottom: 14px; }
 .quick-entry-row { display: flex; gap: 8px; }
-.quick-entry-row .input { flex: 1; }
+.quick-entry-row .input, .quick-entry-row .note-input { flex: 1; min-width: 0; }
 .quick-entry-hint { font-size: 12.5px; margin: 6px 0 0; }
 .mic-btn {
   flex: 0 0 auto; width: 42px; border-radius: 9px; cursor: pointer; font-size: 17px;
