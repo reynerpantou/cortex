@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { currentMonth, financeApi, formatMoney, isValidMonth, parseAmount, type Budget } from "../../lib/finance";
+import { categoryIcon, currentMonth, financeApi, formatMoney, isValidMonth, parseAmount, type Budget } from "../../lib/finance";
 import MonthSwitcher from "../../components/finance/MonthSwitcher";
 import { useFinance } from "./FinanceLayout";
 
@@ -95,7 +95,7 @@ export default function Budgets() {
                 <li key={b.category_id} className="budget-row">
                   <div className="budget-row-head">
                     <span className="budget-name">
-                      <span aria-hidden="true">{c.icon}</span> {c.name}
+                      <span aria-hidden="true">{categoryIcon(meta, c)}</span> {c.name}
                     </span>
                     {editingId === b.category_id ? (
                       <form

@@ -27,6 +27,13 @@ export interface FinanceMeta {
   categories: Category[];
   payment_methods: PaymentMethod[];
   has_transactions: boolean;
+  has_budgets: boolean;
+  stats_layout: StatsWidgetPref[] | null;
+}
+
+export interface StatsWidgetPref {
+  key: string;
+  visible: boolean;
 }
 
 export interface Transaction {
@@ -101,8 +108,10 @@ const qs = (params: Record<string, string | number | undefined>) => {
 
 export const financeApi = {
   meta: () => request<FinanceMeta>("GET", "/finance/meta"),
-  updateSettings: (base_currency: string) => request<FinanceMeta>("PUT", "/finance/settings", { base_currency }),
-  fx: (currency: string, date: string) => request<FxQuote>("GET", `/finance/fx?${qs({ currency, date })}`),
+  changeBaseCurrency: (input: { base_currency: string; mode?: "convert" | "reset"; rate?: number }) =>
+    request<FinanceMeta>("PUT", "/finance/settings/base-currency", input),
+  updateStatsLayout: (layout: StatsWidgetPref[]) => request<void>("PUT", "/finance/settings/stats-layout", { layout }),
+  fx: (currency: string, date: string, base?: string) => request<FxQuote>("GET", `/finance/fx?${qs({ currency, date, base })}`),
 
   createCategory: (input: { kind: Kind; parent_id: number | null; name: string; icon: string }) =>
     request<Category>("POST", "/finance/categories", input),
@@ -127,7 +136,8 @@ export const financeApi = {
   deleteTransaction: (id: number) => request<void>("DELETE", `/finance/transactions/${id}`),
 
   stats: (from: string, to: string) => request<FinanceStats>("GET", `/finance/stats?${qs({ from, to })}`),
-  trend: (end: string, months: number) => request<TrendPoint[]>("GET", `/finance/trend?${qs({ end, months })}`),
+  trend: (end: string, months: number, category_id?: number) =>
+    request<TrendPoint[]>("GET", `/finance/trend?${qs({ end, months, category_id })}`),
   budgets: (month: string) => request<Budget[]>("GET", `/finance/budgets?${qs({ month })}`),
   setBudget: (categoryId: number, amount: number) => request<void>("PUT", `/finance/budgets/${categoryId}`, { amount }),
 };
@@ -189,7 +199,15 @@ export function formatMoney(value: number, currency: string, lang: string): stri
 }
 
 export function formatRate(rate: number, lang: string): string {
-  return rate.toLocaleString(localeFor(lang), { maximumFractionDigits: rate >= 100 ? 2 : 6 });
+  return rate.toLocaleString(localeFor(lang), { maximumSignificantDigits: 6 });
+}
+
+// "1 USD = 16,250 IDR" reads better than "1 IDR = 0.0000615 USD", so a
+// rate below 1 is shown the other way round.
+export function rateLabel(from: string, to: string, rate: number, lang: string): string {
+  return rate >= 1 || rate <= 0
+    ? `1 ${from} = ${formatRate(rate, lang)} ${to}`
+    : `1 ${to} = ${formatRate(1 / rate, lang)} ${from}`;
 }
 
 export function monthLabel(month: string, lang: string): string {
@@ -199,13 +217,88 @@ export function monthLabel(month: string, lang: string): string {
 
 // ---- category helpers ----
 
+export const DEFAULT_CATEGORY_ICON = "🏷️";
+export const DEFAULT_METHOD_ICON = "💳";
+
+// A subcategory without its own icon borrows its parent's; anything still
+// blank falls back to a neutral tag rather than an anonymous dot.
+export function categoryIcon(meta: FinanceMeta, c: Category): string {
+  if (c.icon) return c.icon;
+  if (c.parent_id != null) {
+    const p = meta.categories.find((x) => x.id === c.parent_id);
+    if (p?.icon) return p.icon;
+  }
+  return DEFAULT_CATEGORY_ICON;
+}
+
+export function methodIcon(p: PaymentMethod): string {
+  return p.icon || DEFAULT_METHOD_ICON;
+}
+
 export function categoryLabel(meta: FinanceMeta, id: number | null): { icon: string; name: string; parent?: string } | null {
   if (id == null) return null;
   const c = meta.categories.find((x) => x.id === id);
   if (!c) return null;
-  if (c.parent_id == null) return { icon: c.icon, name: c.name };
+  if (c.parent_id == null) return { icon: categoryIcon(meta, c), name: c.name };
   const p = meta.categories.find((x) => x.id === c.parent_id);
-  return { icon: p?.icon ?? "", name: c.name, parent: p?.name };
+  return { icon: categoryIcon(meta, c), name: c.name, parent: p?.name };
+}
+
+// Curated icon set for the picker, grouped so it scans quickly.
+export const ICON_GROUPS: { key: string; icons: string[] }[] = [
+  { key: "food", icons: ["🍜", "🍚", "🍔", "🍕", "🍣", "🥗", "🍳", "🥐", "☕", "🧋", "🍺", "🍰", "🛒", "🥦"] },
+  { key: "transport", icons: ["🛵", "🚗", "🚕", "🚌", "🚆", "✈️", "⛽", "🅿️", "🚲", "🚢"] },
+  { key: "home", icons: ["🏠", "💡", "💧", "📶", "🔥", "🛋️", "🧹", "🔧", "🪴"] },
+  { key: "money", icons: ["💰", "💵", "💳", "🏦", "📈", "💼", "🎉", "🪙", "🧾", "↩️", "📱"] },
+  { key: "shopping", icons: ["🛍️", "👕", "👟", "💄", "📦", "🎁", "💻", "📷", "🎧"] },
+  { key: "health", icons: ["💊", "🏥", "🦷", "🏋️", "🧘", "💈", "🧴"] },
+  { key: "life", icons: ["🎬", "🎮", "🎵", "📚", "🎓", "🐾", "🧸", "👶", "💍", "🙏", "❤️", "🌴", "⚽", "🏷️"] },
+];
+
+const ICON_KEYWORDS: [RegExp, string][] = [
+  [/pet|cat|dog|hewan|kucing|anjing|宠物|猫|狗/i, "🐾"],
+  [/coffee|kopi|咖啡/i, "☕"],
+  [/food|makan|eat|meal|restaurant|吃|餐|饭/i, "🍜"],
+  [/grocer|belanja dapur|supermarket|超市/i, "🛒"],
+  [/car|mobil|汽车/i, "🚗"],
+  [/fuel|bensin|gas|油/i, "⛽"],
+  [/transport|ojek|grab|gojek|taxi|交通|打车/i, "🛵"],
+  [/flight|travel|trip|holiday|liburan|旅/i, "✈️"],
+  [/rent|house|home|rumah|kos|房/i, "🏠"],
+  [/electric|listrik|电/i, "💡"],
+  [/water|air|水/i, "💧"],
+  [/internet|wifi|网/i, "📶"],
+  [/phone|pulsa|手机|话费/i, "📱"],
+  [/subscription|langganan|netflix|spotify|订阅/i, "🔁"],
+  [/cloth|baju|fashion|衣/i, "👕"],
+  [/shop|belanja|购物/i, "🛍️"],
+  [/health|doctor|dokter|hospital|medic|obat|医|药/i, "💊"],
+  [/gym|fitness|sport|olahraga|健身|运动/i, "🏋️"],
+  [/beauty|salon|hair|rambut|美/i, "💈"],
+  [/game|gaming|游戏/i, "🎮"],
+  [/movie|film|cinema|bioskop|电影/i, "🎬"],
+  [/music|musik|音乐/i, "🎵"],
+  [/book|buku|书/i, "📚"],
+  [/school|course|kursus|sekolah|education|pendidikan|学/i, "🎓"],
+  [/kid|child|anak|baby|bayi|孩|宝宝/i, "🧸"],
+  [/gift|hadiah|kado|礼/i, "🎁"],
+  [/donat|charity|zakat|sedekah|捐/i, "🙏"],
+  [/salary|gaji|工资|薪/i, "💼"],
+  [/bonus|奖金/i, "🎉"],
+  [/invest|saham|stock|crypto|投资|股/i, "📈"],
+  [/interest|bunga|利息/i, "🪙"],
+  [/refund|退款/i, "↩️"],
+  [/tax|pajak|税/i, "🧾"],
+  [/insurance|asuransi|保险/i, "🛡️"],
+  [/cash|tunai|现金/i, "💵"],
+  [/bank|transfer|银行/i, "🏦"],
+  [/pay|wallet|ovo|dana|gopay|shopee|钱包/i, "📱"],
+  [/card|kartu|卡/i, "💳"],
+];
+
+export function suggestIcon(name: string): string {
+  for (const [re, icon] of ICON_KEYWORDS) if (re.test(name)) return icon;
+  return "";
 }
 
 export function topLevel(meta: FinanceMeta, kind: Kind, includeArchived = false): Category[] {
@@ -358,6 +451,7 @@ const INCOME_WORDS = ["income", "in", "pemasukan", "masuk", "收入", "credit"];
 // rows. A header row is optional: when present, columns are matched by name
 // (English/Indonesian/Chinese), otherwise the template's column order is used.
 export function parseImport(text: string): ImportedRow[] {
+  text = text.replace(/^\uFEFF/, "");
   const rows = parseDelimited(text, detectDelimiter(text));
   if (rows.length === 0) return [];
   const header = rows[0].map((h) => h.trim().toLowerCase());
@@ -370,7 +464,8 @@ export function parseImport(text: string): ImportedRow[] {
   const body = hasHeader ? rows.slice(1) : rows;
   const at = (r: string[], col: CsvColumn) => {
     const idx = hasHeader ? colIndex[col] : CSV_COLUMNS.indexOf(col);
-    return idx === undefined ? "" : (r[idx] ?? "").trim();
+    // Undo the export's formula guard ('=... → =...) so a round trip is lossless.
+    return idx === undefined ? "" : (r[idx] ?? "").trim().replace(/^'(?=[=+\-@])/, "");
   };
   return body.map((r) => {
     let amount = parseAmount(at(r, "amount"));
@@ -571,4 +666,56 @@ function matchCategory(lower: string, meta: FinanceMeta): Category | null {
     }
   }
   return best?.c ?? null;
+}
+
+// ---- export ----
+
+function csvField(v: string): string {
+  // A cell starting with = + - @ is run as a formula by Excel/Sheets; a
+  // leading apostrophe keeps it plain text (and import strips it again).
+  const guarded = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+  return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
+}
+
+// buildExportCsv writes the import template's columns first, so an export
+// re-imports as-is, then the base-currency value for spreadsheet totals.
+export function buildExportCsv(meta: FinanceMeta, txs: Transaction[]): string {
+  const header = [...CSV_COLUMNS, `base_amount_${meta.base_currency.toLowerCase()}`, "source"];
+  const lines = [header.join(",")];
+  const sorted = [...txs].sort((a, b) => a.occurred_on.localeCompare(b.occurred_on) || a.id - b.id);
+  for (const t of sorted) {
+    const c = t.category_id != null ? meta.categories.find((x) => x.id === t.category_id) : undefined;
+    const parent = c?.parent_id != null ? meta.categories.find((x) => x.id === c.parent_id) : undefined;
+    const method = t.payment_method_id != null ? meta.payment_methods.find((p) => p.id === t.payment_method_id) : undefined;
+    lines.push(
+      [
+        t.occurred_on,
+        t.kind,
+        parent ? parent.name : c?.name ?? "",
+        parent ? c?.name ?? "" : "",
+        String(t.amount),
+        t.currency,
+        t.currency === meta.base_currency ? "" : String(t.rate),
+        method?.name ?? "",
+        t.note,
+        t.base_amount.toFixed(2),
+        t.source,
+      ]
+        .map(csvField)
+        .join(",")
+    );
+  }
+  // BOM so Excel opens it as UTF-8 (emoji, Chinese names, "Rp" all survive).
+  return "\uFEFF" + lines.join("\r\n") + "\r\n";
+}
+
+export function downloadText(filename: string, text: string, type = "text/csv;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }

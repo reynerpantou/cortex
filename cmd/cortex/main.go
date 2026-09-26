@@ -85,7 +85,8 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	api.Handle("POST /radar/problems/{id}/ai-summary", protected(s.RadarAISummary))
 
 	api.Handle("GET /finance/meta", protected(s.FinanceMeta))
-	api.Handle("PUT /finance/settings", protected(s.UpdateFinanceSettings))
+	api.Handle("PUT /finance/settings/base-currency", protected(s.ChangeBaseCurrency))
+	api.Handle("PUT /finance/settings/stats-layout", protected(s.UpdateStatsLayout))
 	api.Handle("GET /finance/fx", protected(s.FinanceFX))
 	api.Handle("POST /finance/categories", protected(s.CreateFinanceCategory))
 	api.Handle("PUT /finance/categories/order", protected(s.ReorderFinanceCategories))

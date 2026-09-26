@@ -4,7 +4,8 @@ import {
   activeMethods,
   financeApi,
   formatMoney,
-  formatRate,
+  rateLabel,
+  methodIcon,
   parseAmount,
   todayISO,
   type FinanceMeta,
@@ -200,8 +201,8 @@ export default function TxForm({ meta, initial, defaultDate, onSaved, onCancel, 
               </span>
             ) : fx.quote ? (
               <span className="fx-rate-text">
-                {`1 ${currency} = ${formatMoney(fx.quote.rate, base, lang)} · ${t("finance.form.rateSource", { date: fx.quote.date })}`}
-                <button type="button" className="link-btn" onClick={() => setManualRate(formatRate(fx.quote!.rate, "en").replace(/,/g, ""))}>
+                {`${rateLabel(currency, base, fx.quote.rate, lang)} · ${t("finance.form.rateSource", { date: fx.quote.date })}`}
+                <button type="button" className="link-btn" onClick={() => setManualRate(String(fx.quote!.rate))}>
                   {t("finance.form.editRate")}
                 </button>
               </span>
@@ -227,7 +228,7 @@ export default function TxForm({ meta, initial, defaultDate, onSaved, onCancel, 
               aria-pressed={methodId === p.id}
               onClick={() => setMethodId(methodId === p.id ? null : p.id)}
             >
-              {p.icon && <span aria-hidden="true">{p.icon}</span>}
+              <span aria-hidden="true">{methodIcon(p)}</span>
               {p.name}
             </button>
           ))}

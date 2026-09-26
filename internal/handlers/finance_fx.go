@@ -38,10 +38,16 @@ func (s *Server) fxRate(ctx context.Context, currency, base string, day time.Tim
 	}
 	dayStr := day.Format(dateLayout)
 
+	// Past days never change, so they're cached for good. Today's entry is
+	// refreshed after a few hours: the ECB publishes once per working day
+	// (~16:00 CET), and a lookup made before that returns the previous
+	// day's rate, which shouldn't stick until midnight.
 	var cached float64
 	err := s.DB.QueryRowContext(ctx,
-		`SELECT rate FROM finance_fx_rates WHERE base = $1 AND quote = $2 AND rate_date = $3`,
-		currency, base, dayStr,
+		`SELECT rate FROM finance_fx_rates
+		 WHERE base = $1 AND quote = $2 AND rate_date = $3
+		   AND ($4 = false OR fetched_at > now() - interval '6 hours')`,
+		currency, base, dayStr, day.Equal(today),
 	).Scan(&cached)
 	if err == nil {
 		return cached, dayStr, nil
@@ -110,9 +116,18 @@ func (s *Server) FinanceFX(w http.ResponseWriter, r *http.Request) {
 		}
 		day = d
 	}
-	base, err := s.baseCurrency(r.Context())
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
+	// base defaults to the ledger's base currency; the base-currency change
+	// flow asks for a rate into a different one.
+	base := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("base")))
+	if base == "" {
+		b, err := s.baseCurrency(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
+			return
+		}
+		base = b
+	} else if !currencyRe.MatchString(base) {
+		writeError(w, http.StatusBadRequest, "validation_error", "invalid base")
 		return
 	}
 	rate, rateDate, err := s.fxRate(r.Context(), currency, base, day)

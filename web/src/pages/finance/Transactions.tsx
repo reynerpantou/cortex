@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   activeMethods,
+  categoryIcon,
   categoryLabel,
   childrenOf,
   currentMonth,
@@ -17,6 +18,7 @@ import {
 } from "../../lib/finance";
 import MonthSwitcher from "../../components/finance/MonthSwitcher";
 import TxForm from "../../components/finance/TxForm";
+import ExportDialog from "../../components/finance/ExportDialog";
 import { useFinance } from "./FinanceLayout";
 
 type View = "daily" | "calendar";
@@ -62,6 +64,7 @@ export default function Transactions() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(!!(categoryFilter || methodFilter || q));
+  const [exporting, setExporting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -136,7 +139,7 @@ export default function Transactions() {
           const method = meta.payment_methods.find((p) => p.id === tx.payment_method_id);
           return (
             <button key={tx.id} type="button" className="tx-row" onClick={() => setEditing(tx)}>
-              <span className="tx-row-icon" aria-hidden="true">{cat?.icon || "•"}</span>
+              <span className="tx-row-icon" aria-hidden="true">{cat?.icon ?? "❔"}</span>
               <span className="tx-row-main">
                 <span className="tx-row-cat">
                   {cat ? (cat.parent ? `${cat.parent} › ${cat.name}` : cat.name) : t("finance.uncategorized")}
@@ -202,6 +205,9 @@ export default function Transactions() {
         >
           {t("filter.title")}{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </button>
+        <button type="button" className="btn btn-ghost" onClick={() => setExporting(true)}>
+          {t("finance.export.button")}
+        </button>
       </div>
 
       {filtersOpen && (
@@ -217,7 +223,7 @@ export default function Transactions() {
             {(["expense", "income"] as const).map((k) => (
               <optgroup key={k} label={t(`finance.kind.${k}`)}>
                 {topLevel(meta, k, true).flatMap((c) => [
-                  <option key={c.id} value={c.id}>{`${c.icon} ${c.name}`}</option>,
+                  <option key={c.id} value={c.id}>{`${categoryIcon(meta, c)} ${c.name}`}</option>,
                   ...childrenOf(meta, c.id, true).map((s) => (
                     <option key={s.id} value={s.id}>{`   ${c.name} › ${s.name}`}</option>
                   )),
@@ -320,6 +326,19 @@ export default function Transactions() {
             </div>
           )}
         </>
+      )}
+
+      {exporting && (
+        <ExportDialog
+          meta={meta}
+          month={month}
+          filters={{
+            category_id: categoryFilter ? Number(categoryFilter) : undefined,
+            payment_method_id: methodFilter ? Number(methodFilter) : undefined,
+            q: q || undefined,
+          }}
+          onClose={() => setExporting(false)}
+        />
       )}
 
       {editing && (

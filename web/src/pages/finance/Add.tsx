@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   CSV_TEMPLATE,
   activeMethods,
+  categoryIcon,
   childrenOf,
   financeApi,
   findCategoryByNames,
@@ -13,6 +14,7 @@ import {
   parseDate,
   parseImport,
   parseQuickEntry,
+  suggestIcon,
   todayISO,
   topLevel,
   type FinanceMeta,
@@ -242,17 +244,17 @@ export default function Add() {
       for (const m of missingCats) {
         let parent = findCategoryByNames(current, m.kind, m.name, "");
         if (!parent) {
-          parent = await financeApi.createCategory({ kind: m.kind, parent_id: null, name: m.name, icon: "" });
+          parent = await financeApi.createCategory({ kind: m.kind, parent_id: null, name: m.name, icon: suggestIcon(m.name) });
           current = { ...current, categories: [...current.categories, parent] };
         }
         if (m.sub && !findCategoryByNames(current, m.kind, m.name, m.sub)) {
-          const sub = await financeApi.createCategory({ kind: m.kind, parent_id: parent.id, name: m.sub, icon: "" });
+          const sub = await financeApi.createCategory({ kind: m.kind, parent_id: parent.id, name: m.sub, icon: suggestIcon(m.sub) });
           current = { ...current, categories: [...current.categories, sub] };
         }
       }
       for (const name of missingMethods) {
         if (!findMethodByName(current, name)) {
-          const pm = await financeApi.createPaymentMethod({ name, icon: "" });
+          const pm = await financeApi.createPaymentMethod({ name, icon: suggestIcon(name) });
           current = { ...current, payment_methods: [...current.payment_methods, pm] };
         }
       }
@@ -567,7 +569,7 @@ function BulkRow({
             )}
             <option value="">{t("finance.uncategorized")}</option>
             {topLevel(meta, row.kind).flatMap((c) => [
-              <option key={c.id} value={c.id}>{`${c.icon} ${c.name}`}</option>,
+              <option key={c.id} value={c.id}>{`${categoryIcon(meta, c)} ${c.name}`}</option>,
               ...childrenOf(meta, c.id).map((s) => (
                 <option key={s.id} value={s.id}>{`   ${c.name} › ${s.name}`}</option>
               )),
