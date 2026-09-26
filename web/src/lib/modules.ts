@@ -18,4 +18,11 @@ export const modules: ModuleDef[] = [
     descriptionKey: "modules.radar.description",
     icon: "\u{1F4E1}", // 📡
   },
+  {
+    key: "finance",
+    path: "/finance",
+    navKey: "nav.finance",
+    descriptionKey: "modules.finance.description",
+    icon: "\u{1F4B0}", // 💰
+  },
 ];

@@ -16,6 +16,7 @@ type Config struct {
 	AdminUser       string        // seeded on first boot if no users exist
 	AdminPassword   string        // seeded on first boot if no users exist
 	AnthropicAPIKey string        // used by the (future) AI layer; empty = AI disabled
+	FXBaseURL       string        // Frankfurter-compatible exchange-rate API (ECB daily reference rates)
 }
 
 func Load() Config {
@@ -27,6 +28,7 @@ func Load() Config {
 		AdminUser:       env("CORTEX_ADMIN_USER", "admin"),
 		AdminPassword:   env("CORTEX_ADMIN_PASSWORD", ""),
 		AnthropicAPIKey: env("ANTHROPIC_API_KEY", ""),
+		FXBaseURL:       env("CORTEX_FX_URL", "https://api.frankfurter.dev/v1"),
 	}
 }
 

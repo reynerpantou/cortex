@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Cortex", "tagline": "Second brain" },
+  "app": {
+    "name": "Cortex",
+    "tagline": "Second brain"
+  },
   "nav": {
     "home": "Home",
     "radar": "Radar",
@@ -15,7 +18,8 @@
     "done": "Done",
     "newGroup": "New group",
     "groupNamePlaceholder": "Group name",
-    "deleteGroup": "Delete group"
+    "deleteGroup": "Delete group",
+    "finance": "Finance"
   },
   "login": {
     "subtitle": "Sign in to continue",
@@ -32,6 +36,9 @@
   "modules": {
     "radar": {
       "description": "Capture business problems and pain points, then get ideas worth building on."
+    },
+    "finance": {
+      "description": "Track income and expenses — by hand, by voice, or by CSV — in any currency."
     }
   },
   "stats": {
@@ -42,7 +49,10 @@
     "ai": "AI-found",
     "validated": "Active"
   },
-  "sort": { "updated": "Recently updated", "created": "Recently created" },
+  "sort": {
+    "updated": "Recently updated",
+    "created": "Recently created"
+  },
   "radar": {
     "title": "Radar",
     "lead": "Every problem you’ve captured, from every source.",
@@ -52,9 +62,24 @@
     "count_other": "{{count}} problems",
     "empty": "No problems match these filters."
   },
-  "filter": { "title": "Filters", "clear": "Clear", "scope": "Scope", "source": "Source", "status": "Status" },
-  "scope": { "unknown": "Unknown", "id": "Indonesia", "row": "Rest of world" },
-  "source": { "unknown": "Unknown", "personal": "Personal", "other": "From others", "ai": "AI" },
+  "filter": {
+    "title": "Filters",
+    "clear": "Clear",
+    "scope": "Scope",
+    "source": "Source",
+    "status": "Status"
+  },
+  "scope": {
+    "unknown": "Unknown",
+    "id": "Indonesia",
+    "row": "Rest of world"
+  },
+  "source": {
+    "unknown": "Unknown",
+    "personal": "Personal",
+    "other": "From others",
+    "ai": "AI"
+  },
   "status": {
     "backlog": "Backlog",
     "researching": "Researching",
@@ -79,7 +104,9 @@
     "cancel": "Cancel",
     "delete": "Delete"
   },
-  "problem": { "seen": "seen {{count}}×" },
+  "problem": {
+    "seen": "seen {{count}}×"
+  },
   "detail": {
     "back": "Back to Radar",
     "context": "Context",
@@ -122,7 +149,11 @@
     "aiNextStep": "Next step",
     "aiObstacle": "Important obstacle"
   },
-  "common": { "loading": "Loading…", "error": "Something went wrong", "retry": "Try again" },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again"
+  },
   "profile": {
     "title": "Profile",
     "lead": "Manage your account.",
@@ -145,5 +176,145 @@
     "confirmPassword": "Confirm new password",
     "passwordMismatch": "New passwords don't match",
     "saved": "Saved"
+  },
+  "finance": {
+    "title": "Finance",
+    "lead": "Income and expenses, in one ledger.",
+    "add": "Add",
+    "tabs": {
+      "transactions": "Transactions",
+      "stats": "Stats",
+      "budgets": "Budgets",
+      "settings": "Settings"
+    },
+    "prev": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "uncategorized": "Uncategorized",
+    "net": "Net",
+    "kind": {
+      "income": "Income",
+      "expense": "Expense"
+    },
+    "view": {
+      "daily": "Daily",
+      "calendar": "Calendar"
+    },
+    "period": {
+      "month": "Month",
+      "year": "Year"
+    },
+    "searchNotes": "Search notes",
+    "allCategories": "All categories",
+    "allMethods": "All payment methods",
+    "emptyMonth": "Nothing recorded this month yet.",
+    "emptyFiltered": "No transactions match these filters.",
+    "emptyDay": "Nothing recorded on {{day}}.",
+    "editTitle": "Edit transaction",
+    "backToTransactions": "Transactions",
+    "form": {
+      "type": "Type",
+      "date": "Date",
+      "amount": "Amount",
+      "currency": "Currency",
+      "rate": "Exchange rate",
+      "category": "Category",
+      "subcategory": "Subcategory",
+      "noSubcategory": "None",
+      "paidWith": "Paid with",
+      "note": "Note",
+      "notePlaceholder": "What was it for? (optional)",
+      "amountRequired": "Enter an amount greater than zero",
+      "rateRequired": "Enter the exchange rate for this currency",
+      "fetchingRate": "Getting today's rate…",
+      "useMarketRate": "Use market rate",
+      "rateSource": "ECB rate, {{date}}",
+      "editRate": "Edit rate",
+      "rateUnavailable": "Couldn't get a live rate — type the rate you actually got.",
+      "saveAndAdd": "Save & add another",
+      "confirmDelete": "Delete this transaction?"
+    },
+    "stats": {
+      "general": "{{name}} (general)",
+      "other": "Other",
+      "all": {
+        "income": "All income",
+        "expense": "All expenses"
+      },
+      "byCategory": {
+        "income": "Income by category",
+        "expense": "Spending by category"
+      },
+      "empty": "Nothing recorded in this period.",
+      "viewTransactions": "View these transactions",
+      "trend": "Last 6 months",
+      "trendYear": "Month by month"
+    },
+    "budgets": {
+      "lead": "A monthly cap per category, in your base currency. Subcategories count toward their category.",
+      "total": "All budgets",
+      "ofBudget": "{{spent}} of {{budget}}",
+      "allSpending": "All spending this month (including categories without a budget): {{amount}}",
+      "amountPlaceholder": "Monthly budget ({{currency}})",
+      "edit": "Edit",
+      "spentOnly": "{{spent}} spent",
+      "set": "Set budget",
+      "over": "Over by {{amount}}",
+      "left": "{{amount}} left"
+    },
+    "addPage": {
+      "single": "Single",
+      "bulk": "Bulk",
+      "quickPlaceholder": "e.g. lunch 45rb gopay, parking 5k yesterday",
+      "quickAdd": "Add to list",
+      "quickHint": "Type or speak one or more entries — amount, what it was for, how you paid, and when. They land in the bulk list for review before saving.",
+      "quickNoAmount": "Couldn't find an amount in that — try something like \"lunch 45rb\".",
+      "quickAdded": "Added {{count}} entry to the list — review and save below.",
+      "quickAdded_other": "Added {{count}} entries to the list — review and save below.",
+      "speak": "Speak an entry",
+      "stopListening": "Stop listening",
+      "listening": "Listening…",
+      "voiceUnsupported": "Voice input isn't supported in this browser — type instead",
+      "voiceError": "Voice input stopped — check microphone permission and try again.",
+      "importCsv": "Import CSV",
+      "template": "Download template",
+      "pasteHint": "Tip: paste rows straight from Excel or Google Sheets into the table.",
+      "importEmpty": "No rows found in that file.",
+      "imported": "Imported {{count}} row — review and save below.",
+      "imported_other": "Imported {{count}} rows — review and save below.",
+      "missing": "Not found in your settings: {{names}}.",
+      "createMissing": "Create them",
+      "addRow": "Add row",
+      "removeRow": "Remove row",
+      "saveAll": "Save {{count}} transaction",
+      "saveAll_other": "Save {{count}} transactions",
+      "saved": "Saved {{count}} transaction",
+      "saved_other": "Saved {{count}} transactions",
+      "fixRows": "Some rows need fixing — see the highlighted rows.",
+      "errDate": "Enter a valid date",
+      "errCategory": "This category doesn't exist yet — create it above or pick another",
+      "errMethod": "This payment method doesn't exist yet — create it above or pick another",
+      "ratePlaceholder": "1 {{currency}} = ? {{base}}"
+    },
+    "settings": {
+      "categories": "Categories",
+      "subcount": "{{count}} subcategory",
+      "subcount_other": "{{count}} subcategories",
+      "newCategory": "New category",
+      "newSubcategory": "New subcategory in {{name}}",
+      "add": "Add",
+      "paymentMethods": "Payment methods",
+      "paymentLead": "What you paid with — a label only, no balances tracked.",
+      "newMethod": "New payment method",
+      "baseCurrency": "Base currency",
+      "baseLead": "Every total and chart is shown in this currency. It can only be changed while there are no transactions.",
+      "baseLocked": "Every total and chart is shown in this currency. It's locked because transactions already store their value in it.",
+      "archivedNotice": "\"{{name}}\" is used by past transactions, so it was hidden from pickers instead of deleted.",
+      "icon": "Icon",
+      "name": "Name",
+      "rename": "Click to rename",
+      "moveUp": "Move up",
+      "moveDown": "Move down"
+    }
   }
 }
