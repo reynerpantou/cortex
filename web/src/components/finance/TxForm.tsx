@@ -8,13 +8,16 @@ import {
   methodIcon,
   parseAmount,
   todayISO,
+  categoryLabel,
   type FinanceMeta,
   type Kind,
+  type NoteSuggestion,
   type Transaction,
   type TxInput,
 } from "../../lib/finance";
 import { ApiError } from "../../lib/api";
 import CategoryPicker from "./CategoryPicker";
+import NoteInput from "./NoteInput";
 import { useFx } from "./useFx";
 
 interface Props {
@@ -43,6 +46,7 @@ export default function TxForm({ meta, initial, defaultDate, onSaved, onCancel, 
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category_id ?? null);
   const [methodId, setMethodId] = useState<number | null>(initial?.payment_method_id ?? null);
   const [note, setNote] = useState(initial?.note ?? "");
+  const [autoFilled, setAutoFilled] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -59,9 +63,34 @@ export default function TxForm({ meta, initial, defaultDate, onSaved, onCancel, 
     setCategoryId(null);
   };
 
+  // Picking a remembered note fills in whatever it was booked under last
+  // time — but never overrides a category or payment method already chosen.
+  const applySuggestion = (sg: NoteSuggestion) => {
+    setNote(sg.note);
+    const filled: string[] = [];
+    if (categoryId == null && sg.category_id != null) {
+      const c = meta.categories.find((x) => x.id === sg.category_id && !x.archived);
+      const label = categoryLabel(meta, sg.category_id);
+      if (c && label) {
+        if (sg.kind !== kind) setKind(sg.kind);
+        setCategoryId(c.id);
+        filled.push(label.parent ? `${label.parent} › ${label.name}` : label.name);
+      }
+    }
+    if (methodId == null && sg.payment_method_id != null) {
+      const pm = meta.payment_methods.find((p) => p.id === sg.payment_method_id && !p.archived);
+      if (pm) {
+        setMethodId(pm.id);
+        filled.push(pm.name);
+      }
+    }
+    setAutoFilled(filled.join(" · "));
+  };
+
   const reset = () => {
     setAmountText("");
     setNote("");
+    setAutoFilled("");
     setCategoryId(null);
     setManualRate(null);
     setError("");
@@ -213,6 +242,22 @@ export default function TxForm({ meta, initial, defaultDate, onSaved, onCancel, 
       </div>
 
       <div className="field">
+        <span className="field-label">{t("finance.form.note")}</span>
+        <NoteInput
+          meta={meta}
+          value={note}
+          ariaLabel={t("finance.form.note")}
+          placeholder={t("finance.form.notePlaceholder")}
+          onChange={(v) => {
+            setNote(v);
+            setAutoFilled("");
+          }}
+          onPick={applySuggestion}
+        />
+        {autoFilled && <span className="note-filled">{t("finance.notes.filled", { what: autoFilled })}</span>}
+      </div>
+
+      <div className="field">
         <span className="field-label">{t("finance.form.category")}</span>
         <CategoryPicker meta={meta} kind={kind} value={categoryId} onChange={setCategoryId} />
       </div>
@@ -235,10 +280,6 @@ export default function TxForm({ meta, initial, defaultDate, onSaved, onCancel, 
         </div>
       </div>
 
-      <label className="field">
-        <span className="field-label">{t("finance.form.note")}</span>
-        <input className="input" value={note} placeholder={t("finance.form.notePlaceholder")} onChange={(e) => setNote(e.target.value)} />
-      </label>
 
       {error && <p className="form-error">{error}</p>}
 

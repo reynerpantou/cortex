@@ -95,6 +95,20 @@ export interface FxQuote {
   date: string;
 }
 
+export interface NoteSuggestion {
+  note: string;
+  kind: Kind;
+  category_id: number | null;
+  payment_method_id: number | null;
+  use_count: number;
+  last_used: string;
+}
+
+export interface NoteList {
+  notes: NoteSuggestion[];
+  truncated: boolean;
+}
+
 export interface RowError {
   index: number;
   message: string;
@@ -106,10 +120,31 @@ const qs = (params: Record<string, string | number | undefined>) => {
   return q.toString();
 };
 
+// Suggestion list cache, one per account (keyed by user id) so switching
+// accounts in the same tab never shows someone else's notes.
+const noteCache = new Map<number, Promise<NoteList>>();
+
+function afterNoteWrite<T>(v: T): T {
+  noteCache.clear();
+  return v;
+}
+
+export function loadNotes(userId: number): Promise<NoteList> {
+  let p = noteCache.get(userId);
+  if (!p) {
+    p = financeApi.notes().catch((e) => {
+      noteCache.delete(userId);
+      throw e;
+    });
+    noteCache.set(userId, p);
+  }
+  return p;
+}
+
 export const financeApi = {
   meta: () => request<FinanceMeta>("GET", "/finance/meta"),
   changeBaseCurrency: (input: { base_currency: string; mode?: "convert" | "reset"; rate?: number }) =>
-    request<FinanceMeta>("PUT", "/finance/settings/base-currency", input),
+    request<FinanceMeta>("PUT", "/finance/settings/base-currency", input).then(afterNoteWrite),
   updateStatsLayout: (layout: StatsWidgetPref[]) => request<void>("PUT", "/finance/settings/stats-layout", { layout }),
   fx: (currency: string, date: string, base?: string) => request<FxQuote>("GET", `/finance/fx?${qs({ currency, date, base })}`),
 
@@ -129,11 +164,15 @@ export const financeApi = {
 
   listTransactions: (p: { from: string; to: string; kind?: string; category_id?: number; payment_method_id?: number; q?: string }) =>
     request<Transaction[]>("GET", `/finance/transactions?${qs(p)}`),
-  createTransaction: (input: TxInput) => request<Transaction>("POST", "/finance/transactions", input),
+  // Every write that can change a note also drops the cached suggestion list.
+  createTransaction: (input: TxInput) =>
+    request<Transaction>("POST", "/finance/transactions", input).then(afterNoteWrite),
   bulkCreate: (transactions: TxInput[]) =>
-    request<{ created: number; skipped: number }>("POST", "/finance/transactions/bulk", { transactions }),
-  updateTransaction: (id: number, input: TxInput) => request<Transaction>("PUT", `/finance/transactions/${id}`, input),
-  deleteTransaction: (id: number) => request<void>("DELETE", `/finance/transactions/${id}`),
+    request<{ created: number; skipped: number }>("POST", "/finance/transactions/bulk", { transactions }).then(afterNoteWrite),
+  updateTransaction: (id: number, input: TxInput) =>
+    request<Transaction>("PUT", `/finance/transactions/${id}`, input).then(afterNoteWrite),
+  deleteTransaction: (id: number) => request<void>("DELETE", `/finance/transactions/${id}`).then(afterNoteWrite),
+  notes: (q?: string) => request<NoteList>("GET", `/finance/notes?${qs({ q })}`),
 
   stats: (from: string, to: string) => request<FinanceStats>("GET", `/finance/stats?${qs({ from, to })}`),
   trend: (end: string, months: number, category_id?: number) =>
@@ -718,4 +757,61 @@ export function downloadText(filename: string, text: string, type = "text/csv;ch
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// ---- note matching ----
+
+export function normalizeNote(s: string): string {
+  return s.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function bigrams(s: string): string[] {
+  const t = ` ${s} `;
+  const out: string[] = [];
+  for (let i = 0; i < t.length - 1; i++) out.push(t.slice(i, i + 2));
+  return out;
+}
+
+// Dice similarity on character pairs: forgiving of a dropped or swapped
+// letter ("mi gomak" vs "mie gomak"), cheap enough to run on every keystroke.
+function similarity(a: string, b: string): number {
+  const A = bigrams(a);
+  const B = bigrams(b);
+  const counts = new Map<string, number>();
+  for (const x of B) counts.set(x, (counts.get(x) ?? 0) + 1);
+  let hits = 0;
+  for (const x of A) {
+    const n = counts.get(x) ?? 0;
+    if (n > 0) {
+      hits++;
+      counts.set(x, n - 1);
+    }
+  }
+  return (2 * hits) / (A.length + B.length);
+}
+
+// matchNotes ranks suggestions for what's typed so far: the start of the
+// note, then the start of any of its words ("gom" → "Mie Gomak"), then
+// anywhere in it, then a near-miss spelling. Ties go to the most used.
+export function matchNotes(list: NoteSuggestion[], typed: string, limit = 6): NoteSuggestion[] {
+  const q = normalizeNote(typed);
+  if (!q) return [];
+  const qWords = q.split(" ");
+  const scored: { n: NoteSuggestion; score: number }[] = [];
+  for (const n of list) {
+    const key = normalizeNote(n.note);
+    if (key === q) continue;
+    const words = key.split(" ");
+    let score = 0;
+    if (key.startsWith(q)) score = 4;
+    else if (qWords.every((w) => words.some((kw) => kw.startsWith(w)))) score = 3;
+    else if (key.includes(q)) score = 2;
+    else if (q.length >= 3) {
+      const sim = similarity(q, key.slice(0, Math.max(q.length + 2, 1)));
+      if (sim >= 0.55) score = sim;
+    }
+    if (score > 0) scored.push({ n, score });
+  }
+  scored.sort((a, b) => b.score - a.score || b.n.use_count - a.n.use_count || b.n.last_used.localeCompare(a.n.last_used));
+  return scored.slice(0, limit).map((x) => x.n);
 }

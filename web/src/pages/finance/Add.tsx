@@ -27,6 +27,7 @@ import {
 import { ApiError } from "../../lib/api";
 import TxForm from "../../components/finance/TxForm";
 import { useFx } from "../../components/finance/useFx";
+import NoteInput from "../../components/finance/NoteInput";
 import { useFinance } from "./FinanceLayout";
 
 interface GridRow {
@@ -622,7 +623,25 @@ function BulkRow({
           </select>
         </td>
         <td>
-          <input className="input bulk-note" value={row.note} aria-label={t("finance.form.note")} onChange={(e) => onChange({ note: e.target.value })} />
+          <NoteInput
+            meta={meta}
+            value={row.note}
+            className="bulk-note"
+            ariaLabel={t("finance.form.note")}
+            onChange={(v) => onChange({ note: v })}
+            onPick={(sg) => {
+              const patch: Partial<GridRow> = { note: sg.note };
+              const noCategory = row.categoryId == null && !row.missingCategory;
+              if (noCategory && sg.category_id != null && meta.categories.some((c) => c.id === sg.category_id && !c.archived)) {
+                patch.kind = sg.kind;
+                patch.categoryId = sg.category_id;
+              }
+              if (row.methodId == null && !row.missingMethod && sg.payment_method_id != null && meta.payment_methods.some((p) => p.id === sg.payment_method_id && !p.archived)) {
+                patch.methodId = sg.payment_method_id;
+              }
+              onChange(patch);
+            }}
+          />
         </td>
         <td>
           <button type="button" className="row-remove" aria-label={t("finance.addPage.removeRow")} onClick={onRemove}>
