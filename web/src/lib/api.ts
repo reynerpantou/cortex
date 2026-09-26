@@ -64,7 +64,16 @@ export const api = {
 
   getNav: () => request<NavLayout>("GET", "/nav"),
 
-  adminListUsers: () => request<{ users: AdminUser[]; modules: string[] }>("GET", "/admin/users"),
+  adminListUsers: (p: { q?: string; page?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (p.q) qs.set("q", p.q);
+    if (p.page && p.page > 1) qs.set("page", String(p.page));
+    const suffix = qs.toString();
+    return request<{ users: AdminUser[]; total: number; page: number; page_size: number; modules: string[] }>(
+      "GET",
+      `/admin/users${suffix ? `?${suffix}` : ""}`
+    );
+  },
   adminCreateUser: (input: { username: string; password: string; is_admin: boolean; modules: string[] }) =>
     request<{ id: number }>("POST", "/admin/users", input),
   adminUpdateUser: (id: number, input: { is_admin: boolean; modules: string[]; password?: string }) =>

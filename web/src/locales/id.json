@@ -428,12 +428,10 @@
     "title": "Administrasi",
     "lead": "Buat akun dan pilih halaman apa saja yang bisa dibuka tiap orang.",
     "newUser": "Pengguna baru",
-    "edit": "Ubah",
     "editTitle": "Ubah @{{username}}",
     "adminBadge": "Admin",
     "you": "Kamu",
     "never": "belum pernah",
-    "lastSignIn": "terakhir masuk {{date}}",
     "pages": "Halaman yang bisa dibuka",
     "pagesHint": "Beranda dan Profil selalu tersedia. Halaman yang dicentang muncul di sidebar mereka; yang tidak dicentang diblokir, bukan sekadar disembunyikan.",
     "role": "Peran",
@@ -456,6 +454,17 @@
     "copy": "Salin",
     "deleteTitle": "Hapus @{{username}}?",
     "deleteLead": "Akun dan semua datanya akan dihapus permanen, termasuk catatan Keuangan mereka. Tidak bisa dibatalkan.",
-    "deleteConfirm": "Hapus akun"
+    "deleteConfirm": "Hapus akun",
+    "search": "Cari nama atau nama pengguna",
+    "count": "{{count}} pengguna",
+    "noMatch": "Tidak ada pengguna yang cocok.",
+    "colUser": "Pengguna",
+    "colAccess": "Halaman",
+    "colLastSignIn": "Terakhir masuk",
+    "member": "Anggota",
+    "allPages": "Semua halaman",
+    "noPages": "Tidak ada halaman",
+    "onlyPage": "Hanya {{page}}",
+    "range": "{{from}}–{{to}} dari {{total}}"
   }
 }

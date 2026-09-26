@@ -438,12 +438,10 @@
     "title": "Administration",
     "lead": "Create accounts and choose which pages each person can open.",
     "newUser": "New user",
-    "edit": "Edit",
     "editTitle": "Edit @{{username}}",
     "adminBadge": "Admin",
     "you": "You",
     "never": "never",
-    "lastSignIn": "last sign-in {{date}}",
     "pages": "Pages they can open",
     "pagesHint": "Home and Profile are always available. Each ticked page shows up in their sidebar; unticked pages are blocked, not just hidden.",
     "role": "Role",
@@ -466,6 +464,18 @@
     "copy": "Copy",
     "deleteTitle": "Delete @{{username}}?",
     "deleteLead": "This permanently deletes the account and everything that belongs to it, including their Finance records. It can't be undone.",
-    "deleteConfirm": "Delete account"
+    "deleteConfirm": "Delete account",
+    "search": "Search by name or username",
+    "count": "{{count}} user",
+    "count_other": "{{count}} users",
+    "noMatch": "No users match that search.",
+    "colUser": "User",
+    "colAccess": "Pages",
+    "colLastSignIn": "Last sign-in",
+    "member": "Member",
+    "allPages": "All pages",
+    "noPages": "No pages",
+    "onlyPage": "{{page}} only",
+    "range": "{{from}}–{{to}} of {{total}}"
   }
 }

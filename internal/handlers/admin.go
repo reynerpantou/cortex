@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,12 +55,37 @@ type adminUser struct {
 	LastSignIn    *time.Time `json:"last_sign_in"`
 }
 
+const adminPageSize = 25
+
+// AdminListUsers returns one page of accounts, optionally filtered by a
+// search over username and display names — paged on the server so the
+// list stays fast however many accounts there are.
 func (s *Server) AdminListUsers(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	where := "TRUE"
+	args := []any{}
+	if q != "" {
+		like := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(q) + "%"
+		args = append(args, like)
+		where = `(u.username ILIKE $1 OR u.display_name_en ILIKE $1 OR u.display_name_id ILIKE $1 OR u.display_name_zh ILIKE $1)`
+	}
+	var total int
+	if err := s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM users u WHERE `+where, args...).Scan(&total); err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not load users")
+		return
+	}
+	args = append(args, adminPageSize, (page-1)*adminPageSize)
 	rows, err := s.DB.QueryContext(r.Context(),
 		`SELECT u.id, u.username, u.display_name_en, u.display_name_id, u.display_name_zh, u.is_admin,
 		        array_to_string(u.modules, ','), u.created_at,
 		        (SELECT MAX(created_at) FROM sessions WHERE user_id = u.id)
-		 FROM users u ORDER BY u.id`)
+		 FROM users u WHERE `+where+`
+		 ORDER BY lower(u.username), u.id
+		 LIMIT $`+strconv.Itoa(len(args)-1)+` OFFSET $`+strconv.Itoa(len(args)), args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load users")
 		return
@@ -76,7 +102,13 @@ func (s *Server) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 		u.Modules = splitModules(modules)
 		out = append(out, u)
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"users": out, "modules": Modules})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"users":     out,
+		"total":     total,
+		"page":      page,
+		"page_size": adminPageSize,
+		"modules":   Modules,
+	})
 }
 
 func cleanModules(in []string) ([]string, bool) {
