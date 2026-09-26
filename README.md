@@ -30,10 +30,11 @@ beyond Radar are added later by registering them in `web/src/lib/modules.ts`.
 docker compose up --build
 ```
 
-This starts Postgres and the app together. Open http://localhost:8080. On
-first run a random admin password is generated and printed to the logs
-**once** — grab it from `docker compose logs`. To set a known password
-instead, uncomment `CORTEX_ADMIN_PASSWORD` in `docker-compose.yml`.
+Copy `.env.example` to `.env` and set `POSTGRES_PASSWORD` first — compose
+refuses to start without one. This starts Postgres and the app together.
+Open http://localhost:8080. On first run a random owner password is generated
+and printed to the logs **once** — grab it from `docker compose logs`. To set
+a known password instead, set `CORTEX_ADMIN_PASSWORD` in `.env`.
 
 ### Locally
 
@@ -65,10 +66,13 @@ All via environment variables (see `.env.example`):
 |---|---|---|
 | `CORTEX_ADDR` | `:8080` | listen address |
 | `CORTEX_DATABASE_URL` | `postgres://cortex:cortex@localhost:5432/cortex?sslmode=disable` | Postgres connection string |
-| `CORTEX_COOKIE_SECURE` | `false` | set `true` behind HTTPS |
+| `CORTEX_COOKIE_SECURE` | `true` | HTTPS-only cookies (browsers allow them on `http://localhost`) |
 | `CORTEX_SESSION_TTL_HOURS` | `168` | login lifetime |
-| `CORTEX_ADMIN_USER` | `admin` | seeded username |
-| `CORTEX_ADMIN_PASSWORD` | *(generated)* | seeded password on first run |
+| `CORTEX_TRUSTED_PROXIES` | *(empty)* | reverse-proxy IPs/CIDRs whose `X-Forwarded-For` is believed |
+| `CORTEX_LOGIN_MAX_ATTEMPTS` | `5` | wrong passwords per username + IP before a cooldown |
+| `CORTEX_LOGIN_LOCKOUT_MINUTES` | `15` | first cooldown; repeats double, up to 24h |
+| `CORTEX_ADMIN_USER` | `admin` | owner account created on first run |
+| `CORTEX_ADMIN_PASSWORD` | *(generated)* | its password on first run |
 | `ANTHROPIC_API_KEY` | *(empty)* | reserved for the AI layer |
 
 ## Layout
@@ -101,12 +105,56 @@ then open this repo in Claude Code locally — it'll prompt you to approve the
 run queries directly. This is a dev convenience only; the running app never
 goes through MCP, it talks to Postgres directly via `internal/database`.
 
+## Deploying to a VPS
+
+1. Point a domain at the server and open only ports 22, 80 and 443 in the
+   firewall (`ufw allow OpenSSH && ufw allow 80,443/tcp && ufw enable`).
+   Docker publishes Cortex and Postgres on 127.0.0.1 only, so neither is
+   reachable from outside.
+2. `cp .env.example .env`, set `POSTGRES_PASSWORD` (and `CORTEX_DATABASE_URL`
+   if you ever run the binary outside Docker) to a long random value, then
+   `docker compose up -d --build` and note the owner password from the logs.
+3. Put HTTPS in front with [Caddy](https://caddyserver.com), which fetches and
+   renews the certificate by itself. `/etc/caddy/Caddyfile`:
+
+   ```
+   cortex.example.com {
+       reverse_proxy 127.0.0.1:8080
+   }
+   ```
+
+   Caddy replaces any `X-Forwarded-For` the visitor sent with their real
+   address, and compose already trusts Docker's network as the proxy, so
+   sign-in limits apply per real visitor.
+4. Back up with `make backup` (on a schedule, and off the server).
+
+**Account recovery** happens on the server, never through the web app:
+
+```bash
+docker compose exec cortex /cortex reset-password <username>   # prompts for the password
+docker compose exec cortex /cortex unlock <username>           # clear sign-in cooldowns
+docker compose exec cortex /cortex make-owner <username>       # move ownership
+```
+
 ## Notes
 
-- **Security**: passwords are PBKDF2-HMAC-SHA256 (600k iterations); sessions are
-  server-side and revocable; CSRF uses a double-submit token; the login endpoint
-  is rate-limited. Swapping PBKDF2 for argon2id later is a two-function change in
-  `internal/auth/password.go`.
+- **Security**
+  - Passwords are PBKDF2-HMAC-SHA256 (600k iterations). Sessions live on the
+    server, only their SHA-256 hash is stored, and they're revocable; changing
+    or resetting a password signs out every other device.
+  - Sign-in limits are stored in the database, keyed by username + IP, IP
+    alone, and username alone. Closing the tab, incognito windows, another
+    browser or a restart don't reset them.
+  - CSRF uses a double-submit token, and every write must be sent as JSON.
+    Strict CSP, no framing, and API responses are never cached.
+  - All SQL is parameterized. React escapes all rendered text, and stored links
+    must be `http(s)`.
+  - **Roles**: one *owner* (the first account) holds every power and can't be
+    edited, demoted or deleted from the app. Only the owner can grant or
+    remove the administrator role or change other administrators.
+    Administrators manage members.
+  - Swapping PBKDF2 for argon2id later is a two-function change in
+    `internal/auth/password.go`.
 - This foundation was verified end-to-end (build, vet, and a live run through
   login/CRUD/logout) against a local Postgres container.
 

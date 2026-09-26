@@ -22,7 +22,7 @@ var Modules = []string{"radar", "finance"}
 func (s *Server) RequireModule(module string, h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var allowed bool
-		err := s.DB.QueryRowContext(r.Context(), `SELECT $2 = ANY(modules) FROM users WHERE id = $1`, uid(r), module).Scan(&allowed)
+		err := s.DB.QueryRowContext(r.Context(), `SELECT is_owner OR $2 = ANY(modules) FROM users WHERE id = $1`, uid(r), module).Scan(&allowed)
 		if err != nil || !allowed {
 			writeError(w, http.StatusForbidden, "forbidden", "you don't have access to this page")
 			return
@@ -50,6 +50,8 @@ type adminUser struct {
 	DisplayNameID string     `json:"display_name_id"`
 	DisplayNameZH string     `json:"display_name_zh"`
 	IsAdmin       bool       `json:"is_admin"`
+	IsOwner       bool       `json:"is_owner"`
+	Manageable    bool       `json:"manageable"`
 	Modules       []string   `json:"modules"`
 	CreatedAt     time.Time  `json:"created_at"`
 	LastSignIn    *time.Time `json:"last_sign_in"`
@@ -74,13 +76,18 @@ func (s *Server) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 		where = `(u.username ILIKE $1 OR u.display_name_en ILIKE $1 OR u.display_name_id ILIKE $1 OR u.display_name_zh ILIKE $1)`
 	}
 	var total int
+	actor, err := s.loadActor(r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not load users")
+		return
+	}
 	if err := s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM users u WHERE `+where, args...).Scan(&total); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load users")
 		return
 	}
 	args = append(args, adminPageSize, (page-1)*adminPageSize)
 	rows, err := s.DB.QueryContext(r.Context(),
-		`SELECT u.id, u.username, u.display_name_en, u.display_name_id, u.display_name_zh, u.is_admin,
+		`SELECT u.id, u.username, u.display_name_en, u.display_name_id, u.display_name_zh, u.is_admin, u.is_owner,
 		        array_to_string(u.modules, ','), u.created_at,
 		        (SELECT MAX(created_at) FROM sessions WHERE user_id = u.id)
 		 FROM users u WHERE `+where+`
@@ -95,20 +102,61 @@ func (s *Server) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var u adminUser
 		var modules string
-		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &modules, &u.CreatedAt, &u.LastSignIn); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &u.IsOwner, &modules, &u.CreatedAt, &u.LastSignIn); err != nil {
 			writeError(w, http.StatusInternalServerError, "server_error", "could not read users")
 			return
 		}
 		u.Modules = splitModules(modules)
+		if u.IsOwner {
+			u.Modules = slices.Clone(Modules)
+		}
+		u.Manageable = actor.canManage(target{id: u.ID, isAdmin: u.IsAdmin, isOwner: u.IsOwner})
 		out = append(out, u)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"users":     out,
-		"total":     total,
-		"page":      page,
-		"page_size": adminPageSize,
-		"modules":   Modules,
+		"can_grant_admin": actor.isOwner,
+		"users":           out,
+		"total":           total,
+		"page":            page,
+		"page_size":       adminPageSize,
+		"modules":         Modules,
 	})
+}
+
+// Who may change whom. The owner holds every power and nobody — the owner
+// included — can take it away from the app; only the server's command line
+// (cortex make-owner) moves it. Below the owner:
+//
+//	owner  → manages every other account, and alone grants or removes the
+//	         administrator role
+//	admin  → manages members (non-administrators) only, and their own pages
+//	member → no access to Administration at all
+type actor struct {
+	id      int64
+	isOwner bool
+}
+
+type target struct {
+	id      int64
+	isAdmin bool
+	isOwner bool
+}
+
+func (s *Server) loadActor(r *http.Request) (actor, error) {
+	a := actor{id: uid(r)}
+	err := s.DB.QueryRowContext(r.Context(), `SELECT is_owner FROM users WHERE id = $1`, a.id).Scan(&a.isOwner)
+	return a, err
+}
+
+func (a actor) canManage(t target) bool {
+	switch {
+	case t.isOwner:
+		return false
+	case a.isOwner:
+		return true
+	default:
+		return !t.isAdmin
+	}
 }
 
 func cleanModules(in []string) ([]string, bool) {
@@ -139,12 +187,22 @@ func (s *Server) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	in.Username = strings.TrimSpace(in.Username)
 	modules, ok := cleanModules(in.Modules)
-	switch {
-	case in.Username == "" || len(in.Username) > 64 || strings.ContainsAny(in.Username, " \t\r\n"):
-		writeError(w, http.StatusBadRequest, "validation_error", "username is required and can't contain spaces")
+	actor, err := s.loadActor(r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not create the user")
 		return
-	case len(in.Password) < 8:
-		writeError(w, http.StatusBadRequest, "validation_error", "password must be at least 8 characters")
+	}
+	if msg := validateUsername(in.Username); msg != "" {
+		writeError(w, http.StatusBadRequest, "validation_error", msg)
+		return
+	}
+	if msg := validatePassword(in.Password); msg != "" {
+		writeError(w, http.StatusBadRequest, "validation_error", msg)
+		return
+	}
+	switch {
+	case in.IsAdmin && !actor.isOwner:
+		writeError(w, http.StatusForbidden, "owner_only", "only the owner can create administrators")
 		return
 	case !ok:
 		writeError(w, http.StatusBadRequest, "validation_error", "unknown module")
@@ -173,10 +231,10 @@ func (s *Server) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]int64{"id": id})
 }
 
-// AdminUpdateUser changes a user's role, modules and optionally password.
-// An admin can't demote themselves or reset their own password here (that's
-// what Profile is for), and the last administrator can never be demoted.
-// A password reset signs the user out everywhere.
+// AdminUpdateUser changes a user's role, modules and optionally password,
+// within the limits of canManage. Anyone may adjust their own pages here but
+// not their own role or password (that's what Profile is for). The owner is
+// never editable. A password reset signs the user out everywhere.
 func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	if !ok {
@@ -194,16 +252,19 @@ func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	self := id == uid(r)
-	if self && !in.IsAdmin {
-		writeError(w, http.StatusBadRequest, "cannot_demote_self", "you can't remove your own administrator role")
-		return
-	}
 	if self && in.Password != "" {
 		writeError(w, http.StatusBadRequest, "use_profile", "change your own password from Profile")
 		return
 	}
-	if in.Password != "" && len(in.Password) < 8 {
-		writeError(w, http.StatusBadRequest, "validation_error", "password must be at least 8 characters")
+	if in.Password != "" {
+		if msg := validatePassword(in.Password); msg != "" {
+			writeError(w, http.StatusBadRequest, "validation_error", msg)
+			return
+		}
+	}
+	actor, err := s.loadActor(r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not update the user")
 		return
 	}
 
@@ -213,12 +274,27 @@ func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	var wasAdmin bool
-	if err := tx.QueryRowContext(r.Context(), `SELECT is_admin FROM users WHERE id = $1 FOR UPDATE`, id).Scan(&wasAdmin); err != nil {
+	var t target
+	t.id = id
+	if err := tx.QueryRowContext(r.Context(), `SELECT is_admin, is_owner FROM users WHERE id = $1 FOR UPDATE`, id).Scan(&t.isAdmin, &t.isOwner); err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "user not found")
 		return
 	}
-	if wasAdmin && !in.IsAdmin {
+	switch {
+	case t.isOwner:
+		writeError(w, http.StatusForbidden, "owner_locked", "the owner account can't be changed here")
+		return
+	case self && in.IsAdmin != t.isAdmin:
+		writeError(w, http.StatusBadRequest, "cannot_change_own_role", "you can't change your own role")
+		return
+	case !self && !actor.canManage(t):
+		writeError(w, http.StatusForbidden, "forbidden", "only the owner can change administrators")
+		return
+	case in.IsAdmin != t.isAdmin && !actor.isOwner:
+		writeError(w, http.StatusForbidden, "owner_only", "only the owner can grant or remove the administrator role")
+		return
+	}
+	if t.isAdmin && !in.IsAdmin {
 		var admins int
 		_ = tx.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM users WHERE is_admin`).Scan(&admins)
 		if admins <= 1 {
@@ -251,8 +327,8 @@ func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // AdminDeleteUser removes an account and everything that belongs to it
-// (sessions, sidebar layout, finance ledger — all cascade). An admin can't
-// delete themselves.
+// (sessions, sidebar layout, finance ledger — all cascade). Nobody can
+// delete themselves or the owner; only the owner can delete administrators.
 func (s *Server) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	if !ok {
@@ -263,7 +339,23 @@ func (s *Server) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "cannot_delete_self", "you can't delete your own account")
 		return
 	}
-	res, err := s.DB.ExecContext(r.Context(), `DELETE FROM users WHERE id = $1`, id)
+	actor, err := s.loadActor(r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not delete the user")
+		return
+	}
+	var t target
+	t.id = id
+	if err := s.DB.QueryRowContext(r.Context(), `SELECT is_admin, is_owner FROM users WHERE id = $1`, id).Scan(&t.isAdmin, &t.isOwner); err != nil {
+		writeError(w, http.StatusNotFound, "not_found", "user not found")
+		return
+	}
+	if !actor.canManage(t) {
+		writeError(w, http.StatusForbidden, "forbidden", "you can't delete this account")
+		return
+	}
+	// The WHERE repeats the guard so a concurrent promotion can't slip past.
+	res, err := s.DB.ExecContext(r.Context(), `DELETE FROM users WHERE id = $1 AND NOT is_owner AND ($2 OR NOT is_admin)`, id, actor.isOwner)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not delete the user")
 		return

@@ -20,7 +20,7 @@ export default function Admin() {
   const { t, i18n } = useTranslation();
   const lang = i18n.resolvedLanguage ?? "en";
   const { user: me, setUser } = useAuth();
-  const [data, setData] = useState<{ users: AdminUser[]; total: number; page_size: number } | null>(null);
+  const [data, setData] = useState<{ users: AdminUser[]; total: number; page_size: number; can_grant_admin: boolean } | null>(null);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState(false);
@@ -131,32 +131,51 @@ export default function Admin() {
               {data.users.map((u) => {
                 const isMe = u.id === me?.id;
                 const a = access(u);
-                const open = () => setEditing({ mode: "edit", user: u });
+                // The owner row is never editable; other rows only when the
+                // server says this account may manage them (or it's you,
+                // adjusting your own pages).
+                const editable = u.manageable || (isMe && !u.is_owner);
+                const open = () => editable && setEditing({ mode: "edit", user: u });
                 return (
-                  <tr key={u.id} className="admin-row" onClick={open}>
+                  <tr key={u.id} className={editable ? "admin-row" : "admin-row admin-row-locked"} onClick={open}>
                     <td className="admin-cell-user">
                       <span className="user-avatar" aria-hidden="true">{displayName(u, lang).slice(0, 1).toUpperCase()}</span>
                       <span className="admin-user-id">
-                        <button
-                          type="button"
-                          className="admin-user-name"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            open();
-                          }}
-                        >
-                          {displayName(u, lang)}
-                          {isMe && <span className="role-badge role-badge-me">{t("admin.you")}</span>}
-                        </button>
+                        {editable ? (
+                          <button
+                            type="button"
+                            className="admin-user-name"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              open();
+                            }}
+                          >
+                            {displayName(u, lang)}
+                            {isMe && <span className="role-badge role-badge-me">{t("admin.you")}</span>}
+                          </button>
+                        ) : (
+                          <span className="admin-user-name">
+                            {displayName(u, lang)}
+                            {isMe && <span className="role-badge role-badge-me">{t("admin.you")}</span>}
+                          </span>
+                        )}
                         <span className="muted admin-user-sub">{`@${u.username}`}</span>
                       </span>
                     </td>
                     <td className="admin-cell-role">
-                      {u.is_admin ? <span className="role-badge">{t("admin.adminBadge")}</span> : <span className="muted">{t("admin.member")}</span>}
+                      {u.is_owner ? (
+                        <span className="role-badge role-badge-owner">{t("admin.ownerBadge")}</span>
+                      ) : u.is_admin ? (
+                        <span className="role-badge">{t("admin.adminBadge")}</span>
+                      ) : (
+                        <span className="muted">{t("admin.member")}</span>
+                      )}
                     </td>
                     <td className="admin-cell-access" title={a.full}>{a.label}</td>
                     <td className="admin-cell-signin muted">{dateLabel(u.last_sign_in)}</td>
-                    <td className="admin-cell-chevron" aria-hidden="true">›</td>
+                    <td className="admin-cell-chevron" aria-hidden="true" title={editable ? undefined : t("admin.lockedRow")}>
+                      {editable ? "›" : "🔒"}
+                    </td>
                   </tr>
                 );
               })}
@@ -177,6 +196,7 @@ export default function Admin() {
         <UserForm
           editing={editing}
           isMe={editing.mode === "edit" && editing.user.id === me?.id}
+          canGrantAdmin={!!data?.can_grant_admin}
           onClose={() => setEditing(null)}
           onDelete={
             editing.mode === "edit" && editing.user.id !== me?.id
@@ -229,12 +249,14 @@ export default function Admin() {
 function UserForm({
   editing,
   isMe,
+  canGrantAdmin,
   onClose,
   onSaved,
   onDelete,
 }: {
   editing: Editing;
   isMe: boolean;
+  canGrantAdmin: boolean;
   onClose: () => void;
   onDelete?: () => void;
   onSaved: (created: { username: string; password: string; reset: boolean } | null) => void;
@@ -350,10 +372,12 @@ function UserForm({
           <fieldset className="admin-fieldset">
             <legend className="field-label">{t("admin.role")}</legend>
             <label className="radio-row">
-              <input type="checkbox" checked={isAdmin} disabled={isMe} onChange={(e) => setIsAdmin(e.target.checked)} />
+              <input type="checkbox" checked={isAdmin} disabled={isMe || !canGrantAdmin} onChange={(e) => setIsAdmin(e.target.checked)} />
               <span>
                 <strong>{t("admin.isAdmin")}</strong>
-                <span className="radio-desc">{isMe ? t("admin.isAdminSelf") : t("admin.isAdminDesc")}</span>
+                <span className="radio-desc">
+                  {isMe ? t("admin.isAdminSelf") : canGrantAdmin ? t("admin.isAdminDesc") : t("admin.isAdminOwnerOnly")}
+                </span>
               </span>
             </label>
           </fieldset>

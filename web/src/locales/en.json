@@ -28,7 +28,12 @@
     "password": "Password",
     "submit": "Sign in",
     "signingIn": "Signing in…",
-    "failed": "Incorrect username or password"
+    "failed": "Incorrect username or password",
+    "locked": "Too many failed attempts.",
+    "tryAgainIn": "Try again in {{time}}.",
+    "attemptsLeft_one": "{{count}} attempt left before a cooldown.",
+    "attemptsLeft_other": "{{count}} attempts left before a cooldown.",
+    "error": "Couldn't sign in. Please try again."
   },
   "home": {
     "greeting": "Welcome back",
@@ -446,8 +451,8 @@
     "pagesHint": "Home and Profile are always available. Each ticked page shows up in their sidebar; unticked pages are blocked, not just hidden.",
     "role": "Role",
     "isAdmin": "Administrator",
-    "isAdminDesc": "Can open this page: create, edit and delete accounts.",
-    "isAdminSelf": "You can't remove your own administrator role.",
+    "isAdminDesc": "Can open this page and manage members. Only the owner can manage administrators.",
+    "isAdminSelf": "You can't change your own role.",
     "tempPassword": "Temporary password",
     "newPassword": "New password",
     "generate": "Generate",
@@ -476,6 +481,9 @@
     "allPages": "All pages",
     "noPages": "No pages",
     "onlyPage": "{{page}} only",
-    "range": "{{from}}–{{to}} of {{total}}"
+    "range": "{{from}}–{{to}} of {{total}}",
+    "ownerBadge": "Owner",
+    "lockedRow": "Only the owner can change this account",
+    "isAdminOwnerOnly": "Only the owner can grant or remove the administrator role."
   }
 }

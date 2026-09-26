@@ -455,7 +455,9 @@ export default function ProblemDetail() {
             <div key={e.id} className="evidence-item">
               <div className="evidence-item-body">
                 {e.text && <p>{e.text}</p>}
-                {e.url && <a href={e.url} target="_blank" rel="noreferrer">{e.url}</a>}
+                {e.url && (/^https?:\/\//i.test(e.url)
+                  ? <a href={e.url} target="_blank" rel="noopener noreferrer">{e.url}</a>
+                  : <span>{e.url}</span>)}
                 <span className="evidence-date">{e.noted_at.slice(0, 10)}</span>
               </div>
               <button type="button" className="btn btn-ghost btn-sm" disabled={readOnly} onClick={() => void removeEvidence(e.id)}>

@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/reynerpantou/cortex/internal/auth"
@@ -20,17 +22,33 @@ type loginRequest struct {
 
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
-	if err := decode(r, &req); err != nil || req.Username == "" || req.Password == "" {
+	if err := decode(r, &req); err != nil || strings.TrimSpace(req.Username) == "" || req.Password == "" || len(req.Password) > 1024 {
 		writeError(w, http.StatusBadRequest, "invalid_request", "username and password are required")
+		return
+	}
+	req.Username = strings.TrimSpace(req.Username)
+	ctx := r.Context()
+	ip := s.ClientIP(r)
+
+	// A cooldown is checked before the password, so nothing can be learned
+	// (and no guess can succeed) while it lasts.
+	if wait, err := s.loginLockedFor(ctx, req.Username, ip); err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not sign you in")
+		return
+	} else if wait > 0 {
+		writeLocked(w, wait)
 		return
 	}
 
 	var u models.User
 	var modules string
 	err := s.DB.QueryRow(
-		`SELECT `+userColumns+`, password_hash FROM users WHERE username = $1`, req.Username,
-	).Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &modules, &u.PasswordHash)
+		`SELECT `+userColumns+`, password_hash FROM users WHERE lower(username) = lower($1)`, req.Username,
+	).Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &u.IsOwner, &modules, &u.PasswordHash)
 	u.Modules = splitModules(modules)
+	if u.IsOwner {
+		u.Modules = slices.Clone(Modules) // the owner always has every page
+	}
 
 	// Always run a verify to keep timing uniform whether or not the user exists.
 	valid := false
@@ -43,9 +61,23 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		valid, _ = auth.VerifyPassword(req.Password, u.PasswordHash)
 	}
 	if !valid {
-		writeError(w, http.StatusUnauthorized, "invalid_credentials", "incorrect username or password")
+		remaining, locked, err := s.recordLoginFailure(ctx, req.Username, ip)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "could not sign you in")
+			return
+		}
+		if locked > 0 {
+			writeLocked(w, locked)
+			return
+		}
+		writeJSON(w, http.StatusUnauthorized, map[string]any{
+			"code":               "invalid_credentials",
+			"message":            "incorrect username or password",
+			"remaining_attempts": remaining,
+		})
 		return
 	}
+	s.clearLoginFailures(ctx, req.Username, ip)
 
 	token, err := auth.CreateSession(s.DB, u.ID, s.Cfg.SessionTTL)
 	if err != nil {
@@ -89,11 +121,12 @@ func userJSON(u models.User) map[string]any {
 		"display_name_id": u.DisplayNameID,
 		"display_name_zh": u.DisplayNameZH,
 		"is_admin":        u.IsAdmin,
+		"is_owner":        u.IsOwner,
 		"modules":         u.Modules,
 	}
 }
 
-const userColumns = `id, username, display_name_en, display_name_id, display_name_zh, is_admin, array_to_string(modules, ',')`
+const userColumns = `id, username, display_name_en, display_name_id, display_name_zh, is_admin, is_owner, array_to_string(modules, ',')`
 
 func splitModules(joined string) []string {
 	if joined == "" {
@@ -106,8 +139,11 @@ func (s *Server) loadUser(id int64) (models.User, error) {
 	var u models.User
 	var modules string
 	err := s.DB.QueryRow(`SELECT `+userColumns+` FROM users WHERE id = $1`, id).
-		Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &modules)
+		Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &u.IsOwner, &modules)
 	u.Modules = splitModules(modules)
+	if u.IsOwner {
+		u.Modules = slices.Clone(Modules) // the owner always has every page
+	}
 	return u, err
 }
 
@@ -145,9 +181,15 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	req.DisplayNameEN = strings.TrimSpace(req.DisplayNameEN)
 	req.DisplayNameID = strings.TrimSpace(req.DisplayNameID)
 	req.DisplayNameZH = strings.TrimSpace(req.DisplayNameZH)
-	if req.Username == "" {
-		writeError(w, http.StatusBadRequest, "validation_error", "username is required")
+	if msg := validateUsername(req.Username); msg != "" {
+		writeError(w, http.StatusBadRequest, "validation_error", msg)
 		return
+	}
+	for _, n := range []string{req.DisplayNameEN, req.DisplayNameID, req.DisplayNameZH} {
+		if utf8.RuneCountInString(n) > 80 {
+			writeError(w, http.StatusBadRequest, "validation_error", "display names can be at most 80 characters")
+			return
+		}
 	}
 
 	var currentHash string
@@ -158,8 +200,8 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 
 	newHash := currentHash
 	if req.NewPassword != "" {
-		if len(req.NewPassword) < 8 {
-			writeError(w, http.StatusBadRequest, "validation_error", "new password must be at least 8 characters")
+		if msg := validatePassword(req.NewPassword); msg != "" {
+			writeError(w, http.StatusBadRequest, "validation_error", msg)
 			return
 		}
 		valid, _ := auth.VerifyPassword(req.CurrentPassword, currentHash)
@@ -188,5 +230,35 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not update your account")
 		return
 	}
+	// A new password signs every other device out, so whoever knew the old
+	// one loses access immediately.
+	if req.NewPassword != "" {
+		if c, err := r.Cookie(middleware.SessionCookie); err == nil {
+			_ = auth.DeleteOtherSessions(s.DB, uid, c.Value)
+		}
+	}
 	s.Me(w, r)
+}
+
+// validateUsername is shared by sign-up (admin) and profile edits.
+func validateUsername(u string) string {
+	switch {
+	case u == "":
+		return "username is required"
+	case utf8.RuneCountInString(u) > 64:
+		return "username can be at most 64 characters"
+	case strings.IndexFunc(u, func(r rune) bool { return r <= ' ' || r == 0x7f }) >= 0:
+		return "username can't contain spaces"
+	}
+	return ""
+}
+
+func validatePassword(p string) string {
+	switch {
+	case len(p) < 8:
+		return "password must be at least 8 characters"
+	case len(p) > 1024:
+		return "password is too long"
+	}
+	return ""
 }

@@ -12,8 +12,8 @@ export interface ModuleDef {
 // to change.
 // A module is usable only if the account was granted it (Administration
 // sets this; the server enforces it too).
-export function canUse(user: { modules?: string[] } | null, key: string): boolean {
-  return !!user?.modules?.includes(key);
+export function canUse(user: { modules?: string[]; is_owner?: boolean } | null, key: string): boolean {
+  return !!user?.is_owner || !!user?.modules?.includes(key);
 }
 
 export const modules: ModuleDef[] = [

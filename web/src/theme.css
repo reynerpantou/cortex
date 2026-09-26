@@ -992,6 +992,9 @@ a.top-link:hover { background: var(--bg-2); }
 .admin-table tr:last-child td { border-bottom: none; }
 .admin-row { cursor: pointer; }
 .admin-row:hover { background: var(--bg-2); }
+.admin-row-locked { cursor: default; }
+.admin-row-locked:hover { background: transparent; }
+.admin-row-locked .admin-cell-chevron { font-size: 12px; opacity: 0.7; }
 .admin-cell-user { white-space: nowrap; }
 .admin-cell-user .user-avatar { vertical-align: middle; }
 .admin-user-id { display: inline-flex; flex-direction: column; vertical-align: middle; margin-left: 12px; max-width: calc(100% - 44px); }
@@ -1009,6 +1012,7 @@ a.top-link:hover { background: var(--bg-2); }
   background: color-mix(in srgb, var(--violet) 20%, transparent); color: var(--violet);
 }
 .role-badge-me { background: var(--bg-3); color: var(--text-2); }
+.role-badge-owner { background: color-mix(in srgb, var(--amber) 20%, transparent); color: var(--amber); }
 .admin-pager { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; font-size: 13px; }
 .admin-pager .month-switcher-btn:disabled { opacity: 0.35; cursor: default; }
 .admin-fieldset { border: none; padding: 0; margin: 4px 0 12px; }
