@@ -3,13 +3,16 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,6 +35,15 @@ func main() {
 	if err := database.Migrate(db); err != nil {
 		log.Fatalf("migrate: %v", err)
 	}
+	// Server-side recovery commands. They need shell access to the server,
+	// which is exactly what makes them the right place for owner recovery.
+	if len(os.Args) > 1 {
+		if err := runCommand(db, os.Args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := seedAdmin(db, cfg); err != nil {
 		log.Fatalf("seed admin: %v", err)
 	}
@@ -41,6 +53,10 @@ func main() {
 		Addr:              cfg.Addr,
 		Handler:           routes(db, cfg),
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      90 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    64 << 10,
 	}
 
 	go func() {
@@ -63,7 +79,9 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	s := handlers.New(db, cfg)
 
 	api := http.NewServeMux()
-	loginRL := middleware.NewRateLimit(10, time.Minute)
+	// A coarse per-IP ceiling in front of the database-backed sign-in
+	// throttle, so a flood can't even reach it.
+	loginRL := middleware.NewRateLimit(20, time.Minute, s.ClientIP)
 	protected := func(h http.HandlerFunc) http.Handler {
 		return middleware.Chain(h, middleware.RequireAuth(db), middleware.CSRF)
 	}
@@ -119,7 +137,7 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	api.Handle("PUT /finance/budgets/{id}", finance(s.SetFinanceBudget))
 
 	mux := http.NewServeMux()
-	mux.Handle("/api/", http.StripPrefix("/api", api))
+	mux.Handle("/api/", http.StripPrefix("/api", middleware.NoStore(api)))
 	mux.Handle("/", s.SPAHandler())
 
 	return middleware.Chain(mux,
@@ -129,7 +147,7 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	)
 }
 
-// seedAdmin creates the first user on an empty database. If no password is
+// seedAdmin creates the first user — the owner — on an empty database. If no password is
 // provided it generates one and prints it once.
 func seedAdmin(db *sql.DB, cfg config.Config) error {
 	var n int
@@ -154,8 +172,8 @@ func seedAdmin(db *sql.DB, cfg config.Config) error {
 		return err
 	}
 	if _, err := db.Exec(
-		`INSERT INTO users (username, password_hash, created_at, display_name_en, display_name_id, display_name_zh, is_admin, modules)
-		 VALUES ($1, $2, $3, $1, $1, $1, true, $4)`,
+		`INSERT INTO users (username, password_hash, created_at, display_name_en, display_name_id, display_name_zh, is_admin, is_owner, modules)
+		 VALUES ($1, $2, $3, $1, $1, $1, true, true, $4)`,
 		cfg.AdminUser, hash, time.Now().UTC(), handlers.Modules,
 	); err != nil {
 		return err
@@ -175,5 +193,101 @@ func purgeSessions(db *sql.DB) {
 		if err := auth.PurgeExpiredSessions(db); err != nil {
 			log.Printf("purge sessions: %v", err)
 		}
+		// Sign-in counters nobody has touched for two days are over: their
+		// failure window and cooldown memory have both lapsed.
+		if _, err := db.Exec(`DELETE FROM login_throttle WHERE updated_at < now() - interval '2 days'
+		                        AND (locked_until IS NULL OR locked_until < now())`); err != nil {
+			log.Printf("purge sign-in throttle: %v", err)
+		}
 	}
+}
+
+const usage = `usage:
+  cortex                            run the server
+  cortex reset-password <username>  set a new password (prompted) and sign the account out everywhere
+  cortex make-owner <username>      make this account the owner (the previous owner stays an administrator)
+  cortex unlock <username>          clear failed sign-in cooldowns for this account`
+
+func runCommand(db *sql.DB, args []string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("%s", usage)
+	}
+	var id int64
+	if err := db.QueryRow(`SELECT id FROM users WHERE lower(username) = lower($1)`, args[1]).Scan(&id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("no user %q", args[1])
+		}
+		return err
+	}
+	switch args[0] {
+	case "reset-password":
+		password, err := readPassword()
+		if err != nil {
+			return err
+		}
+		hash, err := auth.HashPassword(password)
+		if err != nil {
+			return err
+		}
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if _, err := tx.Exec(`UPDATE users SET password_hash = $1 WHERE id = $2`, hash, id); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = $1`, id); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`DELETE FROM login_throttle WHERE key LIKE 'ui:' || lower($1) || '|%' OR key = 'u:' || lower($1)`, args[1]); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		fmt.Printf("Password for %q changed; every session was signed out.\n", args[1])
+	case "make-owner":
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if _, err := tx.Exec(`UPDATE users SET is_owner = false WHERE is_owner`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`UPDATE users SET is_owner = true, is_admin = true, modules = $2 WHERE id = $1`, id, handlers.Modules); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		fmt.Printf("%q is now the owner.\n", args[1])
+	case "unlock":
+		if _, err := db.Exec(`DELETE FROM login_throttle WHERE key LIKE 'ui:' || lower($1) || '|%' OR key = 'u:' || lower($1)`, args[1]); err != nil {
+			return err
+		}
+		fmt.Printf("Sign-in cooldowns for %q cleared.\n", args[1])
+	default:
+		return fmt.Errorf("%s", usage)
+	}
+	return nil
+}
+
+// readPassword takes the new password from CORTEX_NEW_PASSWORD or stdin, so
+// it never ends up in shell history as an argument.
+func readPassword() (string, error) {
+	p := os.Getenv("CORTEX_NEW_PASSWORD")
+	if p == "" {
+		fmt.Fprint(os.Stderr, "New password: ")
+		line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil && line == "" {
+			return "", err
+		}
+		p = strings.TrimRight(line, "\r\n")
+	}
+	if len(p) < 8 {
+		return "", errors.New("password must be at least 8 characters")
+	}
+	return p, nil
 }

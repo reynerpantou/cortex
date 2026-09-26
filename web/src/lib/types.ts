@@ -53,6 +53,7 @@ export interface User {
   display_name_id: string;
   display_name_zh: string;
   is_admin: boolean;
+  is_owner: boolean;
   modules: string[];
 }
 
@@ -63,6 +64,8 @@ export interface AdminUser {
   display_name_id: string;
   display_name_zh: string;
   is_admin: boolean;
+  is_owner: boolean;
+  manageable: boolean;
   modules: string[];
   created_at: string;
   last_sign_in: string | null;

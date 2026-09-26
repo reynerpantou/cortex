@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -323,6 +324,10 @@ func (s *Server) CreateEvidence(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "validation_error", "evidence needs a note or a link")
 		return
 	}
+	if in.URL != "" && !isWebURL(in.URL) {
+		writeError(w, http.StatusBadRequest, "validation_error", "the link must start with http:// or https://")
+		return
+	}
 	now := time.Now().UTC()
 	var e models.Evidence
 	err := s.DB.QueryRow(
@@ -465,4 +470,14 @@ func pathID(r *http.Request, name string) (int64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+// isWebURL accepts only absolute http(s) links, so a stored link can never
+// be a javascript: or data: URL that runs when clicked.
+func isWebURL(raw string) bool {
+	if len(raw) > 2048 {
+		return false
+	}
+	u, err := url.Parse(raw)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }

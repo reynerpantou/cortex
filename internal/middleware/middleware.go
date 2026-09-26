@@ -9,6 +9,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,7 +43,11 @@ func SecurityHeaders(secure bool) func(http.Handler) http.Handler {
 			h.Set("X-Frame-Options", "DENY")
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			h.Set("Content-Security-Policy",
-				"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+				"default-src 'self'; script-src 'self'; object-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+			// The microphone is only for voice entry, and only on this site.
+			h.Set("Permissions-Policy", "camera=(), geolocation=(), payment=(), usb=(), microphone=(self)")
+			h.Set("Cross-Origin-Opener-Policy", "same-origin")
+			h.Set("Cross-Origin-Resource-Policy", "same-origin")
 			if secure {
 				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 			}
@@ -94,22 +100,46 @@ func unauthorized(w http.ResponseWriter) {
 	http.Error(w, `{"code":"unauthorized","message":"not signed in"}`, http.StatusUnauthorized)
 }
 
-// RateLimit is a small fixed-window limiter keyed by client IP, used to blunt
-// password brute-forcing on the login endpoint.
+// NoStore keeps API responses (finance data, user lists) out of browser,
+// proxy and back/forward caches.
+func NoStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// RateLimit is a small in-memory sliding-window limiter keyed by client IP.
+// It only caps raw request volume on the login endpoint (each attempt costs
+// a deliberately slow password hash); the real attempt limits and cooldowns
+// live in the database (see handlers/throttle.go).
 type RateLimit struct {
 	mu     sync.Mutex
 	hits   map[string][]time.Time
 	limit  int
 	window time.Duration
+	ip     func(*http.Request) string
 }
 
-func NewRateLimit(limit int, window time.Duration) *RateLimit {
-	return &RateLimit{hits: map[string][]time.Time{}, limit: limit, window: window}
+func NewRateLimit(limit int, window time.Duration, ip func(*http.Request) string) *RateLimit {
+	rl := &RateLimit{hits: map[string][]time.Time{}, limit: limit, window: window, ip: ip}
+	go func() {
+		for range time.Tick(window) {
+			rl.mu.Lock()
+			for k, v := range rl.hits {
+				if len(v) == 0 || time.Since(v[len(v)-1]) > rl.window {
+					delete(rl.hits, k)
+				}
+			}
+			rl.mu.Unlock()
+		}
+	}()
+	return rl
 }
 
 func (rl *RateLimit) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := clientIP(r)
+		ip := rl.ip(r)
 		now := time.Now()
 		rl.mu.Lock()
 		recent := rl.hits[ip][:0:0]
@@ -153,12 +183,40 @@ func Logger(next http.Handler) http.Handler {
 	})
 }
 
-func clientIP(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
+// ClientIP returns the visitor's IP. X-Forwarded-For is only believed when
+// the connection comes from a trusted proxy, and then it's read from the
+// right, skipping trusted hops — the left-most entries are whatever the
+// client chose to send and can't be trusted.
+func ClientIP(trusted []netip.Prefix) func(*http.Request) string {
+	isTrusted := func(a netip.Addr) bool {
+		for _, p := range trusted {
+			if p.Contains(a.Unmap()) {
+				return true
+			}
+		}
+		return false
 	}
-	return host
+	return func(r *http.Request) string {
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			host = r.RemoteAddr
+		}
+		peer, err := netip.ParseAddr(host)
+		if err != nil || !isTrusted(peer) {
+			return host
+		}
+		hops := strings.Split(strings.Join(r.Header.Values("X-Forwarded-For"), ","), ",")
+		for i := len(hops) - 1; i >= 0; i-- {
+			a, err := netip.ParseAddr(strings.TrimSpace(hops[i]))
+			if err != nil {
+				break
+			}
+			if !isTrusted(a) {
+				return a.Unmap().String()
+			}
+		}
+		return host
+	}
 }
 
 // Chain applies middleware in order (first listed runs outermost).

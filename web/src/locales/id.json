@@ -28,7 +28,12 @@
     "password": "Kata sandi",
     "submit": "Masuk",
     "signingIn": "Masuk…",
-    "failed": "Nama pengguna atau kata sandi salah"
+    "failed": "Nama pengguna atau kata sandi salah",
+    "locked": "Terlalu banyak percobaan gagal.",
+    "tryAgainIn": "Coba lagi dalam {{time}}.",
+    "attemptsLeft_one": "Sisa {{count}} percobaan sebelum jeda.",
+    "attemptsLeft_other": "Sisa {{count}} percobaan sebelum jeda.",
+    "error": "Gagal masuk. Silakan coba lagi."
   },
   "home": {
     "greeting": "Selamat datang kembali",
@@ -436,8 +441,8 @@
     "pagesHint": "Beranda dan Profil selalu tersedia. Halaman yang dicentang muncul di sidebar mereka; yang tidak dicentang diblokir, bukan sekadar disembunyikan.",
     "role": "Peran",
     "isAdmin": "Administrator",
-    "isAdminDesc": "Bisa membuka halaman ini: membuat, mengubah, dan menghapus akun.",
-    "isAdminSelf": "Kamu tidak bisa menghapus peran administrator milikmu sendiri.",
+    "isAdminDesc": "Dapat membuka halaman ini dan mengelola anggota. Hanya pemilik yang dapat mengelola administrator.",
+    "isAdminSelf": "Anda tidak dapat mengubah peran Anda sendiri.",
     "tempPassword": "Kata sandi sementara",
     "newPassword": "Kata sandi baru",
     "generate": "Buat acak",
@@ -465,6 +470,9 @@
     "allPages": "Semua halaman",
     "noPages": "Tidak ada halaman",
     "onlyPage": "Hanya {{page}}",
-    "range": "{{from}}–{{to}} dari {{total}}"
+    "range": "{{from}}–{{to}} dari {{total}}",
+    "ownerBadge": "Pemilik",
+    "lockedRow": "Hanya pemilik yang dapat mengubah akun ini",
+    "isAdminOwnerOnly": "Hanya pemilik yang dapat memberi atau mencabut peran administrator."
   }
 }

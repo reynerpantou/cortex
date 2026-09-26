@@ -1,14 +1,18 @@
+# Both ports are bound to 127.0.0.1: nothing here is reachable from the
+# internet directly. On a server, put an HTTPS reverse proxy (see README,
+# "Deploying to a VPS") in front of 127.0.0.1:8080.
 services:
   postgres:
     image: postgres:16-alpine
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-cortex}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cortex}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}
       - POSTGRES_DB=${POSTGRES_DB:-cortex}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"       # exposed for local tools (psql, MCP); drop this in prod
+      # Local tools only (psql, `make dev-api`). Never publish this publicly.
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex}"]
       interval: 5s
@@ -19,19 +23,24 @@ services:
   cortex:
     build: .
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      - CORTEX_DATABASE_URL=postgres://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD:-cortex}@postgres:5432/${POSTGRES_DB:-cortex}?sslmode=disable
-      - CORTEX_COOKIE_SECURE=false   # set true behind HTTPS
-      - CORTEX_ADMIN_USER=admin
-      # Set a password to seed a known login on first run; otherwise one is
+      - CORTEX_DATABASE_URL=postgres://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}?sslmode=disable
+      # Secure cookies need HTTPS; browsers also allow them on http://localhost.
+      - CORTEX_COOKIE_SECURE=${CORTEX_COOKIE_SECURE:-true}
+      # The reverse proxy's address, so sign-in limits see the visitor's real
+      # IP. Docker's bridge network covers a proxy on the host or in compose.
+      - CORTEX_TRUSTED_PROXIES=${CORTEX_TRUSTED_PROXIES:-172.16.0.0/12}
+      - CORTEX_LOGIN_MAX_ATTEMPTS=${CORTEX_LOGIN_MAX_ATTEMPTS:-5}
+      - CORTEX_LOGIN_LOCKOUT_MINUTES=${CORTEX_LOGIN_LOCKOUT_MINUTES:-15}
+      - CORTEX_ADMIN_USER=${CORTEX_ADMIN_USER:-admin}
+      # Set to seed a known owner password on first run; otherwise one is
       # generated and printed to the logs exactly once.
-      # - CORTEX_ADMIN_PASSWORD=change-me
-      # AI layer (next slice) — leave unset to keep AI disabled:
-      # - ANTHROPIC_API_KEY=sk-ant-...
+      - CORTEX_ADMIN_PASSWORD=${CORTEX_ADMIN_PASSWORD:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     restart: unless-stopped
 
 volumes:

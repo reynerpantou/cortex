@@ -69,7 +69,7 @@ export const api = {
     if (p.q) qs.set("q", p.q);
     if (p.page && p.page > 1) qs.set("page", String(p.page));
     const suffix = qs.toString();
-    return request<{ users: AdminUser[]; total: number; page: number; page_size: number; modules: string[] }>(
+    return request<{ users: AdminUser[]; total: number; page: number; page_size: number; modules: string[]; can_grant_admin: boolean }>(
       "GET",
       `/admin/users${suffix ? `?${suffix}` : ""}`
     );
