@@ -428,12 +428,10 @@
     "title": "管理",
     "lead": "创建账户，并选择每个人可以打开哪些页面。",
     "newUser": "新用户",
-    "edit": "编辑",
     "editTitle": "编辑 @{{username}}",
     "adminBadge": "管理员",
     "you": "你",
     "never": "从未",
-    "lastSignIn": "上次登录 {{date}}",
     "pages": "可打开的页面",
     "pagesHint": "首页和个人资料始终可用。勾选的页面会出现在其侧边栏中；未勾选的页面会被禁止访问，而不只是隐藏。",
     "role": "角色",
@@ -456,6 +454,17 @@
     "copy": "复制",
     "deleteTitle": "删除 @{{username}}？",
     "deleteLead": "将永久删除该账户及其所有数据，包括财务记录。此操作无法撤销。",
-    "deleteConfirm": "删除账户"
+    "deleteConfirm": "删除账户",
+    "search": "按名称或用户名搜索",
+    "count": "{{count}} 位用户",
+    "noMatch": "没有匹配的用户。",
+    "colUser": "用户",
+    "colAccess": "页面",
+    "colLastSignIn": "上次登录",
+    "member": "成员",
+    "allPages": "全部页面",
+    "noPages": "无页面",
+    "onlyPage": "仅 {{page}}",
+    "range": "第 {{from}}–{{to}} 位，共 {{total}} 位"
   }
 }

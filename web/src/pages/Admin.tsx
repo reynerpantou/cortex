@@ -20,7 +20,9 @@ export default function Admin() {
   const { t, i18n } = useTranslation();
   const lang = i18n.resolvedLanguage ?? "en";
   const { user: me, setUser } = useAuth();
-  const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [data, setData] = useState<{ users: AdminUser[]; total: number; page_size: number } | null>(null);
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [deleting, setDeleting] = useState<AdminUser | null>(null);
@@ -29,18 +31,37 @@ export default function Admin() {
   const load = async () => {
     setError(false);
     try {
-      setUsers((await api.adminListUsers()).users);
+      setData(await api.adminListUsers({ q, page }));
     } catch {
       setError(true);
     }
   };
 
   useEffect(() => {
-    void load();
-  }, []);
+    const id = setTimeout(() => void load(), q ? 250 : 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, page]);
 
   const dateLabel = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString(lang === "zh" ? "zh-CN" : lang === "id" ? "id-ID" : "en-US", { day: "numeric", month: "short", year: "numeric" }) : t("admin.never");
+
+  // A one-line summary instead of a pill per page, so the column stays the
+  // same width however many modules Cortex grows.
+  const access = (u: AdminUser) => {
+    const names = modules.filter((m) => u.modules.includes(m.key)).map((m) => t(m.navKey));
+    if (names.length === modules.length) return { label: t("admin.allPages"), full: names.join(", ") };
+    if (names.length === 0) return { label: t("admin.noPages"), full: "" };
+    if (names.length === 1) return { label: t("admin.onlyPage", { page: names[0] }), full: names[0] };
+    const label = names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
+    return { label, full: names.join(", ") };
+  };
+
+  const total = data?.total ?? 0;
+  const pageSize = data?.page_size ?? 25;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
 
   return (
     <div className="page">
@@ -70,54 +91,86 @@ export default function Admin() {
         </div>
       )}
 
+      <div className="admin-toolbar">
+        <input
+          className="input admin-search"
+          type="search"
+          value={q}
+          placeholder={t("admin.search")}
+          aria-label={t("admin.search")}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(1);
+          }}
+        />
+        {data && <span className="muted admin-count">{t("admin.count", { count: total })}</span>}
+      </div>
+
       {error ? (
         <div className="center">
           <p className="muted">{t("common.error")}</p>
           <button className="btn btn-ghost" onClick={() => void load()}>{t("common.retry")}</button>
         </div>
-      ) : !users ? (
+      ) : !data ? (
         <p className="muted">{t("common.loading")}</p>
+      ) : data.users.length === 0 ? (
+        <p className="empty">{t("admin.noMatch")}</p>
       ) : (
-        <ul className="admin-users">
-          {users.map((u) => {
-            const isMe = u.id === me?.id;
-            return (
-              <li key={u.id} className="admin-user">
-                <div className="admin-user-main">
-                  <span className="user-avatar" aria-hidden="true">{displayName(u, lang).slice(0, 1).toUpperCase()}</span>
-                  <div className="admin-user-id">
-                    <span className="admin-user-name">
-                      {displayName(u, lang)}
-                      {u.is_admin && <span className="role-badge">{t("admin.adminBadge")}</span>}
-                      {isMe && <span className="role-badge role-badge-me">{t("admin.you")}</span>}
-                    </span>
-                    <span className="muted admin-user-sub">
-                      {`@${u.username} · ${t("admin.lastSignIn", { date: dateLabel(u.last_sign_in) })}`}
-                    </span>
-                  </div>
-                </div>
-                <div className="admin-user-modules" aria-label={t("admin.pages")}>
-                  {modules.map((m) => (
-                    <span key={m.key} className={`module-pill ${u.modules.includes(m.key) ? "is-on" : ""}`}>
-                      <span aria-hidden="true">{u.modules.includes(m.key) ? "✓" : "–"}</span>
-                      {t(m.navKey)}
-                    </span>
-                  ))}
-                </div>
-                <div className="admin-user-actions">
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing({ mode: "edit", user: u })}>
-                    {t("admin.edit")}
-                  </button>
-                  {!isMe && (
-                    <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleting(u)}>
-                      {t("form.delete")}
-                    </button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>{t("admin.colUser")}</th>
+                <th>{t("admin.role")}</th>
+                <th>{t("admin.colAccess")}</th>
+                <th>{t("admin.colLastSignIn")}</th>
+                <th aria-hidden="true" />
+              </tr>
+            </thead>
+            <tbody>
+              {data.users.map((u) => {
+                const isMe = u.id === me?.id;
+                const a = access(u);
+                const open = () => setEditing({ mode: "edit", user: u });
+                return (
+                  <tr key={u.id} className="admin-row" onClick={open}>
+                    <td className="admin-cell-user">
+                      <span className="user-avatar" aria-hidden="true">{displayName(u, lang).slice(0, 1).toUpperCase()}</span>
+                      <span className="admin-user-id">
+                        <button
+                          type="button"
+                          className="admin-user-name"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            open();
+                          }}
+                        >
+                          {displayName(u, lang)}
+                          {isMe && <span className="role-badge role-badge-me">{t("admin.you")}</span>}
+                        </button>
+                        <span className="muted admin-user-sub">{`@${u.username}`}</span>
+                      </span>
+                    </td>
+                    <td className="admin-cell-role">
+                      {u.is_admin ? <span className="role-badge">{t("admin.adminBadge")}</span> : <span className="muted">{t("admin.member")}</span>}
+                    </td>
+                    <td className="admin-cell-access" title={a.full}>{a.label}</td>
+                    <td className="admin-cell-signin muted">{dateLabel(u.last_sign_in)}</td>
+                    <td className="admin-cell-chevron" aria-hidden="true">›</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {data && total > pageSize && (
+        <div className="admin-pager">
+          <span className="muted">{t("admin.range", { from, to, total })}</span>
+          <button type="button" className="month-switcher-btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} aria-label={t("finance.prev")}>‹</button>
+          <button type="button" className="month-switcher-btn" disabled={page >= pages} onClick={() => setPage((p) => p + 1)} aria-label={t("finance.next")}>›</button>
+        </div>
       )}
 
       {editing && (
@@ -125,6 +178,14 @@ export default function Admin() {
           editing={editing}
           isMe={editing.mode === "edit" && editing.user.id === me?.id}
           onClose={() => setEditing(null)}
+          onDelete={
+            editing.mode === "edit" && editing.user.id !== me?.id
+              ? () => {
+                  setDeleting(editing.user);
+                  setEditing(null);
+                }
+              : undefined
+          }
           onSaved={(result) => {
             const wasMe = editing.mode === "edit" && editing.user.id === me?.id;
             setEditing(null);
@@ -170,10 +231,12 @@ function UserForm({
   isMe,
   onClose,
   onSaved,
+  onDelete,
 }: {
   editing: Editing;
   isMe: boolean;
   onClose: () => void;
+  onDelete?: () => void;
   onSaved: (created: { username: string; password: string; reset: boolean } | null) => void;
 }) {
   const { t } = useTranslation();
@@ -297,6 +360,11 @@ function UserForm({
 
           {error && <p className="form-error">{error}</p>}
           <div className="form-actions">
+            {onDelete && (
+              <button type="button" className="btn btn-danger" onClick={onDelete}>
+                {t("admin.deleteConfirm")}
+              </button>
+            )}
             <span className="spacer" />
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t("form.cancel")}</button>
             <button type="submit" className="btn btn-primary" disabled={busy}>
