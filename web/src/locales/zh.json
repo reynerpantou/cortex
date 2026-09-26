@@ -241,14 +241,78 @@
         "income": "全部收入",
         "expense": "全部支出"
       },
-      "byCategory": {
-        "income": "收入构成",
-        "expense": "支出构成"
-      },
       "empty": "该期间没有记录。",
       "viewTransactions": "查看这些记录",
-      "trend": "近 6 个月",
-      "trendYear": "按月"
+      "customize": "自定义",
+      "customizeTitle": "自定义统计",
+      "customizeLead": "显示、隐藏或调整本页组件的顺序。设置会被保存。",
+      "resetLayout": "恢复默认",
+      "allHidden": "所有组件都已隐藏——点击“自定义”显示。",
+      "by": {
+        "cat": "类别",
+        "sub": "子类别"
+      },
+      "changesHeadline": {
+        "income": "收入 vs {{period}}：",
+        "expense": "支出 vs {{period}}："
+      },
+      "new": "新增",
+      "was": "之前 {{amount}}",
+      "showLess": "收起",
+      "showAll": "显示全部 {{count}} 项",
+      "future": "该期间尚未开始。",
+      "dailyAvg": "日均",
+      "overDays": "共 {{count}} 天",
+      "projected": "预计到 {{date}}",
+      "daysLeft": "还剩 {{count}} 天",
+      "periodTotal": "总支出",
+      "paceNote": "预测假设你保持本月的日均支出——月初的一笔大额消费会让预测偏高。",
+      "saved": "已存下",
+      "savingsRate": "储蓄率",
+      "savedAmount": "留下 {{amount}}",
+      "avgRate": "{{count}} 个月平均",
+      "noIncome": "这些月份还没有收入记录。",
+      "monthlyAvg": "月均：{{amount}}",
+      "methodNotSet": "未设置",
+      "txCount": "{{count}} 笔",
+      "biggest": "最大",
+      "frequent": "最常见",
+      "frequentHint": "重复出现的备注（如“咖啡”“打车”）会显示在这里。",
+      "avgEach": "平均 {{amount}}",
+      "noSpendDays": "{{total}} 天中有 {{count}} 天没有支出。",
+      "less": "少",
+      "more": "多",
+      "byWeekday": "按星期平均",
+      "weekdayDetail": "共 {{count}} 天",
+      "otherIncome": "其他收入",
+      "fromSavings": "动用积蓄",
+      "moneyIn": "收入",
+      "widgets": {
+        "breakdown": "分类构成",
+        "changes": "与上期对比",
+        "pace": "支出速度",
+        "trend": "收入与支出",
+        "savings": "储蓄率",
+        "categoryTrend": "单个类别趋势",
+        "methods": "按支付方式",
+        "top": "最大与最常见",
+        "rhythm": "消费节奏",
+        "flow": "资金流向"
+      },
+      "desc": {
+        "breakdown": "环形图和排行，可按类别或所有子类别",
+        "changes": "与上月或上一年相比哪些增加或减少",
+        "pace": "日均支出以及本月的走向",
+        "trend": "每月收入与支出并排对比",
+        "savings": "每月留下了多少收入",
+        "categoryTrend": "选择一个类别查看 12 个月走势",
+        "methods": "各支付方式的金额",
+        "top": "最大的几笔交易和最常出现的备注",
+        "rhythm": "哪些日子和星期几花得最多",
+        "flow": "收入流向何处：各类别以及存下的钱"
+      },
+      "noChange": "无变化",
+      "vsPrev": "比 {{period}} {{pct}}"
     },
     "budgets": {
       "lead": "每个类别的月度上限，以本位币计。子类别计入所属类别。",
@@ -302,15 +366,23 @@
       "paymentLead": "用什么付的款——仅作标记，不追踪余额。",
       "newMethod": "新支付方式",
       "baseCurrency": "本位币",
-      "baseLead": "所有合计和图表都以此币种显示。仅在没有任何记录时可以修改。",
-      "baseLocked": "所有合计和图表都以此币种显示。已有记录按此币种保存，因此已锁定。",
+      "baseLead": "所有合计和图表都以此币种显示。",
       "archivedNotice": "“{{name}}”已被历史记录使用，因此从选项中隐藏而不是删除。",
       "icon": "图标",
       "name": "名称",
       "rename": "重命名",
       "moveUp": "上移",
       "moveDown": "下移",
-      "changeIcon": "更改 {{name}} 的图标"
+      "changeIcon": "更改 {{name}} 的图标",
+      "changeBase": "更改",
+      "newBase": "新的本位币",
+      "modeConvert": "保留数据",
+      "modeConvertDesc": "所有记录和预算按下方汇率换算为 {{to}}（与 Money Manager 的“保留数据”方式相同）。原本就是 {{to}} 的记录将保持精确。",
+      "modeReset": "重新开始",
+      "modeResetDesc": "删除所有记录和预算，保留类别和支付方式。",
+      "resetConfirm": "我了解所有记录和预算将被永久删除。",
+      "changeTo": "更改为 {{currency}}",
+      "baseChanged": "本位币已从 {{from}} 更改为 {{to}}。"
     },
     "icons": {
       "food": "餐饮",
@@ -323,6 +395,21 @@
       "custom": "或粘贴任意表情",
       "use": "使用",
       "reset": "重置"
+    },
+    "export": {
+      "button": "导出",
+      "title": "导出为 CSV",
+      "lead": "可用 Excel 或 Google 表格打开，列与导入模板一致，可原样再导入。",
+      "month": "{{month}}",
+      "year": "{{year}} 全年",
+      "all": "全部",
+      "custom": "自定义范围",
+      "from": "从",
+      "to": "到",
+      "onlyFiltered": "仅导出符合当前筛选的记录",
+      "download": "下载 CSV",
+      "nothing": "该范围内没有记录。",
+      "badRange": "开始日期不能晚于结束日期。"
     }
   }
 }

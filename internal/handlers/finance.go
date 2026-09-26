@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -84,21 +85,38 @@ func (s *Server) FinanceMeta(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load payment methods")
 		return
 	}
-	var txCount int
+	var txCount, budgetCount int
 	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM finance_transactions`).Scan(&txCount)
+	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM finance_budgets`).Scan(&budgetCount)
+	var layout []byte
+	_ = s.DB.QueryRowContext(ctx, `SELECT stats_layout FROM finance_settings WHERE id = 1`).Scan(&layout)
+	var statsLayout json.RawMessage
+	if len(layout) > 0 {
+		statsLayout = layout
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"base_currency":    base,
 		"currencies":       fxCurrencies,
 		"categories":       cats,
 		"payment_methods":  pms,
 		"has_transactions": txCount > 0,
+		"has_budgets":      budgetCount > 0,
+		"stats_layout":     statsLayout,
 	})
 }
 
-func (s *Server) UpdateFinanceSettings(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		BaseCurrency string `json:"base_currency"`
-	}
+type baseCurrencyInput struct {
+	BaseCurrency string  `json:"base_currency"`
+	Mode         string  `json:"mode"` // "convert" or "reset"; only matters when there's data
+	Rate         float64 `json:"rate"` // 1 unit of the old base in the new base; fetched when 0
+}
+
+// ChangeBaseCurrency follows Money Manager's "change main currency" flow:
+// either keep the data and re-value it at one (today's) rate from the old
+// base to the new one, or start fresh by deleting transactions and budgets.
+// A transaction already in the new base currency becomes exact (rate 1).
+func (s *Server) ChangeBaseCurrency(w http.ResponseWriter, r *http.Request) {
+	var in baseCurrencyInput
 	if err := decode(r, &in); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", "could not read settings")
 		return
@@ -108,21 +126,108 @@ func (s *Server) UpdateFinanceSettings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "validation_error", "invalid currency")
 		return
 	}
-	var txCount int
-	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM finance_transactions`).Scan(&txCount); err != nil {
+	ctx := r.Context()
+	current, err := s.baseCurrency(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
+		return
+	}
+	if current == in.BaseCurrency {
+		s.FinanceMeta(w, r)
+		return
+	}
+	var dataCount int
+	if err := s.DB.QueryRowContext(ctx,
+		`SELECT (SELECT COUNT(*) FROM finance_transactions) + (SELECT COUNT(*) FROM finance_budgets)`,
+	).Scan(&dataCount); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save settings")
 		return
 	}
-	current, _ := s.baseCurrency(r.Context())
-	if txCount > 0 && current != in.BaseCurrency {
-		writeError(w, http.StatusConflict, "ledger_not_empty", "base currency can only change while there are no transactions")
+	if dataCount > 0 && in.Mode != "convert" && in.Mode != "reset" {
+		writeError(w, http.StatusBadRequest, "validation_error", "choose whether to convert or reset existing data")
 		return
 	}
-	if _, err := s.DB.Exec(`UPDATE finance_settings SET base_currency = $1 WHERE id = 1`, in.BaseCurrency); err != nil {
+	if dataCount > 0 && in.Mode == "convert" && !(in.Rate > 0) {
+		rate, _, err := s.fxRate(ctx, current, in.BaseCurrency, time.Now().UTC())
+		if err != nil {
+			writeError(w, http.StatusServiceUnavailable, "fx_unavailable", "exchange rate unavailable — enter it manually")
+			return
+		}
+		in.Rate = rate
+	}
+
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not save settings")
+		return
+	}
+	defer tx.Rollback()
+	if dataCount > 0 {
+		var err error
+		if in.Mode == "convert" {
+			_, err = tx.ExecContext(ctx,
+				`UPDATE finance_transactions SET
+				   rate = CASE WHEN currency = $1 THEN 1 ELSE rate * $2 END,
+				   base_amount = CASE WHEN currency = $1 THEN amount ELSE round(amount * rate * $2, 2) END,
+				   updated_at = now()`, in.BaseCurrency, in.Rate)
+			if err == nil {
+				_, err = tx.ExecContext(ctx, `UPDATE finance_budgets SET amount = GREATEST(round(amount * $1, 2), 0.01)`, in.Rate)
+			}
+		} else {
+			_, err = tx.ExecContext(ctx, `DELETE FROM finance_transactions`)
+			if err == nil {
+				_, err = tx.ExecContext(ctx, `DELETE FROM finance_budgets`)
+			}
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "could not convert existing data")
+			return
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE finance_settings SET base_currency = $1 WHERE id = 1`, in.BaseCurrency); err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not save settings")
+		return
+	}
+	if err := tx.Commit(); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not save settings")
 		return
 	}
 	s.FinanceMeta(w, r)
+}
+
+type statsWidget struct {
+	Key     string `json:"key"`
+	Visible bool   `json:"visible"`
+}
+
+func (s *Server) UpdateStatsLayout(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Layout []statsWidget `json:"layout"`
+	}
+	if err := decode(r, &in); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "could not read the layout")
+		return
+	}
+	if len(in.Layout) > 50 {
+		writeError(w, http.StatusBadRequest, "validation_error", "too many widgets")
+		return
+	}
+	seen := map[string]bool{}
+	clean := make([]statsWidget, 0, len(in.Layout))
+	for _, wd := range in.Layout {
+		k := strings.TrimSpace(wd.Key)
+		if k == "" || len(k) > 40 || seen[k] {
+			continue
+		}
+		seen[k] = true
+		clean = append(clean, statsWidget{Key: k, Visible: wd.Visible})
+	}
+	raw, _ := json.Marshal(clean)
+	if _, err := s.DB.Exec(`UPDATE finance_settings SET stats_layout = $1 WHERE id = 1`, raw); err != nil {
+		writeError(w, http.StatusInternalServerError, "server_error", "could not save the layout")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ---- categories ----
@@ -769,6 +874,17 @@ func (s *Server) FinanceTrend(w http.ResponseWriter, r *http.Request) {
 		}
 		months = n
 	}
+	// category_id narrows the trend to one category (its subcategories
+	// included); 0 means every transaction.
+	var categoryID int64
+	if v := r.URL.Query().Get("category_id"); v != "" {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || id <= 0 {
+			writeError(w, http.StatusBadRequest, "validation_error", "invalid category_id")
+			return
+		}
+		categoryID = id
+	}
 	start := end.AddDate(0, -(months - 1), 0)
 	rows, err := s.DB.QueryContext(r.Context(),
 		`SELECT to_char(m, 'YYYY-MM'),
@@ -776,8 +892,9 @@ func (s *Server) FinanceTrend(w http.ResponseWriter, r *http.Request) {
 		        COALESCE(SUM(t.base_amount) FILTER (WHERE t.kind = 'expense'), 0)
 		 FROM generate_series($1::date, $2::date, interval '1 month') AS m
 		 LEFT JOIN finance_transactions t ON date_trunc('month', t.occurred_on) = m
+		   AND ($3::int = 0 OR t.category_id IN (SELECT id FROM finance_categories WHERE id = $3 OR parent_id = $3))
 		 GROUP BY m ORDER BY m`,
-		start.Format(dateLayout), end.Format(dateLayout))
+		start.Format(dateLayout), end.Format(dateLayout), categoryID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not load the trend")
 		return

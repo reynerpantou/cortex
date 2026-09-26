@@ -241,14 +241,78 @@
         "income": "Semua pemasukan",
         "expense": "Semua pengeluaran"
       },
-      "byCategory": {
-        "income": "Pemasukan per kategori",
-        "expense": "Pengeluaran per kategori"
-      },
       "empty": "Tidak ada catatan pada periode ini.",
       "viewTransactions": "Lihat transaksinya",
-      "trend": "6 bulan terakhir",
-      "trendYear": "Per bulan"
+      "customize": "Atur",
+      "customizeTitle": "Atur statistik",
+      "customizeLead": "Tampilkan, sembunyikan, dan urutkan widget di halaman ini. Tersimpan untuk nanti.",
+      "resetLayout": "Kembalikan ke awal",
+      "allHidden": "Semua widget disembunyikan — pakai Atur untuk menampilkannya.",
+      "by": {
+        "cat": "Kategori",
+        "sub": "Subkategori"
+      },
+      "changesHeadline": {
+        "income": "Pemasukan vs {{period}}:",
+        "expense": "Pengeluaran vs {{period}}:"
+      },
+      "new": "Baru",
+      "was": "sebelumnya {{amount}}",
+      "showLess": "Lebih sedikit",
+      "showAll": "Tampilkan semua {{count}}",
+      "future": "Periode ini belum dimulai.",
+      "dailyAvg": "Rata-rata harian",
+      "overDays": "selama {{count}} hari",
+      "projected": "Perkiraan sampai {{date}}",
+      "daysLeft": "sisa {{count}} hari",
+      "periodTotal": "Total pengeluaran",
+      "paceNote": "Perkiraan mengasumsikan kamu terus belanja dengan rata-rata harian bulan ini — satu belanja besar di awal bulan akan membuatnya lebih tinggi.",
+      "saved": "Ditabung",
+      "savingsRate": "Tingkat tabungan",
+      "savedAmount": "{{amount}} tersisa",
+      "avgRate": "Rata-rata {{count}} bulan",
+      "noIncome": "Belum ada pemasukan tercatat di bulan-bulan ini.",
+      "monthlyAvg": "Rata-rata bulanan: {{amount}}",
+      "methodNotSet": "Tidak diisi",
+      "txCount": "{{count}} transaksi",
+      "biggest": "Terbesar",
+      "frequent": "Tersering",
+      "frequentHint": "Catatan yang berulang (seperti \"kopi\" atau \"grab\") muncul di sini.",
+      "avgEach": "rata-rata {{amount}}",
+      "noSpendDays": "{{count}} dari {{total}} hari tanpa pengeluaran.",
+      "less": "Sedikit",
+      "more": "Banyak",
+      "byWeekday": "Rata-rata per hari",
+      "weekdayDetail": "dari {{count}} hari",
+      "otherIncome": "Pemasukan lain",
+      "fromSavings": "Dari tabungan",
+      "moneyIn": "Pemasukan",
+      "widgets": {
+        "breakdown": "Per kategori",
+        "changes": "Dibanding periode lalu",
+        "pace": "Laju pengeluaran",
+        "trend": "Pemasukan vs pengeluaran",
+        "savings": "Tingkat tabungan",
+        "categoryTrend": "Satu kategori dari waktu ke waktu",
+        "methods": "Per metode pembayaran",
+        "top": "Terbesar & tersering",
+        "rhythm": "Pola pengeluaran",
+        "flow": "Aliran uang"
+      },
+      "desc": {
+        "breakdown": "Donat dan daftar peringkat, per kategori atau semua subkategori",
+        "changes": "Apa yang naik atau turun dibanding bulan atau tahun lalu",
+        "pace": "Rata-rata harian dan perkiraan akhir bulan",
+        "trend": "Pemasukan dan pengeluaran bulanan berdampingan",
+        "savings": "Berapa bagian pemasukan yang tersisa, per bulan",
+        "categoryTrend": "Pilih kategori dan lihat selama 12 bulan",
+        "methods": "Berapa yang lewat tiap metode pembayaran",
+        "top": "Transaksi terbesar dan catatan yang paling sering",
+        "rhythm": "Hari dan hari-dalam-minggu dengan pengeluaran terbanyak",
+        "flow": "Ke mana pemasukan pergi: tiap kategori, plus yang ditabung"
+      },
+      "noChange": "Tidak berubah",
+      "vsPrev": "{{pct}} vs {{period}}"
     },
     "budgets": {
       "lead": "Batas bulanan per kategori, dalam mata uang dasar. Subkategori dihitung ke kategorinya.",
@@ -302,15 +366,23 @@
       "paymentLead": "Dibayar pakai apa — hanya label, saldo tidak dilacak.",
       "newMethod": "Metode pembayaran baru",
       "baseCurrency": "Mata uang dasar",
-      "baseLead": "Semua total dan grafik ditampilkan dalam mata uang ini. Hanya bisa diubah selama belum ada transaksi.",
-      "baseLocked": "Semua total dan grafik ditampilkan dalam mata uang ini. Terkunci karena transaksi sudah menyimpan nilainya dalam mata uang ini.",
+      "baseLead": "Semua total dan grafik ditampilkan dalam mata uang ini.",
       "archivedNotice": "\"{{name}}\" dipakai transaksi lama, jadi disembunyikan dari pilihan, bukan dihapus.",
       "icon": "Ikon",
       "name": "Nama",
       "rename": "Ganti nama",
       "moveUp": "Naikkan",
       "moveDown": "Turunkan",
-      "changeIcon": "Ganti ikon {{name}}"
+      "changeIcon": "Ganti ikon {{name}}",
+      "changeBase": "Ganti",
+      "newBase": "Mata uang dasar baru",
+      "modeConvert": "Simpan data saya",
+      "modeConvertDesc": "Semua transaksi dan anggaran dinilai ulang ke {{to}} dengan kurs di bawah (sama seperti \"data retention\" di Money Manager). Transaksi yang sudah dalam {{to}} menjadi tepat.",
+      "modeReset": "Mulai dari awal",
+      "modeResetDesc": "Hapus semua transaksi dan anggaran. Kategori dan metode pembayaran tetap disimpan.",
+      "resetConfirm": "Saya paham semua transaksi dan anggaran akan dihapus permanen.",
+      "changeTo": "Ganti ke {{currency}}",
+      "baseChanged": "Mata uang dasar diganti dari {{from}} ke {{to}}."
     },
     "icons": {
       "food": "Makanan & minuman",
@@ -323,6 +395,21 @@
       "custom": "Atau tempel emoji apa pun",
       "use": "Pakai",
       "reset": "Reset"
+    },
+    "export": {
+      "button": "Ekspor",
+      "title": "Ekspor ke CSV",
+      "lead": "Bisa dibuka di Excel atau Google Sheets, dan memakai kolom yang sama dengan template impor, jadi file bisa diimpor kembali apa adanya.",
+      "month": "{{month}}",
+      "year": "Seluruh {{year}}",
+      "all": "Semuanya",
+      "custom": "Rentang khusus",
+      "from": "Dari",
+      "to": "Sampai",
+      "onlyFiltered": "Hanya transaksi yang sesuai filter saat ini",
+      "download": "Unduh CSV",
+      "nothing": "Tidak ada transaksi di rentang itu.",
+      "badRange": "Pilih tanggal mulai yang tidak setelah tanggal akhir."
     }
   }
 }

@@ -116,9 +116,18 @@ func (s *Server) FinanceFX(w http.ResponseWriter, r *http.Request) {
 		}
 		day = d
 	}
-	base, err := s.baseCurrency(r.Context())
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
+	// base defaults to the ledger's base currency; the base-currency change
+	// flow asks for a rate into a different one.
+	base := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("base")))
+	if base == "" {
+		b, err := s.baseCurrency(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "could not load settings")
+			return
+		}
+		base = b
+	} else if !currencyRe.MatchString(base) {
+		writeError(w, http.StatusBadRequest, "validation_error", "invalid base")
 		return
 	}
 	rate, rateDate, err := s.fxRate(r.Context(), currency, base, day)

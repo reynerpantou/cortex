@@ -6,15 +6,20 @@ import {
   DEFAULT_METHOD_ICON,
   activeMethods,
   categoryIcon,
+  currentMonth,
   childrenOf,
   financeApi,
+  parseAmount,
+  rateLabel,
   suggestIcon,
+  todayISO,
   topLevel,
   type Category,
   type Kind,
   type PaymentMethod,
 } from "../../lib/finance";
 import IconPicker from "../../components/finance/IconPicker";
+import ExportDialog from "../../components/finance/ExportDialog";
 import { useFinance } from "./FinanceLayout";
 
 export default function Settings() {
@@ -23,7 +28,7 @@ export default function Settings() {
   const [kind, setKind] = useState<Kind>("expense");
   const [expanded, setExpanded] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
-  const [baseError, setBaseError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const run = async (fn: () => Promise<unknown>) => {
     setNotice("");
@@ -153,32 +158,169 @@ export default function Settings() {
         />
       </section>
 
+      <BaseCurrencySection />
+
       <section className="stats-card">
         <header className="stats-card-head">
-          <h2 className="section-title">{t("finance.settings.baseCurrency")}</h2>
+          <h2 className="section-title">{t("finance.export.title")}</h2>
         </header>
-        <p className="muted setting-lead">
-          {meta.has_transactions ? t("finance.settings.baseLocked") : t("finance.settings.baseLead")}
-        </p>
-        <select
-          className="input base-select"
-          value={meta.base_currency}
-          disabled={meta.has_transactions}
-          onChange={(e) => {
-            setBaseError("");
-            financeApi
-              .updateSettings(e.target.value)
-              .then(() => reloadMeta())
-              .catch((err) => setBaseError(err instanceof ApiError ? err.message : t("common.error")));
-          }}
-        >
-          {Array.from(new Set([meta.base_currency, ...meta.currencies])).map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        {baseError && <p className="form-error">{baseError}</p>}
+        <p className="muted setting-lead">{t("finance.export.lead")}</p>
+        <button type="button" className="btn btn-ghost" onClick={() => setExporting(true)}>
+          {t("finance.export.button")}
+        </button>
       </section>
+      {exporting && <ExportDialog meta={meta} month={currentMonth()} onClose={() => setExporting(false)} />}
     </div>
+  );
+}
+
+function BaseCurrencySection() {
+  const { t, i18n } = useTranslation();
+  const { meta, reloadMeta } = useFinance();
+  const oldBase = meta.base_currency;
+  const hasData = meta.has_transactions || meta.has_budgets;
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState("");
+  const [rateText, setRateText] = useState("");
+  const [rateInfo, setRateInfo] = useState<{ loading: boolean; date?: string; unavailable?: boolean }>({ loading: false });
+  const [mode, setMode] = useState<"convert" | "reset">("convert");
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+
+  const choices = meta.currencies.filter((c) => c !== oldBase);
+
+  const pick = (c: string) => {
+    setTarget(c);
+    setRateText("");
+    setError("");
+    if (!c || !hasData) return;
+    setRateInfo({ loading: true });
+    financeApi
+      .fx(oldBase, todayISO(), c)
+      .then((q) => {
+        setRateText(String(q.rate));
+        setRateInfo({ loading: false, date: q.date });
+      })
+      .catch(() => setRateInfo({ loading: false, unavailable: true }));
+  };
+
+  const close = () => {
+    setOpen(false);
+    setTarget("");
+    setMode("convert");
+    setConfirmReset(false);
+    setError("");
+  };
+
+  const rate = parseAmount(rateText);
+  const canSubmit =
+    !!target && !busy && (!hasData || (mode === "convert" ? rate !== null && rate > 0 : confirmReset));
+
+  const submit = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await financeApi.changeBaseCurrency(
+        hasData ? { base_currency: target, mode, rate: mode === "convert" ? rate ?? undefined : undefined } : { base_currency: target }
+      );
+      await reloadMeta();
+      setDone(t("finance.settings.baseChanged", { from: oldBase, to: target }));
+      close();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="stats-card">
+      <header className="stats-card-head">
+        <h2 className="section-title">{t("finance.settings.baseCurrency")}</h2>
+      </header>
+      <p className="muted setting-lead">{t("finance.settings.baseLead")}</p>
+      {done && <p className="notice-ok">{done}</p>}
+      {!open ? (
+        <div className="base-current">
+          <span className="base-code">{oldBase}</span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setOpen(true); setDone(""); }}>
+            {t("finance.settings.changeBase")}
+          </button>
+        </div>
+      ) : (
+        <div className="base-change">
+          <label className="field">
+            <span className="field-label">{t("finance.settings.newBase")}</span>
+            <select className="input base-select" value={target} onChange={(e) => pick(e.target.value)}>
+              <option value="">—</option>
+              {choices.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+
+          {target && hasData && (
+            <>
+              <div className="radio-list">
+                <label className="radio-row">
+                  <input type="radio" name="base-mode" checked={mode === "convert"} onChange={() => setMode("convert")} />
+                  <span>
+                    <strong>{t("finance.settings.modeConvert")}</strong>
+                    <span className="radio-desc">{t("finance.settings.modeConvertDesc", { to: target })}</span>
+                  </span>
+                </label>
+                <label className="radio-row">
+                  <input type="radio" name="base-mode" checked={mode === "reset"} onChange={() => setMode("reset")} />
+                  <span>
+                    <strong>{t("finance.settings.modeReset")}</strong>
+                    <span className="radio-desc">{t("finance.settings.modeResetDesc")}</span>
+                  </span>
+                </label>
+              </div>
+
+              {mode === "convert" ? (
+                <div className="fx-line base-rate">
+                  <span>{`1 ${oldBase} = `}</span>
+                  <input
+                    className="input fx-rate-input"
+                    inputMode="decimal"
+                    aria-label={t("finance.form.rate")}
+                    value={rateText}
+                    placeholder={rateInfo.loading ? "…" : ""}
+                    onChange={(e) => setRateText(e.target.value)}
+                  />
+                  <span>{target}</span>
+                  {rate !== null && rate > 0 && rate < 1 && <span className="muted">{`(${rateLabel(oldBase, target, rate, i18n.resolvedLanguage ?? "en")})`}</span>}
+                  {rateInfo.date && <span className="muted">{t("finance.form.rateSource", { date: rateInfo.date })}</span>}
+                  {rateInfo.unavailable && <span className="fx-warn">{t("finance.form.rateUnavailable")}</span>}
+                </div>
+              ) : (
+                <label className="radio-row reset-confirm">
+                  <input type="checkbox" checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} />
+                  <span>{t("finance.settings.resetConfirm")}</span>
+                </label>
+              )}
+            </>
+          )}
+
+          {error && <p className="form-error">{error}</p>}
+          <div className="form-actions">
+            <span className="spacer" />
+            <button type="button" className="btn btn-ghost" onClick={close}>{t("form.cancel")}</button>
+            <button
+              type="button"
+              className={`btn ${mode === "reset" && hasData ? "btn-danger" : "btn-primary"}`}
+              disabled={!canSubmit}
+              onClick={() => void submit()}
+            >
+              {target ? t("finance.settings.changeTo", { currency: target }) : t("finance.settings.changeBase")}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

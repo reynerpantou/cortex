@@ -18,6 +18,7 @@ import {
 } from "../../lib/finance";
 import MonthSwitcher from "../../components/finance/MonthSwitcher";
 import TxForm from "../../components/finance/TxForm";
+import ExportDialog from "../../components/finance/ExportDialog";
 import { useFinance } from "./FinanceLayout";
 
 type View = "daily" | "calendar";
@@ -63,6 +64,7 @@ export default function Transactions() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(!!(categoryFilter || methodFilter || q));
+  const [exporting, setExporting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -203,6 +205,9 @@ export default function Transactions() {
         >
           {t("filter.title")}{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </button>
+        <button type="button" className="btn btn-ghost" onClick={() => setExporting(true)}>
+          {t("finance.export.button")}
+        </button>
       </div>
 
       {filtersOpen && (
@@ -321,6 +326,19 @@ export default function Transactions() {
             </div>
           )}
         </>
+      )}
+
+      {exporting && (
+        <ExportDialog
+          meta={meta}
+          month={month}
+          filters={{
+            category_id: categoryFilter ? Number(categoryFilter) : undefined,
+            payment_method_id: methodFilter ? Number(methodFilter) : undefined,
+            q: q || undefined,
+          }}
+          onClose={() => setExporting(false)}
+        />
       )}
 
       {editing && (
