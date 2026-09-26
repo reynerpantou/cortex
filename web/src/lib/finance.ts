@@ -635,9 +635,63 @@ function containsWord(haystack: string, needle: string): boolean {
 // kemarin" into draft transactions. It's deliberately simple pattern
 // matching (no AI yet), so every draft goes to the grid for review before
 // anything is saved.
-export function parseQuickEntry(text: string, meta: FinanceMeta): QuickDraft[] {
+const QUICK_SPLIT = /\s*(?:[;；，、\n]|,\s+|\band\b|\bdan\b|\blalu\b|\bterus\b|然后|还有)\s*/i;
+const UNIT_WORDS = new Set(["k", "rb", "ribu", "thousand", "jt", "juta", "million", "mio", "m", "rp", "rp.", "idr"]);
+
+function lastQuickSegment(text: string): { head: string; seg: string } {
+  let cut = 0;
+  for (const m of text.matchAll(new RegExp(QUICK_SPLIT.source, "gi"))) cut = (m.index ?? 0) + m[0].length;
+  return { head: text.slice(0, cut), seg: text.slice(cut) };
+}
+
+// quickEntryQuery is what the quick-entry box looks up in remembered notes:
+// just the words of the entry being typed right now, without amounts.
+export function quickEntryQuery(text: string): string {
+  return lastQuickSegment(text)
+    .seg.split(/\s+/)
+    .filter((w) => w && !/\d/.test(w) && !UNIT_WORDS.has(w.toLowerCase()))
+    .join(" ");
+}
+
+// applyQuickSuggestion swaps the words of the entry being typed for the
+// picked note, keeping any amount already typed ("25rb mie go" → "Mie Gomak 25rb ").
+export function applyQuickSuggestion(text: string, note: string): string {
+  const { head, seg } = lastQuickSegment(text);
+  const kept = seg.split(/\s+/).filter((w) => w && (/\d/.test(w) || UNIT_WORDS.has(w.toLowerCase())));
+  return `${head}${[note, ...kept].join(" ")} `;
+}
+
+// findRememberedNote matches a quick-entry description to a note used
+// before: exactly (ignoring case/spacing), else a single unambiguous
+// word-prefix match ("mie gom"), else a clear near-miss spelling.
+export function findRememberedNote(list: NoteSuggestion[], text: string): NoteSuggestion | null {
+  const q = normalizeNote(text);
+  if (!q) return null;
+  const exact = list.find((n) => normalizeNote(n.note) === q);
+  if (exact) return exact;
+  const qWords = q.split(" ");
+  const prefix = list.filter((n) => {
+    const words = normalizeNote(n.note).split(" ");
+    return qWords.every((w) => words.some((kw) => kw.startsWith(w)));
+  });
+  if (prefix.length === 1 && q.length >= 3) return prefix[0];
+  if (q.length < 4) return null;
+  const ranked = list
+    .map((n) => ({ n, sim: similarity(q, normalizeNote(n.note)) }))
+    .sort((a, b) => b.sim - a.sim);
+  if (ranked[0] && ranked[0].sim >= 0.68 && (!ranked[1] || ranked[1].sim < ranked[0].sim - 0.1)) return ranked[0].n;
+  return null;
+}
+
+// parseQuickEntry turns something like "lunch 45rb gopay, parkir 5k
+// kemarin" into draft transactions. It's deliberately simple pattern
+// matching (no AI yet), so every draft goes to the grid for review before
+// anything is saved. The note keeps only the description ("lunch"), so it
+// lines up with remembered notes; a remembered note also brings the
+// category and payment method it was last booked under.
+export function parseQuickEntry(text: string, meta: FinanceMeta, notes: NoteSuggestion[] = []): QuickDraft[] {
   const segments = text
-    .split(/\s*(?:[;；，、\n]|,\s+|\band\b|\bdan\b|\blalu\b|\bterus\b|然后|还有)\s*/i)
+    .split(QUICK_SPLIT)
     .map((s) => s.trim())
     .filter(Boolean);
 
@@ -652,10 +706,13 @@ export function parseQuickEntry(text: string, meta: FinanceMeta): QuickDraft[] {
     const base = parseAmount(m[1]);
     const amount = base === null ? null : base * multiplierFor(m[2] ?? m[3]);
 
+    let rest = seg.replace(new RegExp(AMOUNT_RE.source, "iu"), " ");
+
     let currency = meta.base_currency;
     for (const [re, code] of CURRENCY_WORDS) {
       if (re.test(seg)) {
         currency = code;
+        rest = rest.replace(re, " ");
         break;
       }
     }
@@ -663,17 +720,35 @@ export function parseQuickEntry(text: string, meta: FinanceMeta): QuickDraft[] {
     let occurred = todayISO();
     if (DAY_BEFORE.test(seg)) occurred = addDays(occurred, -2);
     else if (YESTERDAY.test(seg)) occurred = addDays(occurred, -1);
-
-    const category = matchCategory(lower, meta);
-    let kind: Kind = category?.kind ?? (INCOME_HINTS.test(seg) ? "income" : "expense");
-    if (!category && INCOME_HINTS.test(seg)) kind = "income";
+    rest = rest.replace(DAY_BEFORE, " ").replace(YESTERDAY, " ");
 
     let method: PaymentMethod | null = null;
     for (const p of activeMethods(meta)) {
-      const aliases = [p.name, ...(METHOD_ALIASES[p.name] ?? [])];
-      if (aliases.some((a) => containsWord(lower, a))) {
+      const alias = [p.name, ...(METHOD_ALIASES[p.name] ?? [])].find((a) => containsWord(lower, a));
+      if (alias) {
         method = p;
+        rest = rest.replace(new RegExp(`(^|[^\\p{L}\\p{N}])${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=$|[^\\p{L}\\p{N}])`, "iu"), "$1 ");
         break;
+      }
+    }
+    rest = rest.replace(/\s+/g, " ").replace(/^[\s,.:;\-–—]+|[\s,.:;\-–—]+$/g, "");
+
+    let category = matchCategory(lower, meta);
+    let kind: Kind = category?.kind ?? (INCOME_HINTS.test(seg) ? "income" : "expense");
+    let note = rest;
+
+    const remembered = findRememberedNote(notes, rest);
+    if (remembered) {
+      note = remembered.note;
+      const c = remembered.category_id != null ? meta.categories.find((x) => x.id === remembered.category_id && !x.archived) : undefined;
+      if (c) {
+        category = c;
+        kind = c.kind;
+      } else if (!category) {
+        kind = remembered.kind;
+      }
+      if (!method && remembered.payment_method_id != null) {
+        method = meta.payment_methods.find((p) => p.id === remembered.payment_method_id && !p.archived) ?? null;
       }
     }
 
@@ -684,7 +759,7 @@ export function parseQuickEntry(text: string, meta: FinanceMeta): QuickDraft[] {
       occurred_on: occurred,
       category_id: category?.id ?? null,
       payment_method_id: method?.id ?? null,
-      note: seg,
+      note,
     });
   }
   return drafts;
