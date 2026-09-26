@@ -19,7 +19,8 @@
     "newGroup": "Grup baru",
     "groupNamePlaceholder": "Nama grup",
     "deleteGroup": "Hapus grup",
-    "finance": "Keuangan"
+    "finance": "Keuangan",
+    "admin": "Administrasi"
   },
   "login": {
     "subtitle": "Masuk untuk melanjutkan",
@@ -354,7 +355,8 @@
       "errDate": "Masukkan tanggal yang valid",
       "errCategory": "Kategori ini belum ada — buat di atas atau pilih yang lain",
       "errMethod": "Metode pembayaran ini belum ada — buat di atas atau pilih yang lain",
-      "ratePlaceholder": "1 {{currency}} = ? {{base}}"
+      "ratePlaceholder": "1 {{currency}} = ? {{base}}",
+      "listeningHint": "Mendengarkan — ucapkan semuanya, jeda tidak apa-apa. Ketuk ■ kalau sudah selesai (juga berhenti sendiri setelah beberapa detik hening)."
     },
     "settings": {
       "categories": "Kategori",
@@ -415,5 +417,45 @@
       "used": "dipakai {{count}}×",
       "filled": "Diisi dari sebelumnya: {{what}}"
     }
+  },
+  "access": {
+    "title": "Tidak ada akses",
+    "notGranted": "Akun kamu belum diberi akses ke halaman ini. Minta ke administrator jika perlu.",
+    "adminOnly": "Hanya administrator yang bisa membuka halaman ini.",
+    "home": "Ke beranda"
+  },
+  "admin": {
+    "title": "Administrasi",
+    "lead": "Buat akun dan pilih halaman apa saja yang bisa dibuka tiap orang.",
+    "newUser": "Pengguna baru",
+    "edit": "Ubah",
+    "editTitle": "Ubah @{{username}}",
+    "adminBadge": "Admin",
+    "you": "Kamu",
+    "never": "belum pernah",
+    "lastSignIn": "terakhir masuk {{date}}",
+    "pages": "Halaman yang bisa dibuka",
+    "pagesHint": "Beranda dan Profil selalu tersedia. Halaman yang dicentang muncul di sidebar mereka; yang tidak dicentang diblokir, bukan sekadar disembunyikan.",
+    "role": "Peran",
+    "isAdmin": "Administrator",
+    "isAdminDesc": "Bisa membuka halaman ini: membuat, mengubah, dan menghapus akun.",
+    "isAdminSelf": "Kamu tidak bisa menghapus peran administrator milikmu sendiri.",
+    "tempPassword": "Kata sandi sementara",
+    "newPassword": "Kata sandi baru",
+    "generate": "Buat acak",
+    "passwordHint": "Minimal 8 karakter. Mereka bisa menggantinya dari Profil setelah masuk.",
+    "resetPassword": "Reset kata sandi",
+    "resetPasswordDesc": "Mengatur kata sandi baru dan mengeluarkan mereka dari semua perangkat.",
+    "usernameHint": "Nama pengguna tidak bisa diubah di sini — orangnya bisa mengubah sendiri dari Profil.",
+    "usernameRequired": "Nama pengguna wajib diisi",
+    "passwordShort": "Kata sandi minimal 8 karakter",
+    "create": "Buat akun",
+    "createdTitle": "@{{username}} siap — bagikan detail masuk ini",
+    "resetTitle": "Kata sandi baru untuk @{{username}}",
+    "createdLead": "Kata sandi hanya ditampilkan sekali ini.",
+    "copy": "Salin",
+    "deleteTitle": "Hapus @{{username}}?",
+    "deleteLead": "Akun dan semua datanya akan dihapus permanen, termasuk catatan Keuangan mereka. Tidak bisa dibatalkan.",
+    "deleteConfirm": "Hapus akun"
   }
 }

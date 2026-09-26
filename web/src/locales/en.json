@@ -19,7 +19,8 @@
     "newGroup": "New group",
     "groupNamePlaceholder": "Group name",
     "deleteGroup": "Delete group",
-    "finance": "Finance"
+    "finance": "Finance",
+    "admin": "Administration"
   },
   "login": {
     "subtitle": "Sign in to continue",
@@ -363,7 +364,8 @@
       "errDate": "Enter a valid date",
       "errCategory": "This category doesn't exist yet — create it above or pick another",
       "errMethod": "This payment method doesn't exist yet — create it above or pick another",
-      "ratePlaceholder": "1 {{currency}} = ? {{base}}"
+      "ratePlaceholder": "1 {{currency}} = ? {{base}}",
+      "listeningHint": "Listening — say everything, pauses are fine. Tap ■ when you're done (it also stops after a few seconds of silence)."
     },
     "settings": {
       "categories": "Categories",
@@ -425,5 +427,45 @@
       "used": "used {{count}}×",
       "filled": "Filled in from last time: {{what}}"
     }
+  },
+  "access": {
+    "title": "No access",
+    "notGranted": "Your account hasn't been given access to this page. Ask an administrator if you need it.",
+    "adminOnly": "Only administrators can open this page.",
+    "home": "Go home"
+  },
+  "admin": {
+    "title": "Administration",
+    "lead": "Create accounts and choose which pages each person can open.",
+    "newUser": "New user",
+    "edit": "Edit",
+    "editTitle": "Edit @{{username}}",
+    "adminBadge": "Admin",
+    "you": "You",
+    "never": "never",
+    "lastSignIn": "last sign-in {{date}}",
+    "pages": "Pages they can open",
+    "pagesHint": "Home and Profile are always available. Each ticked page shows up in their sidebar; unticked pages are blocked, not just hidden.",
+    "role": "Role",
+    "isAdmin": "Administrator",
+    "isAdminDesc": "Can open this page: create, edit and delete accounts.",
+    "isAdminSelf": "You can't remove your own administrator role.",
+    "tempPassword": "Temporary password",
+    "newPassword": "New password",
+    "generate": "Generate",
+    "passwordHint": "At least 8 characters. They can change it from Profile after signing in.",
+    "resetPassword": "Reset password",
+    "resetPasswordDesc": "Sets a new password and signs them out on every device.",
+    "usernameHint": "Usernames can't be changed here — the person can change their own from Profile.",
+    "usernameRequired": "Username is required",
+    "passwordShort": "Password must be at least 8 characters",
+    "create": "Create account",
+    "createdTitle": "@{{username}} is ready — share these sign-in details",
+    "resetTitle": "New password for @{{username}}",
+    "createdLead": "This is the only time the password is shown.",
+    "copy": "Copy",
+    "deleteTitle": "Delete @{{username}}?",
+    "deleteLead": "This permanently deletes the account and everything that belongs to it, including their Finance records. It can't be undone.",
+    "deleteConfirm": "Delete account"
   }
 }

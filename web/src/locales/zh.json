@@ -19,7 +19,8 @@
     "newGroup": "新建分组",
     "groupNamePlaceholder": "分组名称",
     "deleteGroup": "删除分组",
-    "finance": "财务"
+    "finance": "财务",
+    "admin": "管理"
   },
   "login": {
     "subtitle": "登录以继续",
@@ -354,7 +355,8 @@
       "errDate": "请输入有效日期",
       "errCategory": "该类别还不存在——请在上方创建或选择其他类别",
       "errMethod": "该支付方式还不存在——请在上方创建或选择其他方式",
-      "ratePlaceholder": "1 {{currency}} = ? {{base}}"
+      "ratePlaceholder": "1 {{currency}} = ? {{base}}",
+      "listeningHint": "正在聆听——一次说完，中间停顿没关系。说完点 ■（静音几秒后也会自动停止）。"
     },
     "settings": {
       "categories": "类别",
@@ -415,5 +417,45 @@
       "used": "用过 {{count}} 次",
       "filled": "已按上次填写：{{what}}"
     }
+  },
+  "access": {
+    "title": "无权访问",
+    "notGranted": "你的账户尚未获得此页面的访问权限。如有需要请联系管理员。",
+    "adminOnly": "只有管理员可以打开此页面。",
+    "home": "返回首页"
+  },
+  "admin": {
+    "title": "管理",
+    "lead": "创建账户，并选择每个人可以打开哪些页面。",
+    "newUser": "新用户",
+    "edit": "编辑",
+    "editTitle": "编辑 @{{username}}",
+    "adminBadge": "管理员",
+    "you": "你",
+    "never": "从未",
+    "lastSignIn": "上次登录 {{date}}",
+    "pages": "可打开的页面",
+    "pagesHint": "首页和个人资料始终可用。勾选的页面会出现在其侧边栏中；未勾选的页面会被禁止访问，而不只是隐藏。",
+    "role": "角色",
+    "isAdmin": "管理员",
+    "isAdminDesc": "可打开此页面：创建、编辑和删除账户。",
+    "isAdminSelf": "你不能移除自己的管理员角色。",
+    "tempPassword": "临时密码",
+    "newPassword": "新密码",
+    "generate": "随机生成",
+    "passwordHint": "至少 8 个字符。对方登录后可在个人资料中修改。",
+    "resetPassword": "重置密码",
+    "resetPasswordDesc": "设置新密码并让其在所有设备上退出登录。",
+    "usernameHint": "此处无法修改用户名——本人可在个人资料中修改。",
+    "usernameRequired": "请填写用户名",
+    "passwordShort": "密码至少 8 个字符",
+    "create": "创建账户",
+    "createdTitle": "@{{username}} 已创建——请分享以下登录信息",
+    "resetTitle": "@{{username}} 的新密码",
+    "createdLead": "密码仅显示这一次。",
+    "copy": "复制",
+    "deleteTitle": "删除 @{{username}}？",
+    "deleteLead": "将永久删除该账户及其所有数据，包括财务记录。此操作无法撤销。",
+    "deleteConfirm": "删除账户"
   }
 }

@@ -10,6 +10,12 @@ export interface ModuleDef {
 // entry here (plus its route in App.tsx and description string in the
 // locales) to introduce a new module — Layout, Sidebar, and Home don't need
 // to change.
+// A module is usable only if the account was granted it (Administration
+// sets this; the server enforces it too).
+export function canUse(user: { modules?: string[] } | null, key: string): boolean {
+  return !!user?.modules?.includes(key);
+}
+
 export const modules: ModuleDef[] = [
   {
     key: "radar",

@@ -88,6 +88,8 @@ type User struct {
 	DisplayNameEN string    `json:"display_name_en"`
 	DisplayNameID string    `json:"display_name_id"`
 	DisplayNameZH string    `json:"display_name_zh"`
+	IsAdmin       bool      `json:"is_admin"`
+	Modules       []string  `json:"modules"`
 	PasswordHash  string    `json:"-"`
 	CreatedAt     time.Time `json:"created_at"`
 }

@@ -99,6 +99,7 @@ type SpeechRecognitionLike = {
   continuous: boolean;
   start: () => void;
   stop: () => void;
+  abort?: () => void;
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onend: (() => void) | null;
   onerror: ((e: { error: string }) => void) | null;
@@ -110,6 +111,17 @@ function speechCtor(): (new () => SpeechRecognitionLike) | null {
 }
 
 const SPEECH_LANG: Record<string, string> = { en: "en-US", id: "id-ID", zh: "zh-CN" };
+const SILENCE_MS = 4000; // stop this long after the last word heard
+const NO_SPEECH_MS = 9000; // give up if nothing is said at all
+
+interface VoiceSession {
+  rec: SpeechRecognitionLike;
+  done: boolean;
+  committed: string; // text from earlier sessions the browser ended on its own
+  session: string;
+  restarts: number;
+  timer?: number;
+}
 
 export default function Add() {
   const { t, i18n } = useTranslation();
@@ -141,7 +153,7 @@ export default function Add() {
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [creatingMissing, setCreatingMissing] = useState(false);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceRef = useRef<VoiceSession | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState("");
 
@@ -186,36 +198,82 @@ export default function Add() {
 
   const Speech = speechCtor();
 
+  // Browsers end a speech session at the first pause ("parking 45k" …
+  // "day before" got cut off and submitted). So: listen continuously,
+  // restart if the browser ends the session on its own, and finish only
+  // when the user taps stop or after a few seconds of silence.
+  const finishVoice = () => {
+    const v = voiceRef.current;
+    if (!v || v.done) return;
+    v.done = true;
+    clearTimeout(v.timer);
+    v.rec.stop();
+  };
+
   const toggleVoice = () => {
     if (!Speech) return;
-    if (listening) {
-      recognitionRef.current?.stop();
+    if (voiceRef.current) {
+      finishVoice();
       return;
     }
     const rec = new Speech();
     rec.lang = SPEECH_LANG[lang] ?? "en-US";
     rec.interimResults = true;
-    rec.continuous = false;
-    let finalText = "";
+    rec.continuous = true;
+    const v: VoiceSession = { rec, done: false, committed: "", session: "", restarts: 0 };
+    voiceRef.current = v;
+    const full = () => [v.committed, v.session].filter(Boolean).join(" ").trim();
+    const armSilence = (ms: number) => {
+      clearTimeout(v.timer);
+      v.timer = window.setTimeout(finishVoice, ms);
+    };
     rec.onresult = (e) => {
-      finalText = Array.from(e.results).map((r) => r[0].transcript).join(" ");
-      setQuickText(finalText);
+      v.session = Array.from(e.results).map((r) => r[0].transcript).join(" ").trim();
+      setQuickText(full());
+      armSilence(SILENCE_MS);
     };
     rec.onerror = (e) => {
-      if (e.error !== "no-speech" && e.error !== "aborted") setNotice({ kind: "error", text: t("finance.addPage.voiceError") });
+      if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") {
+        v.done = true;
+        setNotice({ kind: "error", text: t("finance.addPage.voiceError") });
+      }
     };
     rec.onend = () => {
+      if (!v.done && v.restarts < 20) {
+        v.committed = full();
+        v.session = "";
+        v.restarts++;
+        try {
+          rec.start();
+          return;
+        } catch {
+          // couldn't resume — finish with what was heard
+        }
+      }
+      clearTimeout(v.timer);
+      voiceRef.current = null;
       setListening(false);
-      recognitionRef.current = null;
-      if (finalText.trim()) addFromQuick(finalText, "voice");
+      const text = full();
+      if (text) addFromQuick(text, "voice");
     };
-    recognitionRef.current = rec;
     setNotice(null);
+    setQuickText("");
     setListening(true);
+    armSilence(NO_SPEECH_MS);
     rec.start();
   };
 
-  useEffect(() => () => recognitionRef.current?.stop(), []);
+  useEffect(
+    () => () => {
+      const v = voiceRef.current;
+      if (v) {
+        v.done = true;
+        clearTimeout(v.timer);
+        v.rec.abort?.();
+      }
+    },
+    []
+  );
 
   const importText = (text: string) => {
     const parsed = parseImport(text);
@@ -406,7 +464,9 @@ export default function Add() {
             {t("finance.addPage.quickAdd")}
           </button>
         </form>
-        <p className="quick-entry-hint muted">{t("finance.addPage.quickHint")}</p>
+        <p className={`quick-entry-hint ${listening ? "is-listening" : "muted"}`}>
+          {listening ? t("finance.addPage.listeningHint") : t("finance.addPage.quickHint")}
+        </p>
       </section>
 
       {notice && <p className={notice.kind === "ok" ? "notice-ok" : "form-error"}>{notice.text}</p>}
