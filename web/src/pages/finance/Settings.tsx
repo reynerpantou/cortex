@@ -1,7 +1,20 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../lib/api";
-import { activeMethods, childrenOf, financeApi, topLevel, type Category, type Kind, type PaymentMethod } from "../../lib/finance";
+import {
+  DEFAULT_CATEGORY_ICON,
+  DEFAULT_METHOD_ICON,
+  activeMethods,
+  categoryIcon,
+  childrenOf,
+  financeApi,
+  suggestIcon,
+  topLevel,
+  type Category,
+  type Kind,
+  type PaymentMethod,
+} from "../../lib/finance";
+import IconPicker from "../../components/finance/IconPicker";
 import { useFinance } from "./FinanceLayout";
 
 export default function Settings() {
@@ -9,9 +22,6 @@ export default function Settings() {
   const { meta, reloadMeta } = useFinance();
   const [kind, setKind] = useState<Kind>("expense");
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [newName, setNewName] = useState("");
-  const [newSub, setNewSub] = useState("");
-  const [newMethod, setNewMethod] = useState("");
   const [notice, setNotice] = useState("");
   const [baseError, setBaseError] = useState("");
 
@@ -72,12 +82,13 @@ export default function Settings() {
               <li key={c.id} className="setting-item">
                 <EditableRow
                   item={c}
+                  fallbackIcon={DEFAULT_CATEGORY_ICON}
                   onSave={(name, icon) => run(() => financeApi.updateCategory(c.id, { name, icon, archived: false }))}
                   onUp={i > 0 ? () => move(tops, i, -1, financeApi.reorderCategories) : undefined}
                   onDown={i < tops.length - 1 ? () => move(tops, i, 1, financeApi.reorderCategories) : undefined}
                   onDelete={() => void removeCategory(c)}
                   extra={
-                    <button type="button" className="link-btn" aria-expanded={open} onClick={() => { setExpanded(open ? null : c.id); setNewSub(""); }}>
+                    <button type="button" className="link-btn" aria-expanded={open} onClick={() => setExpanded(open ? null : c.id)}>
                       {t("finance.settings.subcount", { count: subs.length })} {open ? "▾" : "▸"}
                     </button>
                   }
@@ -88,8 +99,8 @@ export default function Settings() {
                       <li key={s.id}>
                         <EditableRow
                           item={s}
-                          hideIcon
-                          onSave={(name) => run(() => financeApi.updateCategory(s.id, { name, icon: s.icon, archived: false }))}
+                          fallbackIcon={categoryIcon(meta, c)}
+                          onSave={(name, icon) => run(() => financeApi.updateCategory(s.id, { name, icon, archived: false }))}
                           onUp={si > 0 ? () => move(subs, si, -1, financeApi.reorderCategories) : undefined}
                           onDown={si < subs.length - 1 ? () => move(subs, si, 1, financeApi.reorderCategories) : undefined}
                           onDelete={() => void removeCategory(s)}
@@ -97,17 +108,11 @@ export default function Settings() {
                       </li>
                     ))}
                     <li>
-                      <form
-                        className="setting-add"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          if (!newSub.trim()) return;
-                          void run(() => financeApi.createCategory({ kind, parent_id: c.id, name: newSub.trim(), icon: "" })).then(() => setNewSub(""));
-                        }}
-                      >
-                        <input className="input" value={newSub} placeholder={t("finance.settings.newSubcategory", { name: c.name })} onChange={(e) => setNewSub(e.target.value)} />
-                        <button type="submit" className="btn btn-ghost btn-sm" disabled={!newSub.trim()}>{t("finance.settings.add")}</button>
-                      </form>
+                      <AddRow
+                        placeholder={t("finance.settings.newSubcategory", { name: c.name })}
+                        fallbackIcon={categoryIcon(meta, c)}
+                        onAdd={(name, icon) => run(() => financeApi.createCategory({ kind, parent_id: c.id, name, icon }))}
+                      />
                     </li>
                   </ul>
                 )}
@@ -115,17 +120,11 @@ export default function Settings() {
             );
           })}
         </ul>
-        <form
-          className="setting-add"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!newName.trim()) return;
-            void run(() => financeApi.createCategory({ kind, parent_id: null, name: newName.trim(), icon: "" })).then(() => setNewName(""));
-          }}
-        >
-          <input className="input" value={newName} placeholder={t("finance.settings.newCategory")} onChange={(e) => setNewName(e.target.value)} />
-          <button type="submit" className="btn btn-ghost btn-sm" disabled={!newName.trim()}>{t("finance.settings.add")}</button>
-        </form>
+        <AddRow
+          placeholder={t("finance.settings.newCategory")}
+          fallbackIcon={DEFAULT_CATEGORY_ICON}
+          onAdd={(name, icon) => run(() => financeApi.createCategory({ kind, parent_id: null, name, icon }))}
+        />
       </section>
 
       <section className="stats-card">
@@ -138,6 +137,7 @@ export default function Settings() {
             <li key={p.id} className="setting-item">
               <EditableRow
                 item={p}
+                fallbackIcon={DEFAULT_METHOD_ICON}
                 onSave={(name, icon) => run(() => financeApi.updatePaymentMethod(p.id, { name, icon, archived: false }))}
                 onUp={i > 0 ? () => move(methods, i, -1, financeApi.reorderPaymentMethods) : undefined}
                 onDown={i < methods.length - 1 ? () => move(methods, i, 1, financeApi.reorderPaymentMethods) : undefined}
@@ -146,17 +146,11 @@ export default function Settings() {
             </li>
           ))}
         </ul>
-        <form
-          className="setting-add"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!newMethod.trim()) return;
-            void run(() => financeApi.createPaymentMethod({ name: newMethod.trim(), icon: "" })).then(() => setNewMethod(""));
-          }}
-        >
-          <input className="input" value={newMethod} placeholder={t("finance.settings.newMethod")} onChange={(e) => setNewMethod(e.target.value)} />
-          <button type="submit" className="btn btn-ghost btn-sm" disabled={!newMethod.trim()}>{t("finance.settings.add")}</button>
-        </form>
+        <AddRow
+          placeholder={t("finance.settings.newMethod")}
+          fallbackIcon={DEFAULT_METHOD_ICON}
+          onAdd={(name, icon) => run(() => financeApi.createPaymentMethod({ name, icon }))}
+        />
       </section>
 
       <section className="stats-card">
@@ -188,9 +182,43 @@ export default function Settings() {
   );
 }
 
+function AddRow({
+  placeholder,
+  fallbackIcon,
+  onAdd,
+}: {
+  placeholder: string;
+  fallbackIcon: string;
+  onAdd: (name: string, icon: string) => Promise<unknown>;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  // Until the user picks one, the icon follows what they type ("Pets" → 🐾).
+  const [pickedIcon, setPickedIcon] = useState<string | null>(null);
+  const icon = pickedIcon ?? suggestIcon(name);
+
+  return (
+    <form
+      className="setting-add"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        void onAdd(name.trim(), icon).then(() => {
+          setName("");
+          setPickedIcon(null);
+        });
+      }}
+    >
+      <IconPicker value={icon} fallback={fallbackIcon} label={t("finance.settings.icon")} onChange={setPickedIcon} />
+      <input className="input" value={name} placeholder={placeholder} onChange={(e) => setName(e.target.value)} />
+      <button type="submit" className="btn btn-ghost btn-sm" disabled={!name.trim()}>{t("finance.settings.add")}</button>
+    </form>
+  );
+}
+
 function EditableRow({
   item,
-  hideIcon,
+  fallbackIcon,
   onSave,
   onUp,
   onDown,
@@ -198,7 +226,7 @@ function EditableRow({
   extra,
 }: {
   item: { name: string; icon: string };
-  hideIcon?: boolean;
+  fallbackIcon: string;
   onSave: (name: string, icon: string) => Promise<void> | void;
   onUp?: () => void;
   onDown?: () => void;
@@ -208,8 +236,16 @@ function EditableRow({
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(item.name);
-  const [icon, setIcon] = useState(item.icon);
   const [confirming, setConfirming] = useState(false);
+
+  const picker = (
+    <IconPicker
+      value={item.icon}
+      fallback={fallbackIcon}
+      label={t("finance.settings.changeIcon", { name: item.name })}
+      onChange={(icon) => void onSave(item.name, icon)}
+    />
+  );
 
   if (editing) {
     return (
@@ -218,15 +254,13 @@ function EditableRow({
         onSubmit={(e) => {
           e.preventDefault();
           if (!name.trim()) return;
-          void Promise.resolve(onSave(name.trim(), icon.trim())).then(() => setEditing(false));
+          void Promise.resolve(onSave(name.trim(), item.icon)).then(() => setEditing(false));
         }}
       >
-        {!hideIcon && (
-          <input className="input setting-icon-input" value={icon} maxLength={8} aria-label={t("finance.settings.icon")} placeholder="🙂" onChange={(e) => setIcon(e.target.value)} />
-        )}
+        {picker}
         <input className="input" value={name} autoFocus aria-label={t("finance.settings.name")} onChange={(e) => setName(e.target.value)} />
         <button type="submit" className="btn btn-primary btn-sm">{t("form.save")}</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditing(false); setName(item.name); setIcon(item.icon); }}>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditing(false); setName(item.name); }}>
           {t("form.cancel")}
         </button>
       </form>
@@ -235,12 +269,19 @@ function EditableRow({
 
   return (
     <div className="setting-row">
-      {!hideIcon && <span className="setting-icon" aria-hidden="true">{item.icon || "•"}</span>}
-      <button type="button" className="setting-name" onClick={() => setEditing(true)} title={t("finance.settings.rename")}>
-        {item.name}
-      </button>
+      {picker}
+      <span className="setting-name">{item.name}</span>
       {extra}
       <span className="setting-actions">
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => { setName(item.name); setEditing(true); }}
+          aria-label={t("finance.settings.rename")}
+          title={t("finance.settings.rename")}
+        >
+          ✎
+        </button>
         <button type="button" className="icon-btn" disabled={!onUp} onClick={onUp} aria-label={t("finance.settings.moveUp")}>↑</button>
         <button type="button" className="icon-btn" disabled={!onDown} onClick={onDown} aria-label={t("finance.settings.moveDown")}>↓</button>
         {confirming ? (

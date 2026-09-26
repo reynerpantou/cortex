@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { childrenOf, topLevel, type FinanceMeta, type Kind } from "../../lib/finance";
+import { categoryIcon, childrenOf, topLevel, type FinanceMeta, type Kind } from "../../lib/finance";
 
 interface Props {
   meta: FinanceMeta;
@@ -27,7 +27,7 @@ export default function CategoryPicker({ meta, kind, value, onChange }: Props) {
             aria-pressed={topId === c.id}
             onClick={() => onChange(topId === c.id ? null : c.id)}
           >
-            <span className="cat-chip-icon" aria-hidden="true">{c.icon || "•"}</span>
+            <span className="cat-chip-icon" aria-hidden="true">{categoryIcon(meta, c)}</span>
             <span className="cat-chip-name">{c.name}</span>
           </button>
         ))}
@@ -49,6 +49,7 @@ export default function CategoryPicker({ meta, kind, value, onChange }: Props) {
               className={`chip-toggle chip-sm ${value === s.id ? "is-on" : ""}`}
               onClick={() => onChange(s.id)}
             >
+              {s.icon && <span aria-hidden="true">{s.icon}</span>}
               {s.name}
             </button>
           ))}

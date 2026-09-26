@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   activeMethods,
+  categoryIcon,
   categoryLabel,
   childrenOf,
   currentMonth,
@@ -136,7 +137,7 @@ export default function Transactions() {
           const method = meta.payment_methods.find((p) => p.id === tx.payment_method_id);
           return (
             <button key={tx.id} type="button" className="tx-row" onClick={() => setEditing(tx)}>
-              <span className="tx-row-icon" aria-hidden="true">{cat?.icon || "•"}</span>
+              <span className="tx-row-icon" aria-hidden="true">{cat?.icon ?? "❔"}</span>
               <span className="tx-row-main">
                 <span className="tx-row-cat">
                   {cat ? (cat.parent ? `${cat.parent} › ${cat.name}` : cat.name) : t("finance.uncategorized")}
@@ -217,7 +218,7 @@ export default function Transactions() {
             {(["expense", "income"] as const).map((k) => (
               <optgroup key={k} label={t(`finance.kind.${k}`)}>
                 {topLevel(meta, k, true).flatMap((c) => [
-                  <option key={c.id} value={c.id}>{`${c.icon} ${c.name}`}</option>,
+                  <option key={c.id} value={c.id}>{`${categoryIcon(meta, c)} ${c.name}`}</option>,
                   ...childrenOf(meta, c.id, true).map((s) => (
                     <option key={s.id} value={s.id}>{`   ${c.name} › ${s.name}`}</option>
                   )),

@@ -199,13 +199,88 @@ export function monthLabel(month: string, lang: string): string {
 
 // ---- category helpers ----
 
+export const DEFAULT_CATEGORY_ICON = "🏷️";
+export const DEFAULT_METHOD_ICON = "💳";
+
+// A subcategory without its own icon borrows its parent's; anything still
+// blank falls back to a neutral tag rather than an anonymous dot.
+export function categoryIcon(meta: FinanceMeta, c: Category): string {
+  if (c.icon) return c.icon;
+  if (c.parent_id != null) {
+    const p = meta.categories.find((x) => x.id === c.parent_id);
+    if (p?.icon) return p.icon;
+  }
+  return DEFAULT_CATEGORY_ICON;
+}
+
+export function methodIcon(p: PaymentMethod): string {
+  return p.icon || DEFAULT_METHOD_ICON;
+}
+
 export function categoryLabel(meta: FinanceMeta, id: number | null): { icon: string; name: string; parent?: string } | null {
   if (id == null) return null;
   const c = meta.categories.find((x) => x.id === id);
   if (!c) return null;
-  if (c.parent_id == null) return { icon: c.icon, name: c.name };
+  if (c.parent_id == null) return { icon: categoryIcon(meta, c), name: c.name };
   const p = meta.categories.find((x) => x.id === c.parent_id);
-  return { icon: p?.icon ?? "", name: c.name, parent: p?.name };
+  return { icon: categoryIcon(meta, c), name: c.name, parent: p?.name };
+}
+
+// Curated icon set for the picker, grouped so it scans quickly.
+export const ICON_GROUPS: { key: string; icons: string[] }[] = [
+  { key: "food", icons: ["🍜", "🍚", "🍔", "🍕", "🍣", "🥗", "🍳", "🥐", "☕", "🧋", "🍺", "🍰", "🛒", "🥦"] },
+  { key: "transport", icons: ["🛵", "🚗", "🚕", "🚌", "🚆", "✈️", "⛽", "🅿️", "🚲", "🚢"] },
+  { key: "home", icons: ["🏠", "💡", "💧", "📶", "🔥", "🛋️", "🧹", "🔧", "🪴"] },
+  { key: "money", icons: ["💰", "💵", "💳", "🏦", "📈", "💼", "🎉", "🪙", "🧾", "↩️", "📱"] },
+  { key: "shopping", icons: ["🛍️", "👕", "👟", "💄", "📦", "🎁", "💻", "📷", "🎧"] },
+  { key: "health", icons: ["💊", "🏥", "🦷", "🏋️", "🧘", "💈", "🧴"] },
+  { key: "life", icons: ["🎬", "🎮", "🎵", "📚", "🎓", "🐾", "🧸", "👶", "💍", "🙏", "❤️", "🌴", "⚽", "🏷️"] },
+];
+
+const ICON_KEYWORDS: [RegExp, string][] = [
+  [/pet|cat|dog|hewan|kucing|anjing|宠物|猫|狗/i, "🐾"],
+  [/coffee|kopi|咖啡/i, "☕"],
+  [/food|makan|eat|meal|restaurant|吃|餐|饭/i, "🍜"],
+  [/grocer|belanja dapur|supermarket|超市/i, "🛒"],
+  [/car|mobil|汽车/i, "🚗"],
+  [/fuel|bensin|gas|油/i, "⛽"],
+  [/transport|ojek|grab|gojek|taxi|交通|打车/i, "🛵"],
+  [/flight|travel|trip|holiday|liburan|旅/i, "✈️"],
+  [/rent|house|home|rumah|kos|房/i, "🏠"],
+  [/electric|listrik|电/i, "💡"],
+  [/water|air|水/i, "💧"],
+  [/internet|wifi|网/i, "📶"],
+  [/phone|pulsa|手机|话费/i, "📱"],
+  [/subscription|langganan|netflix|spotify|订阅/i, "🔁"],
+  [/cloth|baju|fashion|衣/i, "👕"],
+  [/shop|belanja|购物/i, "🛍️"],
+  [/health|doctor|dokter|hospital|medic|obat|医|药/i, "💊"],
+  [/gym|fitness|sport|olahraga|健身|运动/i, "🏋️"],
+  [/beauty|salon|hair|rambut|美/i, "💈"],
+  [/game|gaming|游戏/i, "🎮"],
+  [/movie|film|cinema|bioskop|电影/i, "🎬"],
+  [/music|musik|音乐/i, "🎵"],
+  [/book|buku|书/i, "📚"],
+  [/school|course|kursus|sekolah|education|pendidikan|学/i, "🎓"],
+  [/kid|child|anak|baby|bayi|孩|宝宝/i, "🧸"],
+  [/gift|hadiah|kado|礼/i, "🎁"],
+  [/donat|charity|zakat|sedekah|捐/i, "🙏"],
+  [/salary|gaji|工资|薪/i, "💼"],
+  [/bonus|奖金/i, "🎉"],
+  [/invest|saham|stock|crypto|投资|股/i, "📈"],
+  [/interest|bunga|利息/i, "🪙"],
+  [/refund|退款/i, "↩️"],
+  [/tax|pajak|税/i, "🧾"],
+  [/insurance|asuransi|保险/i, "🛡️"],
+  [/cash|tunai|现金/i, "💵"],
+  [/bank|transfer|银行/i, "🏦"],
+  [/pay|wallet|ovo|dana|gopay|shopee|钱包/i, "📱"],
+  [/card|kartu|卡/i, "💳"],
+];
+
+export function suggestIcon(name: string): string {
+  for (const [re, icon] of ICON_KEYWORDS) if (re.test(name)) return icon;
+  return "";
 }
 
 export function topLevel(meta: FinanceMeta, kind: Kind, includeArchived = false): Category[] {

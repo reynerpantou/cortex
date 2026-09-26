@@ -307,9 +307,22 @@
       "archivedNotice": "\"{{name}}\" dipakai transaksi lama, jadi disembunyikan dari pilihan, bukan dihapus.",
       "icon": "Ikon",
       "name": "Nama",
-      "rename": "Klik untuk ganti nama",
+      "rename": "Ganti nama",
       "moveUp": "Naikkan",
-      "moveDown": "Turunkan"
+      "moveDown": "Turunkan",
+      "changeIcon": "Ganti ikon {{name}}"
+    },
+    "icons": {
+      "food": "Makanan & minuman",
+      "transport": "Transportasi",
+      "home": "Rumah & tagihan",
+      "money": "Uang",
+      "shopping": "Belanja",
+      "health": "Kesehatan",
+      "life": "Hidup & hiburan",
+      "custom": "Atau tempel emoji apa pun",
+      "use": "Pakai",
+      "reset": "Reset"
     }
   }
 }

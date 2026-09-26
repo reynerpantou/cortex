@@ -5,6 +5,7 @@ import {
   financeApi,
   formatMoney,
   formatRate,
+  methodIcon,
   parseAmount,
   todayISO,
   type FinanceMeta,
@@ -227,7 +228,7 @@ export default function TxForm({ meta, initial, defaultDate, onSaved, onCancel, 
               aria-pressed={methodId === p.id}
               onClick={() => setMethodId(methodId === p.id ? null : p.id)}
             >
-              {p.icon && <span aria-hidden="true">{p.icon}</span>}
+              <span aria-hidden="true">{methodIcon(p)}</span>
               {p.name}
             </button>
           ))}

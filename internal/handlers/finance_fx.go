@@ -38,10 +38,16 @@ func (s *Server) fxRate(ctx context.Context, currency, base string, day time.Tim
 	}
 	dayStr := day.Format(dateLayout)
 
+	// Past days never change, so they're cached for good. Today's entry is
+	// refreshed after a few hours: the ECB publishes once per working day
+	// (~16:00 CET), and a lookup made before that returns the previous
+	// day's rate, which shouldn't stick until midnight.
 	var cached float64
 	err := s.DB.QueryRowContext(ctx,
-		`SELECT rate FROM finance_fx_rates WHERE base = $1 AND quote = $2 AND rate_date = $3`,
-		currency, base, dayStr,
+		`SELECT rate FROM finance_fx_rates
+		 WHERE base = $1 AND quote = $2 AND rate_date = $3
+		   AND ($4 = false OR fetched_at > now() - interval '6 hours')`,
+		currency, base, dayStr, day.Equal(today),
 	).Scan(&cached)
 	if err == nil {
 		return cached, dayStr, nil

@@ -312,9 +312,22 @@
       "archivedNotice": "\"{{name}}\" is used by past transactions, so it was hidden from pickers instead of deleted.",
       "icon": "Icon",
       "name": "Name",
-      "rename": "Click to rename",
+      "rename": "Rename",
       "moveUp": "Move up",
-      "moveDown": "Move down"
+      "moveDown": "Move down",
+      "changeIcon": "Change icon for {{name}}"
+    },
+    "icons": {
+      "food": "Food & drink",
+      "transport": "Transport",
+      "home": "Home & bills",
+      "money": "Money",
+      "shopping": "Shopping",
+      "health": "Health",
+      "life": "Life & fun",
+      "custom": "Or paste any emoji",
+      "use": "Use",
+      "reset": "Reset"
     }
   }
 }

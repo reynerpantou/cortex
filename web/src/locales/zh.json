@@ -307,9 +307,22 @@
       "archivedNotice": "“{{name}}”已被历史记录使用，因此从选项中隐藏而不是删除。",
       "icon": "图标",
       "name": "名称",
-      "rename": "点击重命名",
+      "rename": "重命名",
       "moveUp": "上移",
-      "moveDown": "下移"
+      "moveDown": "下移",
+      "changeIcon": "更改 {{name}} 的图标"
+    },
+    "icons": {
+      "food": "餐饮",
+      "transport": "交通",
+      "home": "居家与账单",
+      "money": "财务",
+      "shopping": "购物",
+      "health": "健康",
+      "life": "生活娱乐",
+      "custom": "或粘贴任意表情",
+      "use": "使用",
+      "reset": "重置"
     }
   }
 }

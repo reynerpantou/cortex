@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
+  categoryIcon,
   currentMonth,
   financeApi,
   formatMoney,
@@ -80,7 +81,7 @@ export default function Stats() {
   const nameOf = (id: number | null) => {
     if (id == null) return t("finance.uncategorized");
     const c = meta.categories.find((x) => x.id === id);
-    return c ? `${c.icon ? c.icon + " " : ""}${c.name}` : "?";
+    return c ? `${categoryIcon(meta, c)} ${c.name}` : "?";
   };
 
   const tops = (stats?.categories ?? []).filter((c) => c.kind === kind);
