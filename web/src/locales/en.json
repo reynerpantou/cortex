@@ -504,7 +504,7 @@
     "done": "Cortex already has an owner, so this setup link no longer works.",
     "invalid": "This setup link is invalid or has expired. Run `cortex setup-link` on the server for a new one.",
     "noToken": "This page needs the full setup link from the server's log, including the part after #.",
-    "noProviders": "Set up Sign in with Google or Apple first (see README), restart Cortex, then open the new setup link from the log.",
+    "noProviders": "No sign-in option is configured on this server yet. Add CORTEX_GOOGLE_CLIENT_ID and CORTEX_GOOGLE_CLIENT_SECRET to .env (steps in the README, \"Sign-in with Google and Apple\"), restart Cortex, then open the new setup link from its log.",
     "foot": "The link works once. After that, everyone else joins by invitation."
   }
 }
