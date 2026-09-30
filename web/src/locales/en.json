@@ -35,14 +35,16 @@
       "failed": "Couldn't sign you in. Please try again.",
       "unavailable": "That sign-in option isn't set up.",
       "not_invited": "This account hasn't been invited to Cortex.",
-      "rate_limited": "Too many sign-in attempts from your network. Please wait a minute and try again."
+      "rate_limited": "Too many sign-in attempts from your network. Please wait a minute and try again.",
+      "setup_done": "Cortex already has an owner. Sign in normally, or ask the owner for an invitation."
     },
     "notInvitedEmail": "You signed in as {{email}}.",
     "notInvitedHint": "Ask the owner to add this exact address in Administration. With Apple, choose \"Share My Email\" rather than \"Hide My Email\".",
     "noProviders": "No sign-in option is set up yet. The owner can sign in with a one-time link: run `cortex sign-in-link <username>` on the server.",
     "inviteOnly": "Invite only. Use the Google or Apple account your invitation was sent to.",
     "linkExpired": "This sign-in link is invalid, already used, or expired. Links last 15 minutes and work once.",
-    "backToSignIn": "Back to sign in"
+    "backToSignIn": "Back to sign in",
+    "setupNeeded": "Cortex hasn't been set up yet. Open the owner setup link printed in the server's log (or run `cortex setup-link` on the server)."
   },
   "home": {
     "greeting": "Welcome back",
@@ -495,5 +497,14 @@
     "noEmail": "no email — can't sign in",
     "emailChangedTitle": "@{{username}} now signs in with a new email",
     "inviteMessage": "You're invited to Cortex. Open {{url}} and continue with Google or Apple using {{email}}."
+  },
+  "setup": {
+    "title": "Claim Cortex",
+    "lead": "Sign in with the Google or Apple account that should own this Cortex. It gets every page and full control, and nobody can take it away from inside the app.",
+    "done": "Cortex already has an owner, so this setup link no longer works.",
+    "invalid": "This setup link is invalid or has expired. Run `cortex setup-link` on the server for a new one.",
+    "noToken": "This page needs the full setup link from the server's log, including the part after #.",
+    "noProviders": "Set up Sign in with Google or Apple first (see README), restart Cortex, then open the new setup link from the log.",
+    "foot": "The link works once. After that, everyone else joins by invitation."
   }
 }

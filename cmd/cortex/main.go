@@ -44,9 +44,7 @@ func main() {
 		}
 		return
 	}
-	if err := seedAdmin(db, cfg); err != nil {
-		log.Fatalf("seed admin: %v", err)
-	}
+	announceSetup(db, cfg)
 	go purgeSessions(db)
 
 	srv := &http.Server{
@@ -101,6 +99,7 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	api.Handle("GET /auth/{provider}/callback", loginRL.WrapWith(http.HandlerFunc(s.AuthCallback), limited))
 	api.Handle("POST /auth/{provider}/callback", loginRL.WrapWith(http.HandlerFunc(s.AuthCallback), limited))
 	api.Handle("POST /auth/link", loginRL.Wrap(http.HandlerFunc(s.AuthLink)))
+	api.Handle("POST /setup/start", loginRL.Wrap(http.HandlerFunc(s.SetupStart)))
 	api.Handle("POST /logout", protected(s.Logout))
 	api.Handle("GET /me", protected(s.Me))
 	api.Handle("PUT /me", protected(s.UpdateMe))
@@ -154,43 +153,27 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	)
 }
 
-// seedAdmin creates the first user — the owner — on an empty database, and
-// gives an owner without an email the one from CORTEX_ADMIN_EMAIL.
-func seedAdmin(db *sql.DB, cfg config.Config) error {
-	var n int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil {
-		return err
+// announceSetup prints a fresh owner setup link while nobody can sign in
+// as the owner (a new install). There's nothing to configure: open the link,
+// sign in with Google or Apple, and that account is the owner.
+func announceSetup(db *sql.DB, cfg config.Config) {
+	link, err := handlers.NewSetupLink(context.Background(), db, cfg.PublicURL)
+	if err != nil {
+		log.Printf("owner setup: %v", err)
+		return
 	}
-	var email any
-	if cfg.AdminEmail != "" {
-		email = cfg.AdminEmail
+	if link == "" {
+		return
 	}
-	if n > 0 {
-		if email == nil {
-			return nil
-		}
-		res, err := db.Exec(`UPDATE users SET email = $1 WHERE is_owner AND email IS NULL`, email)
-		if err != nil {
-			return err
-		}
-		if k, _ := res.RowsAffected(); k > 0 {
-			log.Printf("owner email set to %s from CORTEX_ADMIN_EMAIL", cfg.AdminEmail)
-		}
-		return nil
-	}
-	if _, err := db.Exec(
-		`INSERT INTO users (username, email, created_at, display_name_en, display_name_id, display_name_zh, is_admin, is_owner, modules)
-		 VALUES ($1, $2, $3, $1, $1, $1, true, true, $4)`,
-		cfg.AdminUser, email, time.Now().UTC(), handlers.Modules,
-	); err != nil {
-		return err
-	}
-	if email != nil {
-		log.Printf("created owner %q — sign in with Google or Apple as %s", cfg.AdminUser, cfg.AdminEmail)
-	} else {
-		log.Printf("created owner %q without an email — set CORTEX_ADMIN_EMAIL, or run `cortex sign-in-link %s`", cfg.AdminUser, cfg.AdminUser)
-	}
-	return nil
+	log.Printf(`
+  ┌─ Cortex has no owner yet ──────────────────────────────────────────
+  │ Open this link and sign in with Google or Apple to become the owner:
+  │
+  │   %s
+  │
+  │ It works once and expires in 24 hours. A new one is printed on every
+  │ start until someone claims it (or run: cortex setup-link).
+  └────────────────────────────────────────────────────────────────────`, link)
 }
 
 func purgeSessions(db *sql.DB) {
@@ -214,11 +197,40 @@ func purgeSessions(db *sql.DB) {
 
 const usage = `usage:
   cortex                               run the server
+  cortex setup-link                    print a new owner setup link (only while nobody can sign in as owner)
+  cortex list-users                    list accounts (username, email, role)
   cortex sign-in-link <username>       print a one-time sign-in link (valid 15 minutes)
   cortex set-email <username> <email>  change who can sign in as this account (unlinks Google/Apple, signs out everywhere)
   cortex make-owner <username>         make this account the owner (the previous owner stays an administrator)`
 
 func runCommand(db *sql.DB, cfg config.Config, args []string) error {
+	if len(args) == 1 && args[0] == "setup-link" {
+		link, err := handlers.NewSetupLink(context.Background(), db, cfg.PublicURL)
+		if err != nil {
+			return err
+		}
+		if link == "" {
+			return errors.New("Cortex already has an owner who can sign in; use sign-in-link for recovery")
+		}
+		fmt.Printf("Owner setup link (valid 24 hours, replaces any earlier one):\n\n  %s\n\n", link)
+		return nil
+	}
+	if len(args) == 1 && args[0] == "list-users" {
+		rows, err := db.Query(`SELECT username, COALESCE(email, '—'), CASE WHEN is_owner THEN 'owner' WHEN is_admin THEN 'admin' ELSE 'member' END
+		                       FROM users ORDER BY is_owner DESC, is_admin DESC, lower(username)`)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var u, e, role string
+			if err := rows.Scan(&u, &e, &role); err != nil {
+				return err
+			}
+			fmt.Printf("%-24s %-36s %s\n", u, e, role)
+		}
+		return rows.Err()
+	}
 	if len(args) < 2 {
 		return fmt.Errorf("%s", usage)
 	}

@@ -35,14 +35,16 @@
       "failed": "无法登录，请重试。",
       "unavailable": "此登录方式尚未设置。",
       "not_invited": "此账户尚未受邀使用 Cortex。",
-      "rate_limited": "来自你网络的登录尝试过多。请稍等一分钟后重试。"
+      "rate_limited": "来自你网络的登录尝试过多。请稍等一分钟后重试。",
+      "setup_done": "Cortex 已有所有者。请正常登录，或向所有者索取邀请。"
     },
     "notInvitedEmail": "你以 {{email}} 登录。",
     "notInvitedHint": "请让所有者在“管理”中添加这个完全相同的地址。使用 Apple 时，请选择“共享我的电子邮件”，而不是“隐藏邮件地址”。",
     "noProviders": "尚未设置任何登录方式。所有者可以使用一次性链接登录：在服务器上运行 `cortex sign-in-link <username>`。",
     "inviteOnly": "仅限受邀用户。请使用收到邀请的 Google 或 Apple 账户。",
     "linkExpired": "此登录链接无效、已使用或已过期。链接有效期 15 分钟，仅可使用一次。",
-    "backToSignIn": "返回登录"
+    "backToSignIn": "返回登录",
+    "setupNeeded": "Cortex 尚未完成设置。请打开服务器日志中打印的所有者设置链接（或在服务器上运行 `cortex setup-link`）。"
   },
   "home": {
     "greeting": "欢迎回来",
@@ -484,5 +486,14 @@
     "noEmail": "无电子邮件 — 无法登录",
     "emailChangedTitle": "@{{username}} 现在使用新电子邮件登录",
     "inviteMessage": "你受邀使用 Cortex。打开 {{url}}，并使用 {{email}} 通过 Google 或 Apple 继续。"
+  },
+  "setup": {
+    "title": "认领 Cortex",
+    "lead": "使用将拥有此 Cortex 的 Google 或 Apple 账户登录。该账户将获得所有页面和完全控制权，且无法在应用内被收回。",
+    "done": "Cortex 已有所有者，此设置链接已失效。",
+    "invalid": "此设置链接无效或已过期。请在服务器上运行 `cortex setup-link` 获取新链接。",
+    "noToken": "此页面需要服务器日志中的完整设置链接，包括 # 之后的部分。",
+    "noProviders": "请先设置 Google 或 Apple 登录（见 README），重启 Cortex，然后打开日志中的新设置链接。",
+    "foot": "该链接仅可使用一次。之后，其他人需通过邀请加入。"
   }
 }

@@ -36,10 +36,6 @@ services:
       - CORTEX_TRUSTED_PROXIES=${CORTEX_TRUSTED_PROXIES:-172.16.0.0/12}
       # The address people open Cortex at; Google and Apple send them back here.
       - CORTEX_PUBLIC_URL=${CORTEX_PUBLIC_URL:-http://localhost:8080}
-      # The owner account created on first run, and the Google/Apple email
-      # that signs in as it.
-      - CORTEX_ADMIN_USER=${CORTEX_ADMIN_USER:-admin}
-      - CORTEX_ADMIN_EMAIL=${CORTEX_ADMIN_EMAIL:-}
       # Sign-in providers — see README, "Sign-in with Google and Apple".
       - CORTEX_GOOGLE_CLIENT_ID=${CORTEX_GOOGLE_CLIENT_ID:-}
       - CORTEX_GOOGLE_CLIENT_SECRET=${CORTEX_GOOGLE_CLIENT_SECRET:-}

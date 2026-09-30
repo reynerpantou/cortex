@@ -49,7 +49,9 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 }
 
 export const api = {
-  authProviders: () => request<{ providers: string[] }>("GET", "/auth/providers"),
+  authProviders: () => request<{ providers: string[]; setup_needed: boolean }>("GET", "/auth/providers"),
+  setupStart: (token: string, provider: string) =>
+    request<{ redirect: string }>("POST", "/setup/start", { token, provider }),
   redeemSignInLink: (token: string) => request<User>("POST", "/auth/link", { token }),
   logout: () => request<void>("POST", "/logout"),
   me: () => request<User>("GET", "/me"),
