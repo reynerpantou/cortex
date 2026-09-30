@@ -129,7 +129,7 @@ func envInt(k string, def int) int {
 
 // loadDotEnv reads KEY=value lines from path, if it exists, into the
 // environment — so `go run` and `make dev-api` pick up the same .env that
-// docker compose does. Variables already set in the environment win.
+// docker compose does. Non-empty variables already in the environment win.
 func loadDotEnv(path string) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -149,7 +149,8 @@ func loadDotEnv(path string) {
 		if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
 			v = v[1 : len(v)-1]
 		}
-		if _, set := os.LookupEnv(k); !set && v != "" {
+		// An empty variable in the shell doesn't count as set.
+		if os.Getenv(k) == "" && v != "" {
 			os.Setenv(k, v)
 			n++
 		}

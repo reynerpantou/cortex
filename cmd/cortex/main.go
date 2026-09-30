@@ -12,6 +12,7 @@ import (
 	"net/mail"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -25,6 +26,9 @@ import (
 
 func main() {
 	cfg := config.Load()
+	if len(os.Args) == 1 {
+		reportSignIn(cfg)
+	}
 
 	db, err := database.Open(cfg.DatabaseURL)
 	if err != nil {
@@ -151,6 +155,30 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 		middleware.Logger,
 		middleware.SecurityHeaders(cfg.CookieSecure),
 	)
+}
+
+// reportSignIn says at startup which sign-in buttons will show, and what's
+// missing when a provider is only partly configured.
+func reportSignIn(cfg config.Config) {
+	var on []string
+	if cfg.GoogleClientID != "" && cfg.GoogleClientSecret != "" {
+		on = append(on, "Google")
+	} else if cfg.GoogleClientID != "" || cfg.GoogleClientSecret != "" {
+		log.Printf("sign-in: Google is OFF — set both CORTEX_GOOGLE_CLIENT_ID and CORTEX_GOOGLE_CLIENT_SECRET")
+	}
+	apple := []string{cfg.AppleClientID, cfg.AppleTeamID, cfg.AppleKeyID, cfg.ApplePrivateKey}
+	switch n := len(slices.DeleteFunc(slices.Clone(apple), func(v string) bool { return v == "" })); n {
+	case 4:
+		on = append(on, "Apple")
+	case 0:
+	default:
+		log.Printf("sign-in: Apple is OFF — set all of CORTEX_APPLE_CLIENT_ID, _TEAM_ID, _KEY_ID and _PRIVATE_KEY")
+	}
+	if len(on) == 0 {
+		log.Printf("sign-in: no provider configured, so no sign-in buttons will show — add CORTEX_GOOGLE_CLIENT_ID and CORTEX_GOOGLE_CLIENT_SECRET to .env")
+		return
+	}
+	log.Printf("sign-in: %s (callbacks go to %s/api/auth/…/callback)", strings.Join(on, " + "), cfg.PublicURL)
 }
 
 // announceSetup prints a fresh owner setup link while nobody can sign in
