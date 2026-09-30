@@ -46,8 +46,16 @@ make db         # start just Postgres in Docker
 make run        # start on :8080
 ```
 
-Sign in with Google/Apple once they're configured, or with a one-time link
-from `./cortex sign-in-link admin`.
+Sign in with Google/Apple once they're configured, or with a one-time link:
+
+```bash
+make users              # list accounts (usernames, emails, roles)
+make link user=admin    # prints http://localhost:8080/login/link#… (15 minutes, once)
+```
+
+Using the Vite dev server? Open the link with `:5173` instead of `:8080`,
+or set `CORTEX_PUBLIC_URL=http://localhost:5173`. These commands read the
+same `CORTEX_DATABASE_URL` as the server, so export it if yours isn't the default.
 
 ### Frontend dev loop
 
@@ -136,6 +144,7 @@ goes through MCP, it talks to Postgres directly via `internal/database`.
 **Account recovery** happens on the server, never through the web app:
 
 ```bash
+docker compose exec cortex /cortex list-users                      # who's there
 docker compose exec cortex /cortex sign-in-link <username>        # one-time link, 15 minutes
 docker compose exec cortex /cortex set-email <username> <email>   # change who signs in as it
 docker compose exec cortex /cortex make-owner <username>          # move ownership

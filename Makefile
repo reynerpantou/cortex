@@ -1,4 +1,4 @@
-.PHONY: setup web build run dev-api dev-web docker db backup tidy
+.PHONY: setup web build run dev-api dev-web docker db backup tidy link users
 
 setup:        ## install frontend deps
 	cd web && npm install
@@ -11,6 +11,13 @@ tidy:         ## resolve Go deps + write go.sum
 
 build: tidy web ## full production build -> ./cortex
 	CGO_ENABLED=0 go build -ldflags="-s -w" -o cortex ./cmd/cortex
+
+link:         ## one-time sign-in link: make link user=<username>
+	@test -n "$(user)" || (echo "usage: make link user=<username>   (see: make users)"; exit 1)
+	@go run ./cmd/cortex sign-in-link $(user)
+
+users:        ## list accounts (username, email, role)
+	@go run ./cmd/cortex list-users
 
 run: ## run the built binary
 	./cortex

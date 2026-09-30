@@ -214,11 +214,28 @@ func purgeSessions(db *sql.DB) {
 
 const usage = `usage:
   cortex                               run the server
+  cortex list-users                    list accounts (username, email, role)
   cortex sign-in-link <username>       print a one-time sign-in link (valid 15 minutes)
   cortex set-email <username> <email>  change who can sign in as this account (unlinks Google/Apple, signs out everywhere)
   cortex make-owner <username>         make this account the owner (the previous owner stays an administrator)`
 
 func runCommand(db *sql.DB, cfg config.Config, args []string) error {
+	if len(args) == 1 && args[0] == "list-users" {
+		rows, err := db.Query(`SELECT username, COALESCE(email, '—'), CASE WHEN is_owner THEN 'owner' WHEN is_admin THEN 'admin' ELSE 'member' END
+		                       FROM users ORDER BY is_owner DESC, is_admin DESC, lower(username)`)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var u, e, role string
+			if err := rows.Scan(&u, &e, &role); err != nil {
+				return err
+			}
+			fmt.Printf("%-24s %-36s %s\n", u, e, role)
+		}
+		return rows.Err()
+	}
 	if len(args) < 2 {
 		return fmt.Errorf("%s", usage)
 	}
