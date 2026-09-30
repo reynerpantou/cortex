@@ -16,8 +16,6 @@ type Config struct {
 	DatabaseURL     string        // Postgres connection string
 	CookieSecure    bool          // true when served over HTTPS
 	SessionTTL      time.Duration // how long a login lasts
-	AdminUser       string        // the owner account created on first boot
-	AdminEmail      string        // the owner's Google/Apple email (set once if missing)
 	AnthropicAPIKey string        // used by the (future) AI layer; empty = AI disabled
 	FXBaseURL       string        // Frankfurter-compatible exchange-rate API (ECB daily reference rates)
 
@@ -52,8 +50,6 @@ func Load() Config {
 		// set false only when serving plain HTTP on another host.
 		CookieSecure:    envBool("CORTEX_COOKIE_SECURE", true),
 		SessionTTL:      time.Duration(envInt("CORTEX_SESSION_TTL_HOURS", 168)) * time.Hour,
-		AdminUser:       env("CORTEX_ADMIN_USER", "admin"),
-		AdminEmail:      strings.ToLower(strings.TrimSpace(env("CORTEX_ADMIN_EMAIL", ""))),
 		AnthropicAPIKey: env("ANTHROPIC_API_KEY", ""),
 		FXBaseURL:       env("CORTEX_FX_URL", "https://api.frankfurter.dev/v1"),
 

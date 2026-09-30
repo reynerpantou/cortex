@@ -1,4 +1,4 @@
-.PHONY: setup web build run dev-api dev-web docker db backup tidy link users
+.PHONY: setup web build run dev-api dev-web docker db backup tidy link users claim
 
 setup:        ## install frontend deps
 	cd web && npm install
@@ -15,6 +15,9 @@ build: tidy web ## full production build -> ./cortex
 link:         ## one-time sign-in link: make link user=<username>
 	@test -n "$(user)" || (echo "usage: make link user=<username>   (see: make users)"; exit 1)
 	@go run ./cmd/cortex sign-in-link $(user)
+
+claim:        ## print a new owner setup link (new install only)
+	@go run ./cmd/cortex setup-link
 
 users:        ## list accounts (username, email, role)
 	@go run ./cmd/cortex list-users

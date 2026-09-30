@@ -6,18 +6,22 @@ import { api } from "../lib/api";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import ProviderIcon from "../components/ProviderIcon";
 
-const ERRORS = ["cancelled", "expired", "failed", "unavailable", "not_invited", "rate_limited"];
+const ERRORS = ["cancelled", "expired", "failed", "unavailable", "not_invited", "rate_limited", "setup_done"];
 
 export default function Login() {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
   const [params] = useSearchParams();
   const [providers, setProviders] = useState<string[] | null>(null);
+  const [setupNeeded, setSetupNeeded] = useState(false);
 
   useEffect(() => {
     api
       .authProviders()
-      .then((r) => setProviders(r.providers))
+      .then((r) => {
+        setProviders(r.providers);
+        setSetupNeeded(r.setup_needed);
+      })
       .catch(() => setProviders([]));
   }, []);
 
@@ -52,6 +56,8 @@ export default function Login() {
             )}
           </div>
         )}
+
+        {setupNeeded && <p className="login-setup">{t("login.setupNeeded")}</p>}
 
         {providers === null ? (
           <p className="muted">{t("common.loading")}</p>

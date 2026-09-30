@@ -35,14 +35,16 @@
       "failed": "Gagal masuk. Silakan coba lagi.",
       "unavailable": "Opsi masuk ini belum diatur.",
       "not_invited": "Akun ini belum diundang ke Cortex.",
-      "rate_limited": "Terlalu banyak percobaan masuk dari jaringan Anda. Tunggu sebentar lalu coba lagi."
+      "rate_limited": "Terlalu banyak percobaan masuk dari jaringan Anda. Tunggu sebentar lalu coba lagi.",
+      "setup_done": "Cortex sudah punya pemilik. Masuk seperti biasa, atau minta undangan ke pemilik."
     },
     "notInvitedEmail": "Anda masuk sebagai {{email}}.",
     "notInvitedHint": "Minta pemilik menambahkan alamat ini persis di Administrasi. Untuk Apple, pilih \"Bagikan Email Saya\", bukan \"Sembunyikan Email Saya\".",
     "noProviders": "Belum ada opsi masuk yang diatur. Pemilik dapat masuk dengan tautan sekali pakai: jalankan `cortex sign-in-link <username>` di server.",
     "inviteOnly": "Khusus undangan. Gunakan akun Google atau Apple yang menerima undangan Anda.",
     "linkExpired": "Tautan masuk ini tidak valid, sudah dipakai, atau kedaluwarsa. Tautan berlaku 15 menit dan hanya sekali.",
-    "backToSignIn": "Kembali ke halaman masuk"
+    "backToSignIn": "Kembali ke halaman masuk",
+    "setupNeeded": "Cortex belum disiapkan. Buka tautan penyiapan pemilik yang tercetak di log server (atau jalankan `cortex setup-link` di server)."
   },
   "home": {
     "greeting": "Selamat datang kembali",
@@ -484,5 +486,14 @@
     "noEmail": "tanpa email — tidak bisa masuk",
     "emailChangedTitle": "@{{username}} sekarang masuk dengan email baru",
     "inviteMessage": "Anda diundang ke Cortex. Buka {{url}} lalu lanjutkan dengan Google atau Apple memakai {{email}}."
+  },
+  "setup": {
+    "title": "Klaim Cortex",
+    "lead": "Masuk dengan akun Google atau Apple yang akan menjadi pemilik Cortex ini. Akun itu mendapat semua halaman dan kendali penuh, dan tidak bisa dicabut dari dalam aplikasi.",
+    "done": "Cortex sudah punya pemilik, jadi tautan penyiapan ini tidak berlaku lagi.",
+    "invalid": "Tautan penyiapan ini tidak valid atau kedaluwarsa. Jalankan `cortex setup-link` di server untuk tautan baru.",
+    "noToken": "Halaman ini memerlukan tautan penyiapan lengkap dari log server, termasuk bagian setelah #.",
+    "noProviders": "Atur dulu Masuk dengan Google atau Apple (lihat README), mulai ulang Cortex, lalu buka tautan penyiapan baru dari log.",
+    "foot": "Tautan hanya berlaku sekali. Setelah itu, orang lain bergabung lewat undangan."
   }
 }

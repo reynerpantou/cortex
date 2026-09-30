@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import SignInLink from "./pages/SignInLink";
+import Setup from "./pages/Setup";
 import Home from "./pages/Home";
 import Radar from "./pages/Radar";
 import ProblemDetail from "./pages/ProblemDetail";
@@ -24,6 +25,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/login/link" element={<SignInLink />} />
+          <Route path="/setup" element={<Setup />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route index element={<Home />} />

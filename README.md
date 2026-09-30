@@ -33,9 +33,9 @@ docker compose up --build
 Copy `.env.example` to `.env` and set `POSTGRES_PASSWORD` first — compose
 refuses to start without one. This starts Postgres and the app together.
 Open http://localhost:8080. Cortex has no passwords: people sign in with
-Google or Apple (see [Sign-in](#sign-in-with-google-and-apple)). Until a
-provider is set up, sign in with a one-time link:
-`docker compose exec cortex /cortex sign-in-link admin`.
+Google or Apple (see [Sign-in](#sign-in-with-google-and-apple)). On first
+start the log prints a one-time **owner setup link** (`docker compose logs
+cortex`). Open it and sign in, and that account becomes the owner.
 
 ### Locally
 
@@ -46,11 +46,14 @@ make db         # start just Postgres in Docker
 make run        # start on :8080
 ```
 
-Sign in with Google/Apple once they're configured, or with a one-time link:
+On first start the server prints a one-time owner setup link. Open it and
+sign in with Google or Apple to become the owner. Without Google/Apple set up
+locally, use a one-time sign-in link instead:
 
 ```bash
+make claim              # reprint the owner setup link (new install only)
 make users              # list accounts (usernames, emails, roles)
-make link user=admin    # prints http://localhost:8080/login/link#… (15 minutes, once)
+make link user=<name>   # prints http://localhost:8080/login/link#… (15 minutes, once)
 ```
 
 Using the Vite dev server? Open the link with `:5173` instead of `:8080`,
@@ -79,8 +82,6 @@ All via environment variables (see `.env.example`):
 | `CORTEX_SESSION_TTL_HOURS` | `168` | login lifetime |
 | `CORTEX_TRUSTED_PROXIES` | *(empty)* | reverse-proxy IPs/CIDRs whose `X-Forwarded-For` is believed |
 | `CORTEX_PUBLIC_URL` | `http://localhost:8080` | where people open Cortex; sign-in callbacks go here |
-| `CORTEX_ADMIN_USER` | `admin` | owner account created on first run |
-| `CORTEX_ADMIN_EMAIL` | *(empty)* | the owner's Google/Apple email (set once if missing) |
 | `CORTEX_GOOGLE_CLIENT_ID` / `_SECRET` | *(empty)* | enables Sign in with Google |
 | `CORTEX_APPLE_CLIENT_ID` / `_TEAM_ID` / `_KEY_ID` / `_PRIVATE_KEY` | *(empty)* | enables Sign in with Apple (`_PRIVATE_KEY_FILE` also works) |
 | `ANTHROPIC_API_KEY` | *(empty)* | reserved for the AI layer |
@@ -124,8 +125,7 @@ goes through MCP, it talks to Postgres directly via `internal/database`.
    reachable from outside.
 2. `cp .env.example .env`, set `POSTGRES_PASSWORD` (and `CORTEX_DATABASE_URL`
    if you ever run the binary outside Docker) to a long random value, set
-   `CORTEX_PUBLIC_URL=https://cortex.example.com`, `CORTEX_ADMIN_EMAIL` to
-   your own Google/Apple email, and the provider keys (see
+   `CORTEX_PUBLIC_URL=https://cortex.example.com` and the provider keys (see
    [Sign-in](#sign-in-with-google-and-apple)). Then `docker compose up -d --build`.
 3. Put HTTPS in front with [Caddy](https://caddyserver.com), which fetches and
    renews the certificate by itself. `/etc/caddy/Caddyfile`:
@@ -140,6 +140,19 @@ goes through MCP, it talks to Postgres directly via `internal/database`.
    address, and compose already trusts Docker's network as the proxy, so
    sign-in limits apply per real visitor.
 4. Back up with `make backup` (on a schedule, and off the server).
+
+**The owner is claimed, not configured.** On a new install (no owner who
+can sign in), every start prints a one-time setup link to the log:
+
+```
+docker compose logs cortex | grep -A3 "no owner"
+```
+
+Open it after step 3 and sign in with Google or Apple; that account becomes
+the owner and the link stops working. Only someone who can read the server's
+log can claim it. Lost the log? `docker compose exec cortex /cortex setup-link`
+prints a new one. Keep the database on a persistent volume or a managed
+Postgres, so this happens once and not on every deploy.
 
 **Account recovery** happens on the server, never through the web app:
 
