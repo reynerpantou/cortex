@@ -493,7 +493,7 @@
     "done": "Cortex sudah punya pemilik, jadi tautan penyiapan ini tidak berlaku lagi.",
     "invalid": "Tautan penyiapan ini tidak valid atau kedaluwarsa. Jalankan `cortex setup-link` di server untuk tautan baru.",
     "noToken": "Halaman ini memerlukan tautan penyiapan lengkap dari log server, termasuk bagian setelah #.",
-    "noProviders": "Atur dulu Masuk dengan Google atau Apple (lihat README), mulai ulang Cortex, lalu buka tautan penyiapan baru dari log.",
+    "noProviders": "Belum ada opsi masuk yang diatur di server ini. Tambahkan CORTEX_GOOGLE_CLIENT_ID dan CORTEX_GOOGLE_CLIENT_SECRET ke .env (langkahnya di README, \"Sign-in with Google and Apple\"), mulai ulang Cortex, lalu buka tautan penyiapan baru dari log-nya.",
     "foot": "Tautan hanya berlaku sekali. Setelah itu, orang lain bergabung lewat undangan."
   }
 }

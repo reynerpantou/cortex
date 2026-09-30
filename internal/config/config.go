@@ -42,6 +42,7 @@ type Config struct {
 }
 
 func Load() Config {
+	loadDotEnv(".env")
 	return Config{
 		Addr:        env("CORTEX_ADDR", ":8080"),
 		DatabaseURL: env("CORTEX_DATABASE_URL", "postgres://cortex:cortex@localhost:5432/cortex?sslmode=disable"),
@@ -124,4 +125,37 @@ func envInt(k string, def int) int {
 		}
 	}
 	return def
+}
+
+// loadDotEnv reads KEY=value lines from path, if it exists, into the
+// environment — so `go run` and `make dev-api` pick up the same .env that
+// docker compose does. Non-empty variables already in the environment win.
+func loadDotEnv(path string) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	n := 0
+	for _, line := range strings.Split(string(b), "\n") {
+		line = strings.TrimSpace(strings.TrimSuffix(line, "\r"))
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		k, v, ok := strings.Cut(strings.TrimPrefix(line, "export "), "=")
+		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
+		if !ok || k == "" {
+			continue
+		}
+		if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
+			v = v[1 : len(v)-1]
+		}
+		// An empty variable in the shell doesn't count as set.
+		if os.Getenv(k) == "" && v != "" {
+			os.Setenv(k, v)
+			n++
+		}
+	}
+	if n > 0 {
+		log.Printf("loaded %d settings from %s", n, path)
+	}
 }

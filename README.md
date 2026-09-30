@@ -183,9 +183,12 @@ In each provider, the redirect/return URL is
    "Testing", only listed test users can sign in).
 2. *Credentials → Create credentials → OAuth client ID*, type **Web
    application**. Authorized redirect URI: the Google URL above. For local
-   testing, also add `http://localhost:8080/api/auth/google/callback`.
+   testing, also add `http://localhost:8080/api/auth/google/callback` (or
+   `:5173` if you use the Vite dev server, with `CORTEX_PUBLIC_URL` to match).
+   While the consent screen is in "Testing", add yourself as a test user.
 3. Put the client ID and secret in `CORTEX_GOOGLE_CLIENT_ID` and
-   `CORTEX_GOOGLE_CLIENT_SECRET`.
+   `CORTEX_GOOGLE_CLIENT_SECRET` in `.env`, and restart. The server reads
+   `.env` itself (for `make dev-api` / `go run`); Docker Compose passes it in.
 
 **Apple** (needs a paid Apple Developer Program membership, and HTTPS on a
 real domain; it can't be tested on localhost):
