@@ -32,9 +32,10 @@ docker compose up --build
 
 Copy `.env.example` to `.env` and set `POSTGRES_PASSWORD` first — compose
 refuses to start without one. This starts Postgres and the app together.
-Open http://localhost:8080. On first run a random owner password is generated
-and printed to the logs **once** — grab it from `docker compose logs`. To set
-a known password instead, set `CORTEX_ADMIN_PASSWORD` in `.env`.
+Open http://localhost:8080. Cortex has no passwords: people sign in with
+Google or Apple (see [Sign-in](#sign-in-with-google-and-apple)). Until a
+provider is set up, sign in with a one-time link:
+`docker compose exec cortex /cortex sign-in-link admin`.
 
 ### Locally
 
@@ -45,8 +46,8 @@ make db         # start just Postgres in Docker
 make run        # start on :8080
 ```
 
-First run prints the generated admin login. Set `CORTEX_ADMIN_PASSWORD` to
-choose your own.
+Sign in with Google/Apple once they're configured, or with a one-time link
+from `./cortex sign-in-link admin`.
 
 ### Frontend dev loop
 
@@ -69,10 +70,11 @@ All via environment variables (see `.env.example`):
 | `CORTEX_COOKIE_SECURE` | `true` | HTTPS-only cookies (browsers allow them on `http://localhost`) |
 | `CORTEX_SESSION_TTL_HOURS` | `168` | login lifetime |
 | `CORTEX_TRUSTED_PROXIES` | *(empty)* | reverse-proxy IPs/CIDRs whose `X-Forwarded-For` is believed |
-| `CORTEX_LOGIN_MAX_ATTEMPTS` | `5` | wrong passwords per username + IP before a cooldown |
-| `CORTEX_LOGIN_LOCKOUT_MINUTES` | `15` | first cooldown; repeats double, up to 24h |
+| `CORTEX_PUBLIC_URL` | `http://localhost:8080` | where people open Cortex; sign-in callbacks go here |
 | `CORTEX_ADMIN_USER` | `admin` | owner account created on first run |
-| `CORTEX_ADMIN_PASSWORD` | *(generated)* | its password on first run |
+| `CORTEX_ADMIN_EMAIL` | *(empty)* | the owner's Google/Apple email (set once if missing) |
+| `CORTEX_GOOGLE_CLIENT_ID` / `_SECRET` | *(empty)* | enables Sign in with Google |
+| `CORTEX_APPLE_CLIENT_ID` / `_TEAM_ID` / `_KEY_ID` / `_PRIVATE_KEY` | *(empty)* | enables Sign in with Apple (`_PRIVATE_KEY_FILE` also works) |
 | `ANTHROPIC_API_KEY` | *(empty)* | reserved for the AI layer |
 
 ## Layout
@@ -81,10 +83,11 @@ All via environment variables (see `.env.example`):
 cmd/cortex/            entrypoint: config, routing, graceful shutdown, admin seed
 internal/config/       env-based configuration
 internal/models/       Problem / User + the scope, source, status enums
-internal/auth/         PBKDF2 password hashing + DB-backed sessions
+internal/auth/         DB-backed sessions (tokens stored hashed)
+internal/sso/          Sign in with Google / Apple (OpenID Connect)
 internal/database/     Postgres open + embedded migrations
 internal/handlers/     the HTTP API (auth + problems + stats + SPA serving)
-internal/middleware/   auth, CSRF, security headers, login rate limiting
+internal/middleware/   auth, CSRF, security headers, sign-in rate limiting
 internal/assets/       embeds the built SPA
 web/                   React + Vite + TypeScript source
 ```
@@ -112,8 +115,10 @@ goes through MCP, it talks to Postgres directly via `internal/database`.
    Docker publishes Cortex and Postgres on 127.0.0.1 only, so neither is
    reachable from outside.
 2. `cp .env.example .env`, set `POSTGRES_PASSWORD` (and `CORTEX_DATABASE_URL`
-   if you ever run the binary outside Docker) to a long random value, then
-   `docker compose up -d --build` and note the owner password from the logs.
+   if you ever run the binary outside Docker) to a long random value, set
+   `CORTEX_PUBLIC_URL=https://cortex.example.com`, `CORTEX_ADMIN_EMAIL` to
+   your own Google/Apple email, and the provider keys (see
+   [Sign-in](#sign-in-with-google-and-apple)). Then `docker compose up -d --build`.
 3. Put HTTPS in front with [Caddy](https://caddyserver.com), which fetches and
    renews the certificate by itself. `/etc/caddy/Caddyfile`:
 
@@ -131,20 +136,63 @@ goes through MCP, it talks to Postgres directly via `internal/database`.
 **Account recovery** happens on the server, never through the web app:
 
 ```bash
-docker compose exec cortex /cortex reset-password <username>   # prompts for the password
-docker compose exec cortex /cortex unlock <username>           # clear sign-in cooldowns
-docker compose exec cortex /cortex make-owner <username>       # move ownership
+docker compose exec cortex /cortex sign-in-link <username>        # one-time link, 15 minutes
+docker compose exec cortex /cortex set-email <username> <email>   # change who signs in as it
+docker compose exec cortex /cortex make-owner <username>          # move ownership
 ```
+
+## Sign-in with Google and Apple
+
+Cortex stores no passwords. It's invite-only: an administrator adds a person
+with their email address, and whoever proves that address through Google or
+Apple gets in. On first sign-in that Google/Apple account is linked, and
+later sign-ins go by the provider's permanent id. Changing someone's email
+in Administration unlinks it and signs them out everywhere. A button only
+appears once its provider is configured; you can use either or both.
+
+In each provider, the redirect/return URL is
+`<CORTEX_PUBLIC_URL>/api/auth/<google|apple>/callback`. For example,
+`https://cortex.example.com/api/auth/google/callback`.
+
+**Google** (free):
+1. [Google Cloud console](https://console.cloud.google.com) → create a project →
+   *APIs & Services → OAuth consent screen*: External, app name, your email.
+   Scopes: `openid`, `email`, `profile`. Publish the app (while it's in
+   "Testing", only listed test users can sign in).
+2. *Credentials → Create credentials → OAuth client ID*, type **Web
+   application**. Authorized redirect URI: the Google URL above. For local
+   testing, also add `http://localhost:8080/api/auth/google/callback`.
+3. Put the client ID and secret in `CORTEX_GOOGLE_CLIENT_ID` and
+   `CORTEX_GOOGLE_CLIENT_SECRET`.
+
+**Apple** (needs a paid Apple Developer Program membership, and HTTPS on a
+real domain; it can't be tested on localhost):
+1. [developer.apple.com](https://developer.apple.com/account) → *Certificates,
+   Identifiers & Profiles → Identifiers*: create an **App ID** with *Sign in
+   with Apple* enabled.
+2. Create a **Services ID** (e.g. `com.example.cortex.web`), enable *Sign in
+   with Apple*, *Configure*: primary App ID from step 1, domain
+   `cortex.example.com`, return URL the Apple URL above.
+3. *Keys* → create a key with *Sign in with Apple*, download the `.p8` (only
+   once) and note its Key ID. Your Team ID is at the top right.
+4. Set `CORTEX_APPLE_CLIENT_ID` (the Services ID), `CORTEX_APPLE_TEAM_ID`,
+   `CORTEX_APPLE_KEY_ID` and `CORTEX_APPLE_PRIVATE_KEY` (the `.p8` contents).
+
+Apple lets people hide their address behind a `@privaterelay.appleid.com`
+relay. That relay address won't match an invitation, so ask Apple users to
+choose **Share My Email** the first time. If they don't, the sign-in page
+shows the relay address, and you can put that in Administration instead.
 
 ## Notes
 
 - **Security**
-  - Passwords are PBKDF2-HMAC-SHA256 (600k iterations). Sessions live on the
-    server, only their SHA-256 hash is stored, and they're revocable; changing
-    or resetting a password signs out every other device.
-  - Sign-in limits are stored in the database, keyed by username + IP, IP
-    alone, and username alone. Closing the tab, incognito windows, another
-    browser or a restart don't reset them.
+  - No passwords: sign-in is OpenID Connect with Google or Apple
+    (authorization code flow with PKCE where supported, a one-time state and
+    nonce tied to the browser that started it, and ID tokens checked against
+    the provider's signing keys, issuer, audience and expiry). Accounts are
+    invite-only by verified email. Sign-in requests are rate-limited per IP.
+  - Sessions live on the server, only their SHA-256 hash is stored, and
+    they're revocable; changing someone's email signs them out everywhere.
   - CSRF uses a double-submit token, and every write must be sent as JSON.
     Strict CSP, no framing, and API responses are never cached.
   - All SQL is parameterized. React escapes all rendered text, and stored links
@@ -153,8 +201,6 @@ docker compose exec cortex /cortex make-owner <username>       # move ownership
     edited, demoted or deleted from the app. Only the owner can grant or
     remove the administrator role or change other administrators.
     Administrators manage members.
-  - Swapping PBKDF2 for argon2id later is a two-function change in
-    `internal/auth/password.go`.
 - This foundation was verified end-to-end (build, vet, and a live run through
   login/CRUD/logout) against a local Postgres container.
 

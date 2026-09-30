@@ -49,8 +49,8 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 }
 
 export const api = {
-  login: (username: string, password: string) =>
-    request<User>("POST", "/login", { username, password }),
+  authProviders: () => request<{ providers: string[] }>("GET", "/auth/providers"),
+  redeemSignInLink: (token: string) => request<User>("POST", "/auth/link", { token }),
   logout: () => request<void>("POST", "/logout"),
   me: () => request<User>("GET", "/me"),
   updateMe: (input: {
@@ -58,8 +58,6 @@ export const api = {
     display_name_en: string;
     display_name_id: string;
     display_name_zh: string;
-    current_password?: string;
-    new_password?: string;
   }) => request<User>("PUT", "/me", input),
 
   getNav: () => request<NavLayout>("GET", "/nav"),
@@ -74,9 +72,9 @@ export const api = {
       `/admin/users${suffix ? `?${suffix}` : ""}`
     );
   },
-  adminCreateUser: (input: { username: string; password: string; is_admin: boolean; modules: string[] }) =>
+  adminCreateUser: (input: { username: string; email: string; is_admin: boolean; modules: string[] }) =>
     request<{ id: number }>("POST", "/admin/users", input),
-  adminUpdateUser: (id: number, input: { is_admin: boolean; modules: string[]; password?: string }) =>
+  adminUpdateUser: (id: number, input: { is_admin: boolean; modules: string[]; email?: string }) =>
     request<void>("PUT", `/admin/users/${id}`, input),
   adminDeleteUser: (id: number) => request<void>("DELETE", `/admin/users/${id}`),
   updateNav: (input: {

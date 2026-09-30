@@ -34,12 +34,19 @@ services:
       # The reverse proxy's address, so sign-in limits see the visitor's real
       # IP. Docker's bridge network covers a proxy on the host or in compose.
       - CORTEX_TRUSTED_PROXIES=${CORTEX_TRUSTED_PROXIES:-172.16.0.0/12}
-      - CORTEX_LOGIN_MAX_ATTEMPTS=${CORTEX_LOGIN_MAX_ATTEMPTS:-5}
-      - CORTEX_LOGIN_LOCKOUT_MINUTES=${CORTEX_LOGIN_LOCKOUT_MINUTES:-15}
+      # The address people open Cortex at; Google and Apple send them back here.
+      - CORTEX_PUBLIC_URL=${CORTEX_PUBLIC_URL:-http://localhost:8080}
+      # The owner account created on first run, and the Google/Apple email
+      # that signs in as it.
       - CORTEX_ADMIN_USER=${CORTEX_ADMIN_USER:-admin}
-      # Set to seed a known owner password on first run; otherwise one is
-      # generated and printed to the logs exactly once.
-      - CORTEX_ADMIN_PASSWORD=${CORTEX_ADMIN_PASSWORD:-}
+      - CORTEX_ADMIN_EMAIL=${CORTEX_ADMIN_EMAIL:-}
+      # Sign-in providers — see README, "Sign-in with Google and Apple".
+      - CORTEX_GOOGLE_CLIENT_ID=${CORTEX_GOOGLE_CLIENT_ID:-}
+      - CORTEX_GOOGLE_CLIENT_SECRET=${CORTEX_GOOGLE_CLIENT_SECRET:-}
+      - CORTEX_APPLE_CLIENT_ID=${CORTEX_APPLE_CLIENT_ID:-}
+      - CORTEX_APPLE_TEAM_ID=${CORTEX_APPLE_TEAM_ID:-}
+      - CORTEX_APPLE_KEY_ID=${CORTEX_APPLE_KEY_ID:-}
+      - CORTEX_APPLE_PRIVATE_KEY=${CORTEX_APPLE_PRIVATE_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     restart: unless-stopped
 

@@ -1034,6 +1034,22 @@ a.top-link:hover { background: var(--bg-2); }
 .login-lang { position: absolute; top: 20px; right: 20px; }
 .login-card { width: 100%; max-width: 380px; background: var(--bg-1); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
 .login-sub { color: var(--text-2); margin: 14px 0 24px; }
+.login-providers { display: flex; flex-direction: column; gap: 10px; }
+.login-providers .btn-block { margin-top: 0; }
+.signin-accounts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.signin-account { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.signin-account .provider-icon { color: var(--text); }
+.provider-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; font-weight: 600; text-decoration: none; }
+.provider-icon { width: 18px; height: 18px; flex: none; }
+/* Google's guidelines: white button, dark text. Apple's: black or white. */
+.provider-google { background: #fff; color: #1f1f1f; border: 1px solid #dadce0; }
+.provider-google:hover { background: #f2f2f2; }
+.provider-apple { background: #000; color: #fff; border: 1px solid #4a5166; }
+.provider-apple:hover { background: #111; }
+.login-error { display: flex; flex-direction: column; gap: 4px; margin: 0 0 16px; }
+.login-error-detail { color: var(--text-2); font-size: 13px; overflow-wrap: anywhere; }
+.login-none { margin: 0; }
+.login-foot { font-size: 12px; margin: 20px 0 0; text-align: center; }
 
 /* ---- misc ---- */
 .muted { color: var(--text-3); }
@@ -1088,3 +1104,4 @@ a.top-link:hover { background: var(--bg-2); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+.admin-no-email { color: var(--amber); }

@@ -6,13 +6,7 @@ import { displayName } from "../lib/displayName";
 import { modules } from "../lib/modules";
 import type { AdminUser } from "../lib/types";
 
-// No 0/O/1/l/I, so a temporary password survives being read out or retyped.
-function generatePassword(): string {
-  const alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = new Uint32Array(14);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
-}
+type Invite = { username: string; email: string; changed: boolean };
 
 type Editing = { mode: "create" } | { mode: "edit"; user: AdminUser };
 
@@ -26,7 +20,7 @@ export default function Admin() {
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [deleting, setDeleting] = useState<AdminUser | null>(null);
-  const [created, setCreated] = useState<{ username: string; password: string; reset: boolean } | null>(null);
+  const [created, setCreated] = useState<Invite | null>(null);
 
   const load = async () => {
     setError(false);
@@ -78,12 +72,16 @@ export default function Admin() {
       {created && (
         <div className="created-banner" role="status">
           <div>
-            <strong>{t(created.reset ? "admin.resetTitle" : "admin.createdTitle", { username: created.username })}</strong>
-            <p className="muted">{t("admin.createdLead")}</p>
-            <code className="created-cred">{`${created.username} / ${created.password}`}</code>
+            <strong>{t(created.changed ? "admin.emailChangedTitle" : "admin.createdTitle", { username: created.username })}</strong>
+            <p className="muted">{t("admin.createdLead", { email: created.email })}</p>
+            <code className="created-cred">{`${window.location.origin}/login`}</code>
           </div>
           <div className="created-actions">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void navigator.clipboard?.writeText(`${created.username} / ${created.password}`)}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => void navigator.clipboard?.writeText(t("admin.inviteMessage", { url: `${window.location.origin}/login`, email: created.email }))}
+            >
               {t("admin.copy")}
             </button>
             <button type="button" className="ai-summary-dismiss" aria-label={t("form.cancel")} onClick={() => setCreated(null)}>×</button>
@@ -159,7 +157,10 @@ export default function Admin() {
                             {isMe && <span className="role-badge role-badge-me">{t("admin.you")}</span>}
                           </span>
                         )}
-                        <span className="muted admin-user-sub">{`@${u.username}`}</span>
+                        <span className="muted admin-user-sub">
+                          {`@${u.username} · `}
+                          {u.email ? u.email : <span className="admin-no-email">{t("admin.noEmail")}</span>}
+                        </span>
                       </span>
                     </td>
                     <td className="admin-cell-role">
@@ -259,13 +260,12 @@ function UserForm({
   canGrantAdmin: boolean;
   onClose: () => void;
   onDelete?: () => void;
-  onSaved: (created: { username: string; password: string; reset: boolean } | null) => void;
+  onSaved: (invite: Invite | null) => void;
 }) {
   const { t } = useTranslation();
   const existing = editing.mode === "edit" ? editing.user : null;
   const [username, setUsername] = useState(existing?.username ?? "");
-  const [password, setPassword] = useState(existing ? "" : generatePassword());
-  const [resetPassword, setResetPassword] = useState(false);
+  const [email, setEmail] = useState(existing?.email ?? "");
   const [isAdmin, setIsAdmin] = useState(existing?.is_admin ?? false);
   const [granted, setGranted] = useState<string[]>(existing?.modules ?? modules.map((m) => m.key));
   const [error, setError] = useState("");
@@ -279,22 +279,24 @@ function UserForm({
       setError(t("admin.usernameRequired"));
       return;
     }
-    const sendPassword = !existing || resetPassword;
-    if (sendPassword && password.length < 8) {
-      setError(t("admin.passwordShort"));
+    const cleanEmail = email.trim().toLowerCase();
+    if (!isMe && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError(t("admin.emailInvalid"));
       return;
     }
     setBusy(true);
     try {
       if (existing) {
-        await api.adminUpdateUser(existing.id, { is_admin: isAdmin, modules: granted, password: resetPassword ? password : undefined });
-        onSaved(resetPassword ? { username: existing.username, password, reset: true } : null);
+        await api.adminUpdateUser(existing.id, { is_admin: isAdmin, modules: granted, email: isMe ? undefined : cleanEmail });
+        const changed = !isMe && cleanEmail !== existing.email.toLowerCase();
+        onSaved(changed ? { username: existing.username, email: cleanEmail, changed: true } : null);
       } else {
-        await api.adminCreateUser({ username: username.trim(), password, is_admin: isAdmin, modules: granted });
-        onSaved({ username: username.trim(), password, reset: false });
+        await api.adminCreateUser({ username: username.trim(), email: cleanEmail, is_admin: isAdmin, modules: granted });
+        onSaved({ username: username.trim(), email: cleanEmail, changed: false });
       }
     } catch (e) {
       if (e instanceof ApiError && e.code === "username_taken") setError(t("profile.usernameTaken"));
+      else if (e instanceof ApiError && e.code === "email_taken") setError(t("admin.emailTaken"));
       else setError(e instanceof ApiError ? e.message : t("common.error"));
     } finally {
       setBusy(false);
@@ -326,34 +328,21 @@ function UserForm({
             {existing && <span className="field-hint">{t("admin.usernameHint")}</span>}
           </label>
 
-          {existing && !isMe && (
-            <label className="radio-row">
-              <input
-                type="checkbox"
-                checked={resetPassword}
-                onChange={(e) => {
-                  setResetPassword(e.target.checked);
-                  if (e.target.checked && !password) setPassword(generatePassword());
-                }}
-              />
-              <span>
-                <strong>{t("admin.resetPassword")}</strong>
-                <span className="radio-desc">{t("admin.resetPasswordDesc")}</span>
-              </span>
-            </label>
-          )}
-          {(!existing || resetPassword) && (
-            <label className="field">
-              <span className="field-label">{existing ? t("admin.newPassword") : t("admin.tempPassword")}</span>
-              <div className="profile-name-row">
-                <input className="input admin-password" value={password} autoComplete="new-password" onChange={(e) => setPassword(e.target.value)} />
-                <button type="button" className="btn btn-ghost" onClick={() => setPassword(generatePassword())}>
-                  {t("admin.generate")}
-                </button>
-              </div>
-              <span className="field-hint">{t("admin.passwordHint")}</span>
-            </label>
-          )}
+          <label className="field">
+            <span className="field-label">{t("admin.email")}</span>
+            <input
+              className="input"
+              type="email"
+              value={email}
+              disabled={isMe}
+              autoComplete="off"
+              placeholder="name@gmail.com"
+              onChange={(e) => setEmail(e.target.value.replace(/\s/g, ""))}
+            />
+            <span className="field-hint">
+              {isMe ? t("admin.emailSelf") : existing ? t("admin.emailChangeHint") : t("admin.emailHint")}
+            </span>
+          </label>
 
           <fieldset className="admin-fieldset">
             <legend className="field-label">{t("admin.pages")}</legend>

@@ -3,13 +3,13 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"net/mail"
 	"os"
 	"os/signal"
 	"strings"
@@ -38,7 +38,7 @@ func main() {
 	// Server-side recovery commands. They need shell access to the server,
 	// which is exactly what makes them the right place for owner recovery.
 	if len(os.Args) > 1 {
-		if err := runCommand(db, os.Args[1:]); err != nil {
+		if err := runCommand(db, cfg, os.Args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
@@ -79,8 +79,8 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	s := handlers.New(db, cfg)
 
 	api := http.NewServeMux()
-	// A coarse per-IP ceiling in front of the database-backed sign-in
-	// throttle, so a flood can't even reach it.
+	// A per-IP ceiling on sign-in requests. There are no passwords to guess
+	// any more; this just keeps floods off the database and the providers.
 	loginRL := middleware.NewRateLimit(20, time.Minute, s.ClientIP)
 	protected := func(h http.HandlerFunc) http.Handler {
 		return middleware.Chain(h, middleware.RequireAuth(db), middleware.CSRF)
@@ -93,7 +93,14 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	}
 	admin := func(h http.HandlerFunc) http.Handler { return protected(s.RequireAdmin(h)) }
 
-	api.Handle("POST /login", loginRL.Wrap(http.HandlerFunc(s.Login)))
+	api.Handle("GET /auth/providers", http.HandlerFunc(s.AuthProviders))
+	// Start and callback are pages the browser navigates to, so hitting the
+	// limit lands back on the sign-in page with a message.
+	limited := http.RedirectHandler("/login?error=rate_limited", http.StatusSeeOther)
+	api.Handle("GET /auth/{provider}/start", loginRL.WrapWith(http.HandlerFunc(s.AuthStart), limited))
+	api.Handle("GET /auth/{provider}/callback", loginRL.WrapWith(http.HandlerFunc(s.AuthCallback), limited))
+	api.Handle("POST /auth/{provider}/callback", loginRL.WrapWith(http.HandlerFunc(s.AuthCallback), limited))
+	api.Handle("POST /auth/link", loginRL.Wrap(http.HandlerFunc(s.AuthLink)))
 	api.Handle("POST /logout", protected(s.Logout))
 	api.Handle("GET /me", protected(s.Me))
 	api.Handle("PUT /me", protected(s.UpdateMe))
@@ -147,41 +154,41 @@ func routes(db *sql.DB, cfg config.Config) http.Handler {
 	)
 }
 
-// seedAdmin creates the first user — the owner — on an empty database. If no password is
-// provided it generates one and prints it once.
+// seedAdmin creates the first user — the owner — on an empty database, and
+// gives an owner without an email the one from CORTEX_ADMIN_EMAIL.
 func seedAdmin(db *sql.DB, cfg config.Config) error {
 	var n int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil {
 		return err
 	}
-	if n > 0 {
-		return nil
+	var email any
+	if cfg.AdminEmail != "" {
+		email = cfg.AdminEmail
 	}
-	password := cfg.AdminPassword
-	generated := false
-	if password == "" {
-		tok, err := auth.NewToken()
+	if n > 0 {
+		if email == nil {
+			return nil
+		}
+		res, err := db.Exec(`UPDATE users SET email = $1 WHERE is_owner AND email IS NULL`, email)
 		if err != nil {
 			return err
 		}
-		password = tok[:16]
-		generated = true
-	}
-	hash, err := auth.HashPassword(password)
-	if err != nil {
-		return err
+		if k, _ := res.RowsAffected(); k > 0 {
+			log.Printf("owner email set to %s from CORTEX_ADMIN_EMAIL", cfg.AdminEmail)
+		}
+		return nil
 	}
 	if _, err := db.Exec(
-		`INSERT INTO users (username, password_hash, created_at, display_name_en, display_name_id, display_name_zh, is_admin, is_owner, modules)
+		`INSERT INTO users (username, email, created_at, display_name_en, display_name_id, display_name_zh, is_admin, is_owner, modules)
 		 VALUES ($1, $2, $3, $1, $1, $1, true, true, $4)`,
-		cfg.AdminUser, hash, time.Now().UTC(), handlers.Modules,
+		cfg.AdminUser, email, time.Now().UTC(), handlers.Modules,
 	); err != nil {
 		return err
 	}
-	if generated {
-		fmt.Fprintf(os.Stderr, "\n  Created user %q with generated password: %s\n  Save it now; it will not be shown again.\n\n", cfg.AdminUser, password)
+	if email != nil {
+		log.Printf("created owner %q — sign in with Google or Apple as %s", cfg.AdminUser, cfg.AdminEmail)
 	} else {
-		log.Printf("created user %q from CORTEX_ADMIN_PASSWORD", cfg.AdminUser)
+		log.Printf("created owner %q without an email — set CORTEX_ADMIN_EMAIL, or run `cortex sign-in-link %s`", cfg.AdminUser, cfg.AdminUser)
 	}
 	return nil
 }
@@ -193,23 +200,26 @@ func purgeSessions(db *sql.DB) {
 		if err := auth.PurgeExpiredSessions(db); err != nil {
 			log.Printf("purge sessions: %v", err)
 		}
-		// Sign-in counters nobody has touched for two days are over: their
-		// failure window and cooldown memory have both lapsed.
-		if _, err := db.Exec(`DELETE FROM login_throttle WHERE updated_at < now() - interval '2 days'
-		                        AND (locked_until IS NULL OR locked_until < now())`); err != nil {
-			log.Printf("purge sign-in throttle: %v", err)
+		// Abandoned sign-ins and unused sign-in links.
+		for _, q := range []string{
+			`DELETE FROM auth_flows WHERE expires_at < now()`,
+			`DELETE FROM sign_in_links WHERE expires_at < now()`,
+		} {
+			if _, err := db.Exec(q); err != nil {
+				log.Printf("purge sign-in state: %v", err)
+			}
 		}
 	}
 }
 
 const usage = `usage:
-  cortex                            run the server
-  cortex reset-password <username>  set a new password (prompted) and sign the account out everywhere
-  cortex make-owner <username>      make this account the owner (the previous owner stays an administrator)
-  cortex unlock <username>          clear failed sign-in cooldowns for this account`
+  cortex                               run the server
+  cortex sign-in-link <username>       print a one-time sign-in link (valid 15 minutes)
+  cortex set-email <username> <email>  change who can sign in as this account (unlinks Google/Apple, signs out everywhere)
+  cortex make-owner <username>         make this account the owner (the previous owner stays an administrator)`
 
-func runCommand(db *sql.DB, args []string) error {
-	if len(args) != 2 {
+func runCommand(db *sql.DB, cfg config.Config, args []string) error {
+	if len(args) < 2 {
 		return fmt.Errorf("%s", usage)
 	}
 	var id int64
@@ -219,35 +229,41 @@ func runCommand(db *sql.DB, args []string) error {
 		}
 		return err
 	}
-	switch args[0] {
-	case "reset-password":
-		password, err := readPassword()
+	switch {
+	case args[0] == "sign-in-link" && len(args) == 2:
+		link, err := handlers.NewSignInLink(db, cfg.PublicURL, id)
 		if err != nil {
 			return err
 		}
-		hash, err := auth.HashPassword(password)
-		if err != nil {
-			return err
+		fmt.Printf("One-time sign-in link for %q (valid 15 minutes):\n\n  %s\n\n", args[1], link)
+	case args[0] == "set-email" && len(args) == 3:
+		email := strings.ToLower(strings.TrimSpace(args[2]))
+		if a, err := mail.ParseAddress(email); err != nil || a.Address != email {
+			return fmt.Errorf("%q is not a valid email address", args[2])
 		}
 		tx, err := db.Begin()
 		if err != nil {
 			return err
 		}
 		defer tx.Rollback()
-		if _, err := tx.Exec(`UPDATE users SET password_hash = $1 WHERE id = $2`, hash, id); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = $1`, id); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`DELETE FROM login_throttle WHERE key LIKE 'ui:' || lower($1) || '|%' OR key = 'u:' || lower($1)`, args[1]); err != nil {
-			return err
+		for _, q := range []string{
+			`UPDATE users SET email = $2 WHERE id = $1`,
+			`DELETE FROM user_identities WHERE user_id = $1`,
+			`DELETE FROM sessions WHERE user_id = $1`,
+		} {
+			args := []any{id}
+			if strings.Contains(q, "$2") {
+				args = append(args, email)
+			}
+			if _, err := tx.Exec(q, args...); err != nil {
+				return err
+			}
 		}
 		if err := tx.Commit(); err != nil {
 			return err
 		}
-		fmt.Printf("Password for %q changed; every session was signed out.\n", args[1])
-	case "make-owner":
+		fmt.Printf("%q now signs in as %s; old sign-ins and sessions were removed.\n", args[1], email)
+	case args[0] == "make-owner" && len(args) == 2:
 		tx, err := db.Begin()
 		if err != nil {
 			return err
@@ -263,31 +279,8 @@ func runCommand(db *sql.DB, args []string) error {
 			return err
 		}
 		fmt.Printf("%q is now the owner.\n", args[1])
-	case "unlock":
-		if _, err := db.Exec(`DELETE FROM login_throttle WHERE key LIKE 'ui:' || lower($1) || '|%' OR key = 'u:' || lower($1)`, args[1]); err != nil {
-			return err
-		}
-		fmt.Printf("Sign-in cooldowns for %q cleared.\n", args[1])
 	default:
 		return fmt.Errorf("%s", usage)
 	}
 	return nil
-}
-
-// readPassword takes the new password from CORTEX_NEW_PASSWORD or stdin, so
-// it never ends up in shell history as an argument.
-func readPassword() (string, error) {
-	p := os.Getenv("CORTEX_NEW_PASSWORD")
-	if p == "" {
-		fmt.Fprint(os.Stderr, "New password: ")
-		line, err := bufio.NewReader(os.Stdin).ReadString('\n')
-		if err != nil && line == "" {
-			return "", err
-		}
-		p = strings.TrimRight(line, "\r\n")
-	}
-	if len(p) < 8 {
-		return "", errors.New("password must be at least 8 characters")
-	}
-	return p, nil
 }

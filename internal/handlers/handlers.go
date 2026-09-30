@@ -6,12 +6,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
 
 	"github.com/reynerpantou/cortex/internal/config"
 	"github.com/reynerpantou/cortex/internal/middleware"
+	"github.com/reynerpantou/cortex/internal/sso"
 )
 
 type Server struct {
@@ -19,11 +21,25 @@ type Server struct {
 	Cfg      config.Config
 	ClientIP func(*http.Request) string
 
+	// Providers are the sign-in options that are configured, by name.
+	Providers map[string]*sso.Provider
+
 	financeReady sync.Map // user ids whose finance setup is known to exist
 }
 
 func New(db *sql.DB, cfg config.Config) *Server {
-	return &Server{DB: db, Cfg: cfg, ClientIP: middleware.ClientIP(cfg.TrustedProxies)}
+	s := &Server{DB: db, Cfg: cfg, ClientIP: middleware.ClientIP(cfg.TrustedProxies), Providers: map[string]*sso.Provider{}}
+	if cfg.GoogleClientID != "" && cfg.GoogleClientSecret != "" {
+		s.Providers["google"] = sso.NewGoogle(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleTestBase)
+	}
+	if cfg.AppleClientID != "" && cfg.AppleTeamID != "" && cfg.AppleKeyID != "" && cfg.ApplePrivateKey != "" {
+		p, err := sso.NewApple(cfg.AppleClientID, cfg.AppleTeamID, cfg.AppleKeyID, cfg.ApplePrivateKey, cfg.AppleTestBase)
+		if err != nil {
+			log.Fatalf("sign in with apple: %v", err)
+		}
+		s.Providers["apple"] = p
+	}
+	return s
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
