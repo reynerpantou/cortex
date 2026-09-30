@@ -75,13 +75,6 @@ func DeleteSession(db *sql.DB, token string) error {
 	return err
 }
 
-// DeleteOtherSessions signs a user out everywhere except the current
-// session — used after a password change.
-func DeleteOtherSessions(db *sql.DB, userID int64, keepToken string) error {
-	_, err := db.Exec(`DELETE FROM sessions WHERE user_id = $1 AND token <> $2`, userID, HashToken(keepToken))
-	return err
-}
-
 // PurgeExpiredSessions deletes stale sessions; call periodically.
 func PurgeExpiredSessions(db *sql.DB) error {
 	_, err := db.Exec(`DELETE FROM sessions WHERE expires_at < $1`, time.Now().UTC())

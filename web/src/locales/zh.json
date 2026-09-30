@@ -24,16 +24,25 @@
   },
   "login": {
     "subtitle": "登录以继续",
-    "username": "用户名",
-    "password": "密码",
-    "submit": "登录",
-    "signingIn": "登录中…",
-    "failed": "用户名或密码错误",
-    "locked": "失败次数过多。",
-    "tryAgainIn": "请在 {{time}} 后重试。",
-    "attemptsLeft_one": "还可尝试 {{count}} 次，之后需等待冷却。",
-    "attemptsLeft_other": "还可尝试 {{count}} 次，之后需等待冷却。",
-    "error": "无法登录，请重试。"
+    "signingIn": "正在登录…",
+    "continueWith": {
+      "google": "使用 Google 继续",
+      "apple": "使用 Apple 继续"
+    },
+    "errors": {
+      "cancelled": "已取消登录。",
+      "expired": "登录耗时过长，或是在另一个浏览器中发起的。请重试。",
+      "failed": "无法登录，请重试。",
+      "unavailable": "此登录方式尚未设置。",
+      "not_invited": "此账户尚未受邀使用 Cortex。",
+      "rate_limited": "来自你网络的登录尝试过多。请稍等一分钟后重试。"
+    },
+    "notInvitedEmail": "你以 {{email}} 登录。",
+    "notInvitedHint": "请让所有者在“管理”中添加这个完全相同的地址。使用 Apple 时，请选择“共享我的电子邮件”，而不是“隐藏邮件地址”。",
+    "noProviders": "尚未设置任何登录方式。所有者可以使用一次性链接登录：在服务器上运行 `cortex sign-in-link <username>`。",
+    "inviteOnly": "仅限受邀用户。请使用收到邀请的 Google 或 Apple 账户。",
+    "linkExpired": "此登录链接无效、已使用或已过期。链接有效期 15 分钟，仅可使用一次。",
+    "backToSignIn": "返回登录"
   },
   "home": {
     "greeting": "欢迎回来",
@@ -172,16 +181,16 @@
     "nameId": "印尼语名称",
     "nameZh": "中文名称",
     "useEnglishName": "使用英文名称",
-    "changePassword": "修改密码",
-    "updatePassword": "更新密码",
-    "currentPassword": "当前密码",
-    "currentPasswordPlaceholder": "仅在设置新密码时需要",
-    "currentPasswordRequired": "请输入当前密码以设置新密码",
-    "currentPasswordWrong": "当前密码不正确",
-    "newPassword": "新密码",
-    "confirmPassword": "确认新密码",
-    "passwordMismatch": "两次输入的新密码不一致",
-    "saved": "已保存"
+    "saved": "已保存",
+    "signIn": "登录方式",
+    "signInLead": "你使用 {{email}} 对应的 Google 或 Apple 账户登录。Cortex 从不存储密码。",
+    "signInNoEmail": "你的账户尚未设置电子邮件，因此 Google 和 Apple 登录无法找到你。",
+    "linked": "已关联",
+    "notLinked": "尚未使用",
+    "provider": {
+      "google": "Google",
+      "apple": "Apple"
+    }
   },
   "finance": {
     "title": "财务",
@@ -443,20 +452,12 @@
     "isAdmin": "管理员",
     "isAdminDesc": "可打开此页面并管理成员。只有所有者可以管理管理员。",
     "isAdminSelf": "你不能更改自己的角色。",
-    "tempPassword": "临时密码",
-    "newPassword": "新密码",
-    "generate": "随机生成",
-    "passwordHint": "至少 8 个字符。对方登录后可在个人资料中修改。",
-    "resetPassword": "重置密码",
-    "resetPasswordDesc": "设置新密码并让其在所有设备上退出登录。",
     "usernameHint": "此处无法修改用户名——本人可在个人资料中修改。",
     "usernameRequired": "请填写用户名",
-    "passwordShort": "密码至少 8 个字符",
     "create": "创建账户",
-    "createdTitle": "@{{username}} 已创建——请分享以下登录信息",
-    "resetTitle": "@{{username}} 的新密码",
-    "createdLead": "密码仅显示这一次。",
-    "copy": "复制",
+    "createdTitle": "已邀请 @{{username}}",
+    "createdLead": "他们可以在以下地址使用 Google 或 Apple 以 {{email}} 登录：",
+    "copy": "复制邀请",
     "deleteTitle": "删除 @{{username}}？",
     "deleteLead": "将永久删除该账户及其所有数据，包括财务记录。此操作无法撤销。",
     "deleteConfirm": "删除账户",
@@ -473,6 +474,15 @@
     "range": "第 {{from}}–{{to}} 位，共 {{total}} 位",
     "ownerBadge": "所有者",
     "lockedRow": "只有所有者可以更改此账户",
-    "isAdminOwnerOnly": "只有所有者可以授予或撤销管理员角色。"
+    "isAdminOwnerOnly": "只有所有者可以授予或撤销管理员角色。",
+    "email": "电子邮件",
+    "emailHint": "他们使用该地址对应的 Google 或 Apple 账户登录，无需密码。",
+    "emailChangeHint": "更改后将断开其当前的 Google/Apple 登录，并在所有设备上退出。",
+    "emailSelf": "你自己的电子邮件只能在服务器上更改（cortex set-email）。",
+    "emailInvalid": "请输入有效的电子邮件地址",
+    "emailTaken": "该电子邮件已被其他账户使用",
+    "noEmail": "无电子邮件 — 无法登录",
+    "emailChangedTitle": "@{{username}} 现在使用新电子邮件登录",
+    "inviteMessage": "你受邀使用 Cortex。打开 {{url}}，并使用 {{email}} 通过 Google 或 Apple 继续。"
   }
 }

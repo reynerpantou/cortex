@@ -24,16 +24,25 @@
   },
   "login": {
     "subtitle": "Sign in to continue",
-    "username": "Username",
-    "password": "Password",
-    "submit": "Sign in",
     "signingIn": "Signing in…",
-    "failed": "Incorrect username or password",
-    "locked": "Too many failed attempts.",
-    "tryAgainIn": "Try again in {{time}}.",
-    "attemptsLeft_one": "{{count}} attempt left before a cooldown.",
-    "attemptsLeft_other": "{{count}} attempts left before a cooldown.",
-    "error": "Couldn't sign in. Please try again."
+    "continueWith": {
+      "google": "Continue with Google",
+      "apple": "Continue with Apple"
+    },
+    "errors": {
+      "cancelled": "Sign-in was cancelled.",
+      "expired": "That sign-in took too long or was started in another browser. Please try again.",
+      "failed": "Couldn't sign you in. Please try again.",
+      "unavailable": "That sign-in option isn't set up.",
+      "not_invited": "This account hasn't been invited to Cortex.",
+      "rate_limited": "Too many sign-in attempts from your network. Please wait a minute and try again."
+    },
+    "notInvitedEmail": "You signed in as {{email}}.",
+    "notInvitedHint": "Ask the owner to add this exact address in Administration. With Apple, choose \"Share My Email\" rather than \"Hide My Email\".",
+    "noProviders": "No sign-in option is set up yet. The owner can sign in with a one-time link: run `cortex sign-in-link <username>` on the server.",
+    "inviteOnly": "Invite only. Use the Google or Apple account your invitation was sent to.",
+    "linkExpired": "This sign-in link is invalid, already used, or expired. Links last 15 minutes and work once.",
+    "backToSignIn": "Back to sign in"
   },
   "home": {
     "greeting": "Welcome back",
@@ -172,16 +181,16 @@
     "nameId": "Indonesian name",
     "nameZh": "Chinese name",
     "useEnglishName": "Use English name",
-    "changePassword": "Change password",
-    "updatePassword": "Update password",
-    "currentPassword": "Current password",
-    "currentPasswordPlaceholder": "Required only to set a new password",
-    "currentPasswordRequired": "Enter your current password to set a new one",
-    "currentPasswordWrong": "Current password is incorrect",
-    "newPassword": "New password",
-    "confirmPassword": "Confirm new password",
-    "passwordMismatch": "New passwords don't match",
-    "saved": "Saved"
+    "saved": "Saved",
+    "signIn": "Sign-in",
+    "signInLead": "You sign in with the Google or Apple account for {{email}}. Cortex never stores a password.",
+    "signInNoEmail": "No email is set for your account yet, so Google and Apple sign-in can't find you.",
+    "linked": "Connected",
+    "notLinked": "Not used yet",
+    "provider": {
+      "google": "Google",
+      "apple": "Apple"
+    }
   },
   "finance": {
     "title": "Finance",
@@ -453,20 +462,12 @@
     "isAdmin": "Administrator",
     "isAdminDesc": "Can open this page and manage members. Only the owner can manage administrators.",
     "isAdminSelf": "You can't change your own role.",
-    "tempPassword": "Temporary password",
-    "newPassword": "New password",
-    "generate": "Generate",
-    "passwordHint": "At least 8 characters. They can change it from Profile after signing in.",
-    "resetPassword": "Reset password",
-    "resetPasswordDesc": "Sets a new password and signs them out on every device.",
     "usernameHint": "Usernames can't be changed here — the person can change their own from Profile.",
     "usernameRequired": "Username is required",
-    "passwordShort": "Password must be at least 8 characters",
     "create": "Create account",
-    "createdTitle": "@{{username}} is ready — share these sign-in details",
-    "resetTitle": "New password for @{{username}}",
-    "createdLead": "This is the only time the password is shown.",
-    "copy": "Copy",
+    "createdTitle": "@{{username}} is invited",
+    "createdLead": "They can sign in with Google or Apple as {{email}} at:",
+    "copy": "Copy invite",
     "deleteTitle": "Delete @{{username}}?",
     "deleteLead": "This permanently deletes the account and everything that belongs to it, including their Finance records. It can't be undone.",
     "deleteConfirm": "Delete account",
@@ -484,6 +485,15 @@
     "range": "{{from}}–{{to}} of {{total}}",
     "ownerBadge": "Owner",
     "lockedRow": "Only the owner can change this account",
-    "isAdminOwnerOnly": "Only the owner can grant or remove the administrator role."
+    "isAdminOwnerOnly": "Only the owner can grant or remove the administrator role.",
+    "email": "Email",
+    "emailHint": "They sign in with the Google or Apple account for this address. No password needed.",
+    "emailChangeHint": "Changing it disconnects their current Google/Apple sign-in and signs them out everywhere.",
+    "emailSelf": "Your own email can only be changed on the server (cortex set-email).",
+    "emailInvalid": "Enter a valid email address",
+    "emailTaken": "Another account already uses that email",
+    "noEmail": "no email — can't sign in",
+    "emailChangedTitle": "@{{username}} now signs in with a new email",
+    "inviteMessage": "You're invited to Cortex. Open {{url}} and continue with Google or Apple using {{email}}."
   }
 }

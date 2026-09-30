@@ -24,16 +24,25 @@
   },
   "login": {
     "subtitle": "Masuk untuk melanjutkan",
-    "username": "Nama pengguna",
-    "password": "Kata sandi",
-    "submit": "Masuk",
-    "signingIn": "Masuk…",
-    "failed": "Nama pengguna atau kata sandi salah",
-    "locked": "Terlalu banyak percobaan gagal.",
-    "tryAgainIn": "Coba lagi dalam {{time}}.",
-    "attemptsLeft_one": "Sisa {{count}} percobaan sebelum jeda.",
-    "attemptsLeft_other": "Sisa {{count}} percobaan sebelum jeda.",
-    "error": "Gagal masuk. Silakan coba lagi."
+    "signingIn": "Sedang masuk…",
+    "continueWith": {
+      "google": "Lanjutkan dengan Google",
+      "apple": "Lanjutkan dengan Apple"
+    },
+    "errors": {
+      "cancelled": "Proses masuk dibatalkan.",
+      "expired": "Proses masuk terlalu lama atau dimulai di browser lain. Silakan coba lagi.",
+      "failed": "Gagal masuk. Silakan coba lagi.",
+      "unavailable": "Opsi masuk ini belum diatur.",
+      "not_invited": "Akun ini belum diundang ke Cortex.",
+      "rate_limited": "Terlalu banyak percobaan masuk dari jaringan Anda. Tunggu sebentar lalu coba lagi."
+    },
+    "notInvitedEmail": "Anda masuk sebagai {{email}}.",
+    "notInvitedHint": "Minta pemilik menambahkan alamat ini persis di Administrasi. Untuk Apple, pilih \"Bagikan Email Saya\", bukan \"Sembunyikan Email Saya\".",
+    "noProviders": "Belum ada opsi masuk yang diatur. Pemilik dapat masuk dengan tautan sekali pakai: jalankan `cortex sign-in-link <username>` di server.",
+    "inviteOnly": "Khusus undangan. Gunakan akun Google atau Apple yang menerima undangan Anda.",
+    "linkExpired": "Tautan masuk ini tidak valid, sudah dipakai, atau kedaluwarsa. Tautan berlaku 15 menit dan hanya sekali.",
+    "backToSignIn": "Kembali ke halaman masuk"
   },
   "home": {
     "greeting": "Selamat datang kembali",
@@ -172,16 +181,16 @@
     "nameId": "Nama (Indonesia)",
     "nameZh": "Nama (Mandarin)",
     "useEnglishName": "Gunakan nama Inggris",
-    "changePassword": "Ubah kata sandi",
-    "updatePassword": "Perbarui kata sandi",
-    "currentPassword": "Kata sandi saat ini",
-    "currentPasswordPlaceholder": "Hanya diperlukan untuk mengatur kata sandi baru",
-    "currentPasswordRequired": "Masukkan kata sandi saat ini untuk mengatur yang baru",
-    "currentPasswordWrong": "Kata sandi saat ini salah",
-    "newPassword": "Kata sandi baru",
-    "confirmPassword": "Konfirmasi kata sandi baru",
-    "passwordMismatch": "Kata sandi baru tidak cocok",
-    "saved": "Tersimpan"
+    "saved": "Tersimpan",
+    "signIn": "Cara masuk",
+    "signInLead": "Anda masuk dengan akun Google atau Apple untuk {{email}}. Cortex tidak pernah menyimpan kata sandi.",
+    "signInNoEmail": "Akun Anda belum punya email, jadi masuk dengan Google dan Apple belum bisa menemukan Anda.",
+    "linked": "Terhubung",
+    "notLinked": "Belum dipakai",
+    "provider": {
+      "google": "Google",
+      "apple": "Apple"
+    }
   },
   "finance": {
     "title": "Keuangan",
@@ -443,20 +452,12 @@
     "isAdmin": "Administrator",
     "isAdminDesc": "Dapat membuka halaman ini dan mengelola anggota. Hanya pemilik yang dapat mengelola administrator.",
     "isAdminSelf": "Anda tidak dapat mengubah peran Anda sendiri.",
-    "tempPassword": "Kata sandi sementara",
-    "newPassword": "Kata sandi baru",
-    "generate": "Buat acak",
-    "passwordHint": "Minimal 8 karakter. Mereka bisa menggantinya dari Profil setelah masuk.",
-    "resetPassword": "Reset kata sandi",
-    "resetPasswordDesc": "Mengatur kata sandi baru dan mengeluarkan mereka dari semua perangkat.",
     "usernameHint": "Nama pengguna tidak bisa diubah di sini — orangnya bisa mengubah sendiri dari Profil.",
     "usernameRequired": "Nama pengguna wajib diisi",
-    "passwordShort": "Kata sandi minimal 8 karakter",
     "create": "Buat akun",
-    "createdTitle": "@{{username}} siap — bagikan detail masuk ini",
-    "resetTitle": "Kata sandi baru untuk @{{username}}",
-    "createdLead": "Kata sandi hanya ditampilkan sekali ini.",
-    "copy": "Salin",
+    "createdTitle": "@{{username}} sudah diundang",
+    "createdLead": "Mereka bisa masuk dengan Google atau Apple sebagai {{email}} di:",
+    "copy": "Salin undangan",
     "deleteTitle": "Hapus @{{username}}?",
     "deleteLead": "Akun dan semua datanya akan dihapus permanen, termasuk catatan Keuangan mereka. Tidak bisa dibatalkan.",
     "deleteConfirm": "Hapus akun",
@@ -473,6 +474,15 @@
     "range": "{{from}}–{{to}} dari {{total}}",
     "ownerBadge": "Pemilik",
     "lockedRow": "Hanya pemilik yang dapat mengubah akun ini",
-    "isAdminOwnerOnly": "Hanya pemilik yang dapat memberi atau mencabut peran administrator."
+    "isAdminOwnerOnly": "Hanya pemilik yang dapat memberi atau mencabut peran administrator.",
+    "email": "Email",
+    "emailHint": "Mereka masuk dengan akun Google atau Apple untuk alamat ini. Tanpa kata sandi.",
+    "emailChangeHint": "Mengubahnya akan memutus akun Google/Apple mereka saat ini dan mengeluarkan mereka dari semua perangkat.",
+    "emailSelf": "Email Anda sendiri hanya bisa diubah di server (cortex set-email).",
+    "emailInvalid": "Masukkan alamat email yang valid",
+    "emailTaken": "Email itu sudah dipakai akun lain",
+    "noEmail": "tanpa email — tidak bisa masuk",
+    "emailChangedTitle": "@{{username}} sekarang masuk dengan email baru",
+    "inviteMessage": "Anda diundang ke Cortex. Buka {{url}} lalu lanjutkan dengan Google atau Apple memakai {{email}}."
   }
 }

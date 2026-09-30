@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/reynerpantou/cortex/internal/auth"
 )
 
 // Modules is every page an account can be granted. Home and Profile are
@@ -52,6 +51,8 @@ type adminUser struct {
 	IsAdmin       bool       `json:"is_admin"`
 	IsOwner       bool       `json:"is_owner"`
 	Manageable    bool       `json:"manageable"`
+	Email         string     `json:"email"`
+	Linked        []string   `json:"linked"`
 	Modules       []string   `json:"modules"`
 	CreatedAt     time.Time  `json:"created_at"`
 	LastSignIn    *time.Time `json:"last_sign_in"`
@@ -73,7 +74,7 @@ func (s *Server) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 	if q != "" {
 		like := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(q) + "%"
 		args = append(args, like)
-		where = `(u.username ILIKE $1 OR u.display_name_en ILIKE $1 OR u.display_name_id ILIKE $1 OR u.display_name_zh ILIKE $1)`
+		where = `(u.username ILIKE $1 OR u.email ILIKE $1 OR u.display_name_en ILIKE $1 OR u.display_name_id ILIKE $1 OR u.display_name_zh ILIKE $1)`
 	}
 	var total int
 	actor, err := s.loadActor(r)
@@ -88,7 +89,8 @@ func (s *Server) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 	args = append(args, adminPageSize, (page-1)*adminPageSize)
 	rows, err := s.DB.QueryContext(r.Context(),
 		`SELECT u.id, u.username, u.display_name_en, u.display_name_id, u.display_name_zh, u.is_admin, u.is_owner,
-		        array_to_string(u.modules, ','), u.created_at,
+		        array_to_string(u.modules, ','), u.created_at, COALESCE(u.email, ''),
+		        (SELECT COALESCE(string_agg(provider, ',' ORDER BY provider DESC), '') FROM user_identities WHERE user_id = u.id),
 		        (SELECT MAX(created_at) FROM sessions WHERE user_id = u.id)
 		 FROM users u WHERE `+where+`
 		 ORDER BY lower(u.username), u.id
@@ -101,12 +103,13 @@ func (s *Server) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 	out := []adminUser{}
 	for rows.Next() {
 		var u adminUser
-		var modules string
-		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &u.IsOwner, &modules, &u.CreatedAt, &u.LastSignIn); err != nil {
+		var modules, linked string
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayNameEN, &u.DisplayNameID, &u.DisplayNameZH, &u.IsAdmin, &u.IsOwner, &modules, &u.CreatedAt, &u.Email, &linked, &u.LastSignIn); err != nil {
 			writeError(w, http.StatusInternalServerError, "server_error", "could not read users")
 			return
 		}
 		u.Modules = splitModules(modules)
+		u.Linked = splitModules(linked)
 		if u.IsOwner {
 			u.Modules = slices.Clone(Modules)
 		}
@@ -174,7 +177,7 @@ func cleanModules(in []string) ([]string, bool) {
 
 type adminUserInput struct {
 	Username string   `json:"username"`
-	Password string   `json:"password"`
+	Email    string   `json:"email"`
 	IsAdmin  bool     `json:"is_admin"`
 	Modules  []string `json:"modules"`
 }
@@ -196,7 +199,8 @@ func (s *Server) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "validation_error", msg)
 		return
 	}
-	if msg := validatePassword(in.Password); msg != "" {
+	email, msg := validateEmail(in.Email)
+	if msg != "" {
 		writeError(w, http.StatusBadRequest, "validation_error", msg)
 		return
 	}
@@ -208,21 +212,16 @@ func (s *Server) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "validation_error", "unknown module")
 		return
 	}
-	hash, err := auth.HashPassword(in.Password)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "server_error", "could not set the password")
-		return
-	}
 	var id int64
 	err = s.DB.QueryRowContext(r.Context(),
-		`INSERT INTO users (username, password_hash, created_at, display_name_en, display_name_id, display_name_zh, is_admin, modules)
+		`INSERT INTO users (username, email, created_at, display_name_en, display_name_id, display_name_zh, is_admin, modules)
 		 VALUES ($1, $2, now(), $1, $1, $1, $3, $4) RETURNING id`,
-		in.Username, hash, in.IsAdmin, modules,
+		in.Username, email, in.IsAdmin, modules,
 	).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			writeError(w, http.StatusConflict, "username_taken", "that username is already taken")
+			writeUniqueError(w, pgErr)
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "server_error", "could not create the user")
@@ -231,10 +230,11 @@ func (s *Server) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]int64{"id": id})
 }
 
-// AdminUpdateUser changes a user's role, modules and optionally password,
-// within the limits of canManage. Anyone may adjust their own pages here but
-// not their own role or password (that's what Profile is for). The owner is
-// never editable. A password reset signs the user out everywhere.
+// AdminUpdateUser changes a user's role, pages and email, within the limits
+// of canManage. Anyone may adjust their own pages here but not their own
+// role or email. The owner is never editable. A new email unlinks their
+// Google/Apple accounts and signs them out everywhere, so only the person
+// behind the new address can get in.
 func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	if !ok {
@@ -252,12 +252,10 @@ func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	self := id == uid(r)
-	if self && in.Password != "" {
-		writeError(w, http.StatusBadRequest, "use_profile", "change your own password from Profile")
-		return
-	}
-	if in.Password != "" {
-		if msg := validatePassword(in.Password); msg != "" {
+	email := ""
+	if !self {
+		var msg string
+		if email, msg = validateEmail(in.Email); msg != "" {
 			writeError(w, http.StatusBadRequest, "validation_error", msg)
 			return
 		}
@@ -275,8 +273,9 @@ func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 	var t target
+	var oldEmail string
 	t.id = id
-	if err := tx.QueryRowContext(r.Context(), `SELECT is_admin, is_owner FROM users WHERE id = $1 FOR UPDATE`, id).Scan(&t.isAdmin, &t.isOwner); err != nil {
+	if err := tx.QueryRowContext(r.Context(), `SELECT is_admin, is_owner, COALESCE(email, '') FROM users WHERE id = $1 FOR UPDATE`, id).Scan(&t.isAdmin, &t.isOwner, &oldEmail); err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "user not found")
 		return
 	}
@@ -306,16 +305,21 @@ func (s *Server) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "server_error", "could not update the user")
 		return
 	}
-	if in.Password != "" {
-		hash, err := auth.HashPassword(in.Password)
+	if !self && email != strings.ToLower(oldEmail) {
+		_, err := tx.ExecContext(r.Context(), `UPDATE users SET email = $1 WHERE id = $2`, email, id)
 		if err == nil {
-			_, err = tx.ExecContext(r.Context(), `UPDATE users SET password_hash = $1 WHERE id = $2`, hash, id)
+			_, err = tx.ExecContext(r.Context(), `DELETE FROM user_identities WHERE user_id = $1`, id)
 		}
 		if err == nil {
 			_, err = tx.ExecContext(r.Context(), `DELETE FROM sessions WHERE user_id = $1`, id)
 		}
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeUniqueError(w, pgErr)
+			return
+		}
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "server_error", "could not reset the password")
+			writeError(w, http.StatusInternalServerError, "server_error", "could not change the email")
 			return
 		}
 	}
@@ -365,4 +369,13 @@ func (s *Server) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// writeUniqueError reports which unique field (username or email) clashed.
+func writeUniqueError(w http.ResponseWriter, pgErr *pgconn.PgError) {
+	if strings.Contains(pgErr.ConstraintName, "email") {
+		writeError(w, http.StatusConflict, "email_taken", "another account already uses that email")
+		return
+	}
+	writeError(w, http.StatusConflict, "username_taken", "that username is already taken")
 }

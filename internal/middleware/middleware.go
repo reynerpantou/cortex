@@ -1,5 +1,5 @@
 // Package middleware provides HTTP middleware: security headers, auth, CSRF,
-// login rate limiting, panic recovery and request logging.
+// sign-in rate limiting, panic recovery and request logging.
 package middleware
 
 import (
@@ -110,9 +110,7 @@ func NoStore(next http.Handler) http.Handler {
 }
 
 // RateLimit is a small in-memory sliding-window limiter keyed by client IP.
-// It only caps raw request volume on the login endpoint (each attempt costs
-// a deliberately slow password hash); the real attempt limits and cooldowns
-// live in the database (see handlers/throttle.go).
+// It caps raw request volume on the sign-in endpoints.
 type RateLimit struct {
 	mu     sync.Mutex
 	hits   map[string][]time.Time
@@ -137,7 +135,11 @@ func NewRateLimit(limit int, window time.Duration, ip func(*http.Request) string
 	return rl
 }
 
-func (rl *RateLimit) Wrap(next http.Handler) http.Handler {
+func (rl *RateLimit) Wrap(next http.Handler) http.Handler { return rl.WrapWith(next, nil) }
+
+// WrapWith is Wrap with a custom response when the limit is hit — for pages
+// the browser navigates to, where a JSON error would be a dead end.
+func (rl *RateLimit) WrapWith(next, limited http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := rl.ip(r)
 		now := time.Now()
@@ -152,6 +154,10 @@ func (rl *RateLimit) Wrap(next http.Handler) http.Handler {
 			rl.hits[ip] = recent
 			rl.mu.Unlock()
 			w.Header().Set("Retry-After", "60")
+			if limited != nil {
+				limited.ServeHTTP(w, r)
+				return
+			}
 			http.Error(w, `{"code":"rate_limited","message":"too many attempts, try again later"}`, http.StatusTooManyRequests)
 			return
 		}

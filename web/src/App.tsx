@@ -3,6 +3,7 @@ import { AuthProvider } from "./lib/auth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
+import SignInLink from "./pages/SignInLink";
 import Home from "./pages/Home";
 import Radar from "./pages/Radar";
 import ProblemDetail from "./pages/ProblemDetail";
@@ -22,6 +23,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/login/link" element={<SignInLink />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route index element={<Home />} />

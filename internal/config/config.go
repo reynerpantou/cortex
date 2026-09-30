@@ -16,8 +16,8 @@ type Config struct {
 	DatabaseURL     string        // Postgres connection string
 	CookieSecure    bool          // true when served over HTTPS
 	SessionTTL      time.Duration // how long a login lasts
-	AdminUser       string        // seeded on first boot if no users exist
-	AdminPassword   string        // seeded on first boot if no users exist
+	AdminUser       string        // the owner account created on first boot
+	AdminEmail      string        // the owner's Google/Apple email (set once if missing)
 	AnthropicAPIKey string        // used by the (future) AI layer; empty = AI disabled
 	FXBaseURL       string        // Frankfurter-compatible exchange-rate API (ECB daily reference rates)
 
@@ -27,8 +27,20 @@ type Config struct {
 	// client-supplied X-Forwarded-For is ignored (it could be forged).
 	TrustedProxies []netip.Prefix
 
-	LoginMaxAttempts int           // failed sign-ins before a cooldown
-	LoginLockout     time.Duration // first cooldown; repeats double it (max 24h)
+	// PublicURL is where people open Cortex (https://cortex.example.com).
+	// Google and Apple send people back to PublicURL/api/auth/<provider>/callback.
+	PublicURL string
+
+	GoogleClientID     string
+	GoogleClientSecret string
+	AppleClientID      string // the Services ID, e.g. com.example.cortex.web
+	AppleTeamID        string
+	AppleKeyID         string
+	ApplePrivateKey    string // contents of the .p8 key
+
+	// Test-only: point a provider at a fake server. Empty in production.
+	GoogleTestBase string
+	AppleTestBase  string
 }
 
 func Load() Config {
@@ -41,14 +53,37 @@ func Load() Config {
 		CookieSecure:    envBool("CORTEX_COOKIE_SECURE", true),
 		SessionTTL:      time.Duration(envInt("CORTEX_SESSION_TTL_HOURS", 168)) * time.Hour,
 		AdminUser:       env("CORTEX_ADMIN_USER", "admin"),
-		AdminPassword:   env("CORTEX_ADMIN_PASSWORD", ""),
+		AdminEmail:      strings.ToLower(strings.TrimSpace(env("CORTEX_ADMIN_EMAIL", ""))),
 		AnthropicAPIKey: env("ANTHROPIC_API_KEY", ""),
 		FXBaseURL:       env("CORTEX_FX_URL", "https://api.frankfurter.dev/v1"),
 
-		TrustedProxies:   envPrefixes("CORTEX_TRUSTED_PROXIES"),
-		LoginMaxAttempts: envInt("CORTEX_LOGIN_MAX_ATTEMPTS", 5),
-		LoginLockout:     time.Duration(envInt("CORTEX_LOGIN_LOCKOUT_MINUTES", 15)) * time.Minute,
+		TrustedProxies: envPrefixes("CORTEX_TRUSTED_PROXIES"),
+
+		PublicURL:          strings.TrimRight(env("CORTEX_PUBLIC_URL", "http://localhost:8080"), "/"),
+		GoogleClientID:     env("CORTEX_GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: env("CORTEX_GOOGLE_CLIENT_SECRET", ""),
+		AppleClientID:      env("CORTEX_APPLE_CLIENT_ID", ""),
+		AppleTeamID:        env("CORTEX_APPLE_TEAM_ID", ""),
+		AppleKeyID:         env("CORTEX_APPLE_KEY_ID", ""),
+		ApplePrivateKey:    envOrFile("CORTEX_APPLE_PRIVATE_KEY"),
+		GoogleTestBase:     env("CORTEX_GOOGLE_TEST_BASE", ""),
+		AppleTestBase:      env("CORTEX_APPLE_TEST_BASE", ""),
 	}
+}
+
+// envOrFile reads K, or the file named by K_FILE (for keys mounted as files).
+func envOrFile(k string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	if path := os.Getenv(k + "_FILE"); path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			log.Fatalf("%s_FILE: %v", k, err)
+		}
+		return string(b)
+	}
+	return ""
 }
 
 // envPrefixes parses a comma-separated list of IPs and CIDRs.
